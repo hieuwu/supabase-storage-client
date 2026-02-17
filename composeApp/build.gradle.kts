@@ -41,9 +41,16 @@ kotlin {
     }
     
     sourceSets {
+        val iosMain by getting {
+            dependencies {
+                 implementation(libs.multiplatform.settings.keychain)
+            }
+        }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.koin.android)
+            implementation(libs.androidx.security.crypto)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -54,6 +61,22 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+
+            // Supabase
+            implementation(project.dependencies.platform(libs.supabase.bom))
+            implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.storage)
+            implementation(libs.supabase.auth)
+            implementation(libs.supabase.realtime)
+            implementation(libs.ktor.client.core)
+
+            // Multiplatform Settings
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.coroutines)
+            implementation(libs.multiplatform.settings.serialization)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
