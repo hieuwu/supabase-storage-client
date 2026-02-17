@@ -41,11 +41,6 @@ kotlin {
     }
     
     sourceSets {
-        val iosMain by getting {
-            dependencies {
-                 implementation(libs.multiplatform.settings.keychain)
-            }
-        }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
@@ -56,6 +51,7 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -75,8 +71,6 @@ kotlin {
 
             // Multiplatform Settings
             implementation(libs.multiplatform.settings)
-            implementation(libs.multiplatform.settings.coroutines)
-            implementation(libs.multiplatform.settings.serialization)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

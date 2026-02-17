@@ -20,6 +20,7 @@ ktor = "3.1.0"
 supabasekt = "3.1.1"
 multiplatformSettings = "1.3.0"
 androidx-security-crypto = "1.1.0-alpha06"
+materialIconsExtended = "1.7.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -36,6 +37,7 @@ androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
@@ -47,18 +49,14 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 
 # Supabase
 supabase-bom = { module = "io.github.jan-tennert.supabase:bom", version.ref = "supabasekt" }
-supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest" }
-supabase-storage = { module = "io.github.jan-tennert.supabase:storage" }
-supabase-auth = { module = "io.github.jan-tennert.supabase:auth" }
-supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime" }
+supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt" }
+supabase-storage = { module = "io.github.jan-tennert.supabase:storage-kt" }
+supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt" }
+supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 
 # Multiplatform Settings
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
-multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
-multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
-multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatformSettings" }
-multiplatform-settings-keychain = { module = "com.russhwolf:multiplatform-settings-keychain", version.ref = "multiplatformSettings" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security-crypto" }
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

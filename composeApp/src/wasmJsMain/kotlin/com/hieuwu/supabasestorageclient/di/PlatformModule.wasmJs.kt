@@ -4,5 +4,5 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 actual fun platformModule(): Module = module {
-    // Add Wasm-specific dependencies here
+    single<com.russhwolf.settings.Settings> { com.russhwolf.settings.StorageSettings() }
 }
