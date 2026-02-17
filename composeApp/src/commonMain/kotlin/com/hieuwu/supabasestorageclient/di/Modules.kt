@@ -1,17 +1,22 @@
 package com.hieuwu.supabasestorageclient.di
 
 import com.hieuwu.supabasestorageclient.SupabaseClientManager
+import com.hieuwu.supabasestorageclient.data.repository.CredentialRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.OnboardingRepositoryImpl
+import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.OnboardingRepository
+import com.hieuwu.supabasestorageclient.presentation.credentials.CredentialsViewModel
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val coreModule = module {
-    single { SupabaseClientManager(get()) }
+    single { SupabaseClientManager() }
     single<OnboardingRepository> { OnboardingRepositoryImpl(get()) }
+    single<CredentialRepository> { CredentialRepositoryImpl(get()) }
 }
 
 val featureModule = module {
     viewModel { OnboardingViewModel(get()) }
+    viewModel { CredentialsViewModel(get(), get()) }
 }

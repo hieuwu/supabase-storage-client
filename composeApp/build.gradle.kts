@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {
@@ -46,6 +47,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.ktor.client.android)   // or latest stable 3.x version
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -71,6 +73,10 @@ kotlin {
 
             // Multiplatform Settings
             implementation(libs.multiplatform.settings)
+
+            // Kotlinx
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hieuwu.supabasestorageclient.presentation.credentials.CredentialsScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -23,42 +24,12 @@ fun App() {
         val isOnboardingCompleted by onboardingViewModel.isCompleted.collectAsStateWithLifecycle()
         
         if (isOnboardingCompleted) {
-            // Main app content - placeholder for now
-            MainContent()
+            CredentialsScreen()
         } else {
             OnboardingScreen(
                 onComplete = {
-                    // Navigate to add project screen or main content
-                    // For now, onboarding completion will trigger recomposition
+                    onboardingViewModel.completeOnboarding()
                 }
-            )
-        }
-    }
-}
-
-@Composable
-private fun MainContent() {
-    // Placeholder main content
-    // TODO: Replace with actual project list or add project screen
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Welcome to Supabase Storage Manager!",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Main app content goes here",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
             )
         }
     }
