@@ -7,6 +7,7 @@ import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import io.github.jan.supabase.storage.storage
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -15,7 +16,10 @@ data class CredentialsUiState(
     val lastUsedId: String? = null,
     val showCredentialsId: Set<String> = emptySet(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val isSettingUp: Boolean = false,
+    val error: String? = null,
+    val showDeleteConfirmation: Boolean = false,
+    val credentialToDelete: Credential? = null
 )
 
 class CredentialsViewModel(
@@ -43,13 +47,6 @@ class CredentialsViewModel(
                             isLoading = false
                         )
                     }
-                    
-                    // Auto-select last used if available and client not initialized
-                    if (supabaseClientManager.client.value == null && lastUsedId != null) {
-                        credentials.find { it.id == lastUsedId }?.let {
-                            supabaseClientManager.selectCredential(it)
-                        }
-                    }
                 }
         }
     }
@@ -67,9 +64,20 @@ class CredentialsViewModel(
 
     fun selectCredential(credential: Credential) {
         viewModelScope.launch {
-            credentialRepository.setLastUsedId(credential.id)
-            supabaseClientManager.selectCredential(credential)
-            _uiState.update { it.copy(lastUsedId = credential.id) }
+            _uiState.update { it.copy(isSettingUp = true, error = null) }
+            try {
+                credentialRepository.setLastUsedId(credential.id)
+                val newClient = supabaseClientManager.createClient(credential)
+
+                newClient.storage.retrieveBuckets()
+                
+                supabaseClientManager.setClient(newClient)
+                _uiState.update { it.copy(lastUsedId = credential.id) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Verification failed: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isSettingUp = false) }
+            }
         }
     }
 
@@ -84,7 +92,6 @@ class CredentialsViewModel(
                     key = key
                 )
                 credentialRepository.saveCredential(newCredential)
-                selectCredential(newCredential)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to add credential: ${e.message}") }
             }
@@ -93,5 +100,24 @@ class CredentialsViewModel(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun showDeleteDialog(credential: Credential) {
+        _uiState.update { it.copy(showDeleteConfirmation = true, credentialToDelete = credential) }
+    }
+
+    fun hideDeleteDialog() {
+        _uiState.update { it.copy(showDeleteConfirmation = false, credentialToDelete = null) }
+    }
+
+    fun deleteCredential(id: String) {
+        viewModelScope.launch {
+            try {
+                credentialRepository.removeCredential(id)
+                hideDeleteDialog()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to delete credential: ${e.message}") }
+            }
+        }
     }
 }

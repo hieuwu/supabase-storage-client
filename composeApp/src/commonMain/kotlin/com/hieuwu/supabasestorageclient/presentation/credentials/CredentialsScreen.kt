@@ -1,17 +1,53 @@
 package com.hieuwu.supabasestorageclient.presentation.credentials
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,19 +104,75 @@ fun CredentialsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.credentials, key = { it.id }) { credential ->
-                        CredentialItem(
-                            credential = credential,
-                            isExpanded = uiState.showCredentialsId.contains(credential.id),
-                            isLastUsed = uiState.lastUsedId == credential.id,
-                            onToggleVisibility = { viewModel.toggleCredentialVisibility(credential.id) },
-                            onSelect = { viewModel.selectCredential(credential) }
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { dismissValue ->
+                                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.showDeleteDialog(credential)
+                                    false
+                                } else {
+                                    false
+                                }
+                            }
                         )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                val color = when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                    else -> Color.Transparent
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color, shape = MaterialTheme.shapes.medium)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            CredentialItem(
+                                credential = credential,
+                                isExpanded = uiState.showCredentialsId.contains(credential.id),
+                                isLastUsed = uiState.lastUsedId == credential.id,
+                                onToggleVisibility = { viewModel.toggleCredentialVisibility(credential.id) },
+                                onSelect = { viewModel.selectCredential(credential) }
+                            )
+                        }
                     }
                 }
             }
 
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+
+            if (uiState.isSettingUp) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Verifying connection...",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
 
             if (uiState.error != null) {
@@ -113,6 +205,29 @@ fun CredentialsScreen(
                 onCancel = { showAddSheet = false }
             )
         }
+    }
+
+    if (uiState.showDeleteConfirmation && uiState.credentialToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.hideDeleteDialog() },
+            title = { Text("Delete Credential") },
+            text = { Text("Are you sure you want to delete '${uiState.credentialToDelete?.name}'?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        uiState.credentialToDelete?.let { viewModel.deleteCredential(it.id) }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

@@ -16,21 +16,23 @@ class SupabaseClientManager {
     private val _client = MutableStateFlow<SupabaseClient?>(null)
     val client: StateFlow<SupabaseClient?> = _client.asStateFlow()
 
-    fun selectCredential(credential: Credential) {
-        try {
-            val newClient = createSupabaseClient(
-                supabaseUrl = credential.url,
-                supabaseKey = credential.key
-            ) {
-                install(Postgrest)
-                install(Storage)
-                install(Auth)
-                install(Realtime)
-            }
-            _client.value = newClient
-        } catch (e: Exception) {
-            e.printStackTrace()
-            // Handle error logic if needed
+    fun createClient(credential: Credential): SupabaseClient {
+        return createSupabaseClient(
+            supabaseUrl = credential.url,
+            supabaseKey = credential.key
+        ) {
+            install(Postgrest)
+            install(Storage)
+            install(Auth)
+            install(Realtime)
         }
+    }
+
+    fun setClient(client: SupabaseClient) {
+        _client.value = client
+    }
+
+    fun clearClient() {
+        _client.value = null
     }
 }
