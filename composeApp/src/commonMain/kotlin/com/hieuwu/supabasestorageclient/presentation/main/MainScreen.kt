@@ -22,7 +22,8 @@ enum class MainTab {
 fun MainScreen(
     onLogout: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
-    onNavigateToAbout: () -> Unit = {}
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToBucket: (String) -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(MainTab.Buckets) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -97,7 +98,9 @@ fun MainScreen(
         ) { padding ->
             Box(modifier = Modifier.padding(padding)) {
                 when (selectedTab) {
-                    MainTab.Buckets -> BucketsScreen()
+                    MainTab.Buckets -> BucketsScreen(
+                        onBucketClick = onNavigateToBucket
+                    )
                     MainTab.Starred -> StarredScreen()
                     MainTab.Settings -> SettingsScreen()
                 }

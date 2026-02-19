@@ -11,12 +11,19 @@ import com.hieuwu.supabasestorageclient.presentation.main.MainScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.search.SearchScreen
 
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Credentials : Screen("credentials")
     object Main : Screen("main")
     object Search : Screen("search")
     object About : Screen("about")
+    object Bucket : Screen("bucket/{bucketId}?path={path}") {
+        fun createRoute(bucketId: String, path: String? = null) = 
+            "bucket/$bucketId" + if (path != null) "?path=$path" else ""
+    }
 }
 
 @Composable
@@ -40,9 +47,42 @@ fun NavGraph(
             MainScreen(
                 onLogout = onLogout,
                 onNavigateToSearch = { navController.navigate(Screen.Search.route) },
-                onNavigateToAbout = { navController.navigate(Screen.About.route) }
+                onNavigateToAbout = { navController.navigate(Screen.About.route) },
+                onNavigateToBucket = { bucketId -> 
+                    navController.navigate(Screen.Bucket.createRoute(bucketId))
+                }
             )
         }
+        composable(
+            route = Screen.Bucket.route,
+            arguments = listOf(
+                navArgument("bucketId") { type = NavType.StringType },
+                navArgument("path") { 
+                    type = NavType.StringType
+                    nullable = true 
+                }
+            )
+        ) { backStackEntry ->
+            val bucketId = backStackEntry.arguments?.get("bucketId")?.toString().orEmpty()
+            val path = backStackEntry.arguments?.get("path")?.toString()
+            com.hieuwu.supabasestorageclient.presentation.bucket.BucketScreen(
+                bucketId = bucketId,
+                path = path,
+                onBack = { navController.popBackStack() },
+                onNavigateToFolder = { newPath ->
+                    navController.navigate(Screen.Bucket.createRoute(bucketId, newPath))
+                },
+                onNavigateToPath = { targetPath ->
+                    // For breadcrumbs, we might want to pop to that level or just navigate to it.
+                    // To keep it simple and preserve state of previous levels, we navigate to the new path.
+                    // If the path is the same as current, we don't navigate.
+                    if (targetPath != path) {
+                        navController.navigate(Screen.Bucket.createRoute(bucketId, targetPath))
+                    }
+                }
+            )
+        }
+
         composable(Screen.Search.route) {
             SearchScreen(onBack = { navController.popBackStack() })
         }
