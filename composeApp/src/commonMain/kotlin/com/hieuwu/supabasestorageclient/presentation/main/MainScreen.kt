@@ -2,54 +2,106 @@ package com.hieuwu.supabasestorageclient.presentation.main
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsScreen
+import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
+import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
+import kotlinx.coroutines.launch
+
+enum class MainTab {
+    Buckets, Starred, Settings
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onBack: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {}
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Storage Buckets", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+    var selectedTab by remember { mutableStateOf(MainTab.Buckets) }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Supabase Storage",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                NavigationDrawerItem(
+                    label = { Text("About") },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onNavigateToAbout()
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+            }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Welcome to Supabase Storage",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "This is a placeholder for the storage buckets list. You've successfully connected to your Supabase project!",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Fetching buckets...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(selectedTab.name, fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            scope.launch { drawerState.open() }
+                        }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToSearch) {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                        IconButton(onClick = onLogout) {
+                            Icon(Icons.Default.Logout, contentDescription = "Logout")
+                        }
+                    }
+                )
+            },
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Storage, contentDescription = "Buckets") },
+                        label = { Text("Buckets") },
+                        selected = selectedTab == MainTab.Buckets,
+                        onClick = { selectedTab = MainTab.Buckets }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Star, contentDescription = "Starred") },
+                        label = { Text("Starred") },
+                        selected = selectedTab == MainTab.Starred,
+                        onClick = { selectedTab = MainTab.Starred }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        label = { Text("Settings") },
+                        selected = selectedTab == MainTab.Settings,
+                        onClick = { selectedTab = MainTab.Settings }
+                    )
+                }
+            }
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding)) {
+                when (selectedTab) {
+                    MainTab.Buckets -> BucketsScreen()
+                    MainTab.Starred -> StarredScreen()
+                    MainTab.Settings -> SettingsScreen()
+                }
+            }
         }
     }
 }
