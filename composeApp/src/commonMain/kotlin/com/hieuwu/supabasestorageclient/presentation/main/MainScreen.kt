@@ -1,6 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.main
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -8,10 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
@@ -107,32 +110,41 @@ fun MainScreen(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             floatingActionButton = {
-                if (currentRoute?.startsWith("bucket") == true) {
-                    var expanded by remember { mutableStateOf(false) }
-                    Box {
-                        FloatingActionButton(onClick = { expanded = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add")
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("New Folder") },
-                                onClick = {
-                                    expanded = false
-                                    viewModel.onNewFolderClick()
-                                },
-                                leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Upload File") },
-                                onClick = {
-                                    expanded = false
-                                    viewModel.onUploadFileClick()
-                                },
-                                leadingIcon = { Icon(Icons.Default.UploadFile, contentDescription = null) }
-                            )
+                when {
+                    currentRoute == Screen.BucketsTab.route -> {
+                        ExtendedFloatingActionButton(
+                            onClick = { viewModel.onCreateBucketClick() },
+                            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            text = { Text("Create bucket") }
+                        )
+                    }
+                    currentRoute?.startsWith("bucket") == true -> {
+                        var expanded by remember { mutableStateOf(false) }
+                        Box {
+                            FloatingActionButton(onClick = { expanded = true }) {
+                                Icon(Icons.Default.Add, contentDescription = "Add")
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("New Folder") },
+                                    onClick = {
+                                        expanded = false
+                                        viewModel.onNewFolderClick()
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Upload File") },
+                                    onClick = {
+                                        expanded = false
+                                        viewModel.onUploadFileClick()
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.UploadFile, contentDescription = null) }
+                                )
+                            }
                         }
                     }
                 }
@@ -268,6 +280,84 @@ fun MainScreen(
                 }
             }
         }
+    }
+
+    if (uiState.isCreateBucketDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissCreateBucketDialog() },
+            title = { Text("Create Bucket") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = uiState.newBucketId,
+                        onValueChange = { viewModel.onNewBucketIdChange(it) },
+                        label = { Text("Bucket ID") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Public")
+                        Spacer(Modifier.weight(1f))
+                        Switch(
+                            checked = uiState.isNewBucketPublic,
+                            onCheckedChange = { viewModel.onNewBucketPublicToggle(it) }
+                        )
+                    }
+                    OutlinedTextField(
+                        value = uiState.newBucketFileSizeLimit,
+                        onValueChange = { viewModel.onNewBucketFileSizeLimitChange(it) },
+                        label = { Text("File Size Limit") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    var unitExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = unitExpanded,
+                        onExpandedChange = { unitExpanded = !unitExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.newBucketFileSizeUnit.name.lowercase().replaceFirstChar { it.uppercase() },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Unit") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = unitExpanded,
+                            onDismissRequest = { unitExpanded = false }
+                        ) {
+                            SizeUnit.entries.forEach { unit ->
+                                DropdownMenuItem(
+                                    text = { Text(unit.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                    onClick = {
+                                        viewModel.onNewBucketFileSizeUnitChange(unit)
+                                        unitExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.onConfirmCreateBucket() }) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onDismissCreateBucketDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (uiState.isNewFolderDialogVisible) {

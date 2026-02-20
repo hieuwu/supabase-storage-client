@@ -18,9 +18,11 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BucketsScreen(
     onBucketClick: (String) -> Unit,
@@ -34,7 +36,11 @@ fun BucketsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier.fillMaxSize()
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadBuckets() },
+            modifier = Modifier.padding(padding).fillMaxSize()
+        ) {
             if (uiState.isLoading && uiState.buckets.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (uiState.error != null && uiState.buckets.isEmpty()) {

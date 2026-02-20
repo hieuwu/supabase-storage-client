@@ -2,14 +2,14 @@ package com.hieuwu.supabasestorageclient.data.repository
 
 import com.hieuwu.supabasestorageclient.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
+import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import io.github.jan.supabase.storage.DownloadStatus
 import io.github.jan.supabase.storage.UploadStatus
-import io.github.jan.supabase.storage.BucketApi
 import io.github.jan.supabase.storage.downloadPublicAsFlow
-import io.github.jan.supabase.storage.uploadAsFlow
 import io.github.jan.supabase.storage.storage
+import io.github.jan.supabase.storage.uploadAsFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -118,5 +118,18 @@ class StorageRepositoryImpl(
 
     override suspend fun deleteBucket(bucketId: String) {
         client().storage.deleteBucket(bucketId)
+    }
+
+    override suspend fun createBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?) {
+        client().storage.createBucket(id) {
+            this.public = public
+            this.fileSizeLimit = when (unit) {
+                SizeUnit.BYTES -> fileSizeLimit?.bytes
+                SizeUnit.KILOBYTES -> fileSizeLimit?.kilobytes
+                SizeUnit.MEGABYTES -> fileSizeLimit?.megabytes
+                SizeUnit.GIGABYTES -> fileSizeLimit?.gigabytes
+                null -> null
+            }
+        }
     }
 }

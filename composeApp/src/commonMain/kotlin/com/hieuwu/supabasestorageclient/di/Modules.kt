@@ -15,6 +15,7 @@ import com.hieuwu.supabasestorageclient.data.repository.StorageRepositoryImpl
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.OnboardingRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DownloadFileUseCase
@@ -69,6 +70,7 @@ val featureModule = module {
     singleOf(::CreateFolderUseCase)
     singleOf(::UploadFileUseCase)
     singleOf(::EmptyBucketUseCase)
+    singleOf(::CreateBucketUseCase)
     singleOf(::DeleteBucketUseCase)
 
     // Storage ViewModels
