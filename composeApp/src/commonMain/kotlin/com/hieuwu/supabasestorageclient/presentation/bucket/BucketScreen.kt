@@ -30,6 +30,7 @@ fun BucketScreen(
     onBack: () -> Unit,
     onNavigateToFolder: (String) -> Unit,
     onNavigateToPath: (String) -> Unit,
+    onNavigateToFile: (String) -> Unit,
     viewModel: BucketViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) }),
     modifier: Modifier = Modifier
 ) {
@@ -89,6 +90,8 @@ fun BucketScreen(
                                                 "$path/${item.name}"
                                             }
                                             onNavigateToFolder(newPath)
+                                        } else {
+                                            onNavigateToFile(item.name)
                                         }
                                     }
                                 )

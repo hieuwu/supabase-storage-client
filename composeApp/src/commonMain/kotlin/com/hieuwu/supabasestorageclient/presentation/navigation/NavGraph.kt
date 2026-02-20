@@ -24,6 +24,10 @@ sealed class Screen(val route: String) {
         fun createRoute(bucketId: String, path: String? = null) = 
             "bucket/$bucketId" + if (path != null) "?path=$path" else ""
     }
+    object FileView : Screen("file-view/{bucketId}/{fileName}?path={path}") {
+        fun createRoute(bucketId: String, fileName: String, path: String? = null) = 
+            "file-view/$bucketId/$fileName" + if (path != null) "?path=$path" else ""
+    }
 }
 
 @Composable
@@ -79,6 +83,9 @@ fun NavGraph(
                     if (targetPath != path) {
                         navController.navigate(Screen.Bucket.createRoute(bucketId, targetPath))
                     }
+                },
+                onNavigateToFile = { fileName ->
+                    navController.navigate(Screen.FileView.createRoute(bucketId, fileName, path))
                 }
             )
         }
@@ -88,6 +95,28 @@ fun NavGraph(
         }
         composable(Screen.About.route) {
             AboutScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.FileView.route,
+            arguments = listOf(
+                navArgument("bucketId") { type = NavType.StringType },
+                navArgument("fileName") { type = NavType.StringType },
+                navArgument("path") { 
+                    type = NavType.StringType
+                    nullable = true 
+                }
+            )
+        ) { backStackEntry ->
+            val bucketId = backStackEntry.arguments?.getString("bucketId").orEmpty()
+            val fileName = backStackEntry.arguments?.getString("fileName").orEmpty()
+            val path = backStackEntry.arguments?.getString("path")
+            com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen(
+                bucketId = bucketId,
+                fileName = fileName,
+                path = path,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

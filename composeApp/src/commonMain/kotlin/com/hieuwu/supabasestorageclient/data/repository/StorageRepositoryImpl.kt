@@ -51,5 +51,46 @@ class StorageRepositoryImpl(
             )
         }
     }
+
+    override suspend fun getPublicUrl(bucketId: String, path: String): String {
+        val client = supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
+        return client.storage.from(bucketId).publicUrl(path)
+    }
+
+    override suspend fun downloadFile(bucketId: String, path: String): ByteArray {
+        val client = supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
+        return client.storage.from(bucketId).downloadPublic(path)
+    }
+
+    override suspend fun deleteFile(bucketId: String, path: String) {
+        val client = supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
+        client.storage.from(bucketId).delete(path)
+    }
+
+    override suspend fun getFileMetadata(bucketId: String, path: String): StorageItem {
+        val client = supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
+        val bucket = client.storage.from(bucketId)
+        
+        // Split path to get parent directory and filename
+        val lastSlash = path.lastIndexOf('/')
+        val parentPath = if (lastSlash != -1) path.substring(0, lastSlash) else ""
+        val fileName = if (lastSlash != -1) path.substring(lastSlash + 1) else path
+        
+        val list = bucket.list(parentPath)
+        val file = list.find { it.name == fileName } ?: throw Exception("File not found")
+        
+        val size = file.metadata?.get("size")?.jsonPrimitive?.longOrNull
+        
+        return StorageItem(
+            name = file.name,
+            id = file.id,
+            updatedAt = file.updatedAt,
+            createdAt = file.createdAt,
+            lastAccessedAt = file.lastAccessedAt,
+            metadata = emptyMap(),
+            isFolder = file.id == null,
+            size = size
+        )
+    }
 }
 
