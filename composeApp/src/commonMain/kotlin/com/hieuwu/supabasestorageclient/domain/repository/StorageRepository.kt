@@ -10,4 +10,5 @@ interface StorageRepository {
     suspend fun downloadFile(bucketId: String, path: String): ByteArray
     suspend fun deleteFile(bucketId: String, path: String)
     suspend fun getFileMetadata(bucketId: String, path: String): StorageItem
+    suspend fun moveFile(bucketId: String, fromPath: String, toPath: String)
 }

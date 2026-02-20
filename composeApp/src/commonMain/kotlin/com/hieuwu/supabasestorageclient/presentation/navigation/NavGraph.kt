@@ -76,16 +76,8 @@ fun NavGraph(
                 onNavigateToFolder = { newPath ->
                     navController.navigate(Screen.Bucket.createRoute(bucketId, newPath))
                 },
-                onNavigateToPath = { targetPath ->
-                    // For breadcrumbs, we might want to pop to that level or just navigate to it.
-                    // To keep it simple and preserve state of previous levels, we navigate to the new path.
-                    // If the path is the same as current, we don't navigate.
-                    if (targetPath != path) {
-                        navController.navigate(Screen.Bucket.createRoute(bucketId, targetPath))
-                    }
-                },
-                onNavigateToFile = { fileName ->
-                    navController.navigate(Screen.FileView.createRoute(bucketId, fileName, path))
+                onNavigateToFile = { bId, fileName, p ->
+                    navController.navigate(Screen.FileView.createRoute(bId, fileName, p))
                 }
             )
         }

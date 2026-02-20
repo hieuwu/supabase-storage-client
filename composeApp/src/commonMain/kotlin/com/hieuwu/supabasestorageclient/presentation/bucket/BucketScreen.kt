@@ -1,26 +1,26 @@
 package com.hieuwu.supabasestorageclient.presentation.bucket
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-
-
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,81 +29,107 @@ fun BucketScreen(
     path: String?,
     onBack: () -> Unit,
     onNavigateToFolder: (String) -> Unit,
-    onNavigateToPath: (String) -> Unit,
-    onNavigateToFile: (String) -> Unit,
-    viewModel: BucketViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) }),
-    modifier: Modifier = Modifier
+    onNavigateToFile: (String, String, String?) -> Unit,
+    viewModel: BucketViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var itemToRename by remember { mutableStateOf<StorageItem?>(null) }
+    var itemToMove by remember { mutableStateOf<StorageItem?>(null) }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(bucketId, fontWeight = FontWeight.Bold) },
+                title = { 
+                    Breadcrumbs(
+                        currentPath = path.orEmpty(),
+                        onPathClick = onNavigateToFolder
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            Breadcrumbs(
-                currentPath = path.orEmpty(),
-                onPathClick = onNavigateToPath
-            )
-            
-            HorizontalDivider()
-
-            Box(modifier = Modifier.weight(1.0f).fillMaxSize()) {
-                if (uiState.isLoading && uiState.items.isEmpty()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                } else if (uiState.error != null && uiState.items.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
-                        Button(onClick = { viewModel.loadContents() }) {
-                            Text("Retry")
-                        }
-                    }
-                } else {
-                    val state = rememberPullToRefreshState()
-                    PullToRefreshBox(
-                        isRefreshing = uiState.isLoading,
-                        onRefresh = { viewModel.loadContents() },
-                        state = state,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(uiState.items) { item ->
-                                StorageItemRow(
-                                    item = item,
-                                    onClick = {
-                                        if (item.isFolder) {
-                                            val newPath = if (path.isNullOrEmpty()) {
-                                                item.name
-                                            } else {
-                                                "$path/${item.name}"
-                                            }
-                                            onNavigateToFolder(newPath)
-                                        } else {
-                                            onNavigateToFile(item.name)
-                                        }
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            if (uiState.isLoading && uiState.items.isEmpty()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                PullToRefreshBox(
+                    isRefreshing = uiState.isLoading,
+                    onRefresh = { viewModel.loadContents() }
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(uiState.items) { item ->
+                            StorageItemRow(
+                                item = item,
+                                onClick = {
+                                    if (item.isFolder) {
+                                        val nextPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                        onNavigateToFolder(nextPath)
+                                    } else {
+                                        onNavigateToFile(bucketId, item.name, path)
                                     }
-                                )
-                                HorizontalDivider()
-                            }
+                                },
+                                onRename = { itemToRename = item },
+                                onMove = { itemToMove = item },
+                                onDelete = { viewModel.deleteItem(item.name) },
+                                onGetUrl = { 
+                                    viewModel.getPublicUrl(item.name) { url ->
+                                        // In a real app, copy to clipboard here.
+                                    }
+                                }
+                            )
+                            HorizontalDivider()
                         }
                     }
                 }
             }
         }
+
+        itemToRename?.let { item ->
+            RenameDialog(
+                item = item,
+                onDismiss = { itemToRename = null },
+                onConfirm = { newName ->
+                    viewModel.renameItem(item.name, newName)
+                    itemToRename = null
+                }
+            )
+        }
+
+        itemToMove?.let { item ->
+            MoveDialog(
+                item = item,
+                onDismiss = { itemToMove = null },
+                onConfirm = { newPath ->
+                    viewModel.moveItem(item.name, newPath)
+                    itemToMove = null
+                }
+            )
+        }
     }
 }
+
 @Composable
 fun Breadcrumbs(
     currentPath: String,
@@ -114,14 +140,14 @@ fun Breadcrumbs(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "root",
             modifier = Modifier.clickable { onPathClick("") },
             color = if (currentPath.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.titleMedium
         )
         
         if (currentPath.isNotEmpty()) {
@@ -133,14 +159,14 @@ fun Breadcrumbs(
                 
                 Text(
                     text = " / ",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = part,
                     modifier = Modifier.clickable { onPathClick(pathSnapshot) },
                     color = if (index == parts.lastIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
         }
@@ -150,8 +176,14 @@ fun Breadcrumbs(
 @Composable
 fun StorageItemRow(
     item: StorageItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onRename: () -> Unit,
+    onMove: () -> Unit,
+    onDelete: () -> Unit,
+    onGetUrl: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     ListItem(
         headlineContent = { Text(item.name) },
         supportingContent = {
@@ -176,7 +208,149 @@ fun StorageItemRow(
                 tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
+        trailingContent = {
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    if (item.isFolder) {
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = { onRename(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Move") },
+                            onClick = { onMove(); showMenu = false },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Download") },
+                            onClick = { /* TODO */ showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = { onDelete(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text("Get URL") },
+                            onClick = { onGetUrl(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = { onRename(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Move") },
+                            onClick = { onMove(); showMenu = false },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Download") },
+                            onClick = { /* TODO */ showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = { onDelete(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                        )
+                    }
+                }
+            }
+        },
         modifier = Modifier.clickable { onClick() }
+    )
+}
+
+@Composable
+fun RenameDialog(
+    item: StorageItem,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    val nameWithoutExtension = item.name.substringBeforeLast(".")
+    
+    var textFieldValue by remember {
+        val initialText = item.name
+        val selectionEnd = if (item.isFolder) initialText.length else nameWithoutExtension.length
+        mutableStateOf(
+            TextFieldValue(
+                text = initialText,
+                selection = androidx.compose.ui.text.TextRange(0, selectionEnd)
+            )
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename ${if (item.isFolder) "Folder" else "File"}") },
+        text = {
+            OutlinedTextField(
+                value = textFieldValue,
+                onValueChange = { textFieldValue = it },
+                label = { Text("New Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(textFieldValue.text) }) {
+                Text("Rename")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun MoveDialog(
+    item: StorageItem,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var newPath by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Move ${if (item.isFolder) "Folder" else "File"}") },
+        text = {
+            Column {
+                Text("Enter new path in current bucket. Leave empty for root.")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = newPath,
+                    onValueChange = { newPath = it },
+                    label = { Text("New Path") },
+                    placeholder = { Text("path/to/folder") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(newPath) }) {
+                Text("Move")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
     )
 }
 

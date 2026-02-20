@@ -92,5 +92,10 @@ class StorageRepositoryImpl(
             size = size
         )
     }
+
+    override suspend fun moveFile(bucketId: String, fromPath: String, toPath: String) {
+        val client = supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
+        client.storage.from(bucketId).move(fromPath, toPath)
+    }
 }
 

@@ -13,6 +13,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketContent
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketsUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetFileMetadataUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.presentation.bucket.BucketViewModel
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsViewModel
 import com.hieuwu.supabasestorageclient.presentation.credentials.CredentialsViewModel
@@ -41,10 +42,13 @@ val featureModule = module {
     singleOf(::DownloadFileUseCase)
     singleOf(::DeleteFileUseCase)
     singleOf(::GetFileMetadataUseCase)
+    singleOf(::MoveFileUseCase)
 
     // Storage ViewModels
     viewModelOf(::BucketsViewModel)
-    viewModel { (bucketId: String, path: String?) -> BucketViewModel(bucketId, path, get()) }
+    viewModel { (bucketId: String, path: String?) -> 
+        BucketViewModel(bucketId, path, get(), get(), get(), get()) 
+    }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(
             bucketId = bucketId,
