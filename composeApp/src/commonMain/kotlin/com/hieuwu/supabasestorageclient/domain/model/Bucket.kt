@@ -6,5 +6,7 @@ data class Bucket(
     val owner: String,
     val public: Boolean,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val allowedMimeTypes: List<String>?,
+    val fileSizeLimit: Long?
 )

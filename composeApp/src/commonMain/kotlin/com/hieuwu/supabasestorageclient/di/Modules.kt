@@ -24,6 +24,8 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetFileMetadataU
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.UploadFileUseCase
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.EmptyBucketUseCase
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteBucketUseCase
 import com.hieuwu.supabasestorageclient.presentation.filebrowser.FileBrowserViewModel
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsViewModel
 import com.hieuwu.supabasestorageclient.presentation.credentials.CredentialsViewModel
@@ -66,6 +68,8 @@ val featureModule = module {
     singleOf(::MoveFileUseCase)
     singleOf(::CreateFolderUseCase)
     singleOf(::UploadFileUseCase)
+    singleOf(::EmptyBucketUseCase)
+    singleOf(::DeleteBucketUseCase)
 
     // Storage ViewModels
     viewModelOf(::BucketsViewModel)

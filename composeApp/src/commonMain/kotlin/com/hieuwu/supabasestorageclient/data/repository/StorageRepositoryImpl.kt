@@ -32,7 +32,9 @@ class StorageRepositoryImpl(
                 owner = bucket.owner ?: "",
                 public = bucket.public,
                 createdAt = bucket.createdAt.toString(),
-                updatedAt = bucket.updatedAt.toString()
+                updatedAt = bucket.updatedAt.toString(),
+                allowedMimeTypes = bucket.allowedMimeTypes,
+                fileSizeLimit = bucket.fileSizeLimit
             )
         }
     }
@@ -108,5 +110,13 @@ class StorageRepositoryImpl(
     ): Flow<UploadStatus> = flow {
         val bucket = client().storage.from(bucketId)
         emitAll(bucket.uploadAsFlow(path, data))
+    }
+
+    override suspend fun emptyBucket(bucketId: String) {
+        client().storage.emptyBucket(bucketId)
+    }
+
+    override suspend fun deleteBucket(bucketId: String) {
+        client().storage.deleteBucket(bucketId)
     }
 }
