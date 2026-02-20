@@ -7,6 +7,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketContent
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
+import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +27,8 @@ class BucketViewModel(
     private val getBucketContentsUseCase: GetBucketContentsUseCase,
     private val deleteFileUseCase: DeleteFileUseCase,
     private val moveFileUseCase: MoveFileUseCase,
-    private val getPublicUrlUseCase: GetPublicUrlUseCase
+    private val getPublicUrlUseCase: GetPublicUrlUseCase,
+    private val clipboardManager: ClipboardManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BucketUiState())
@@ -98,18 +100,25 @@ class BucketViewModel(
         }
     }
 
-    fun getPublicUrl(name: String, onResult: (String) -> Unit) {
+    fun getPublicUrl(name: String) {
         viewModelScope.launch {
             val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
             getPublicUrlUseCase(bucketId, fullPath).fold(
                 onSuccess = { url ->
-                    onResult(url)
+                    clipboardManager.copyText(url)
+                    _uiState.update { it.copy(successMessage = "URL copied to clipboard") }
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(error = error.message) }
                 }
             )
         }
+    }
+
+    fun copyPath(name: String) {
+        val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
+        clipboardManager.copyText(fullPath)
+        _uiState.update { it.copy(successMessage = "Path copied to clipboard") }
     }
 
     fun clearMessages() {

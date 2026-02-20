@@ -93,11 +93,8 @@ fun BucketScreen(
                                 onRename = { itemToRename = item },
                                 onMove = { itemToMove = item },
                                 onDelete = { viewModel.deleteItem(item.name) },
-                                onGetUrl = { 
-                                    viewModel.getPublicUrl(item.name) { url ->
-                                        // In a real app, copy to clipboard here.
-                                    }
-                                }
+                                onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                onCopyPath = { viewModel.copyPath(item.name) }
                             )
                             HorizontalDivider()
                         }
@@ -180,7 +177,8 @@ fun StorageItemRow(
     onRename: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
-    onGetUrl: () -> Unit
+    onGetUrl: () -> Unit,
+    onCopyPath: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -229,6 +227,11 @@ fun StorageItemRow(
                             leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
                         )
                         DropdownMenuItem(
+                            text = { Text("Copy path") },
+                            onClick = { onCopyPath(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Download") },
                             onClick = { /* TODO */ showMenu = false },
                             leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
@@ -238,7 +241,8 @@ fun StorageItemRow(
                             onClick = { onDelete(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
                         )
-                    } else {
+                    }
+ else {
                         DropdownMenuItem(
                             text = { Text("Get URL") },
                             onClick = { onGetUrl(); showMenu = false },

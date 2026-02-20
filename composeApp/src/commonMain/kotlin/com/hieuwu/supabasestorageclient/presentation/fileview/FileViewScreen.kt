@@ -32,10 +32,25 @@ fun FileViewScreen(
     viewModel: FileViewViewModel = koinViewModel(parameters = { parametersOf(bucketId, fileName, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
             onBack()
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
         }
     }
 
@@ -44,11 +59,10 @@ fun FileViewScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = fileName, 
-                        fontWeight = FontWeight.Bold,
+                        text = fileName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -56,7 +70,8 @@ fun FileViewScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -97,7 +112,7 @@ fun FileViewScreen(
 
             FileActionsRow(
                 onDownload = { viewModel.downloadFile() },
-                onGetUrl = { /* TODO: Copy to clipboard */ },
+                onGetUrl = { viewModel.copyUrl() },
                 onDelete = { viewModel.deleteFile() }
             )
         }
