@@ -32,44 +32,29 @@ fun BucketScreen(
     viewModel: FileBrowserViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
 
     var itemToRename by remember { mutableStateOf<StorageItem?>(null) }
     var itemToMove by remember { mutableStateOf<StorageItem?>(null) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Breadcrumbs(
-                        currentPath = path.orEmpty(),
-                        onPathClick = onNavigateToFolder
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Breadcrumbs(
+            currentPath = path.orEmpty(),
+            onPathClick = onNavigateToFolder,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (uiState.isLoading && uiState.items.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {

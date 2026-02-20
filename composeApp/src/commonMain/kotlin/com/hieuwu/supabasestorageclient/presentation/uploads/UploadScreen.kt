@@ -19,23 +19,16 @@ import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadScreen(
     viewModel: UploadViewModel = koinViewModel()
 ) {
     val uploads by viewModel.uploads.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Uploads") }
-            )
-        }
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         if (uploads.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -55,7 +48,7 @@ fun UploadScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {

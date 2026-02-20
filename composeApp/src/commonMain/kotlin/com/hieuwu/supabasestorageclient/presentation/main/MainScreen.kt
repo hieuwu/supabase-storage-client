@@ -3,6 +3,7 @@ package com.hieuwu.supabasestorageclient.presentation.main
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -80,10 +81,17 @@ fun MainScreen(
                         Text(title, fontWeight = FontWeight.Bold)
                     },
                     navigationIcon = {
-                        IconButton(onClick = {
-                            scope.launch { drawerState.open() }
-                        }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        val isSubScreen = currentRoute?.startsWith("bucket") == true || currentRoute?.startsWith("file-view") == true
+                        if (isSubScreen) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        } else {
+                            IconButton(onClick = {
+                                scope.launch { drawerState.open() }
+                            }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
                         }
                     },
                     actions = {
