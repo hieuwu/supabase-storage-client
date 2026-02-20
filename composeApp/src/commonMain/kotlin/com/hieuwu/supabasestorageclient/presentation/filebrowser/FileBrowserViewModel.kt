@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.presentation.bucket
+package com.hieuwu.supabasestorageclient.presentation.filebrowser
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,7 +23,7 @@ data class BucketUiState(
     val successMessage: String? = null
 )
 
-class BucketViewModel(
+class FileBrowserViewModel(
     private val bucketId: String,
     private val path: String?,
     private val getBucketContentsUseCase: GetBucketContentsUseCase,

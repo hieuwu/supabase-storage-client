@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.presentation.bucket
+package com.hieuwu.supabasestorageclient.presentation.filebrowser
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -15,7 +15,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
@@ -30,7 +29,7 @@ fun BucketScreen(
     onBack: () -> Unit,
     onNavigateToFolder: (String) -> Unit,
     onNavigateToFile: (String, String, String?) -> Unit,
-    viewModel: BucketViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) })
+    viewModel: FileBrowserViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }

@@ -12,7 +12,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.hieuwu.supabasestorageclient.presentation.bucket.BucketScreen
+import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsScreen
 import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsScreen
 import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen
