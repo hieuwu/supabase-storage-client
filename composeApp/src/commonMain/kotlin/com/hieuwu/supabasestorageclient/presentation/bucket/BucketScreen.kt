@@ -94,7 +94,8 @@ fun BucketScreen(
                                 onMove = { itemToMove = item },
                                 onDelete = { viewModel.deleteItem(item.name) },
                                 onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                onCopyPath = { viewModel.copyPath(item.name) }
+                                onCopyPath = { viewModel.copyPath(item.name) },
+                                onDownload = { viewModel.downloadItem(item.name) }
                             )
                             HorizontalDivider()
                         }
@@ -178,7 +179,8 @@ fun StorageItemRow(
     onMove: () -> Unit,
     onDelete: () -> Unit,
     onGetUrl: () -> Unit,
-    onCopyPath: () -> Unit
+    onCopyPath: () -> Unit,
+    onDownload: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -233,7 +235,7 @@ fun StorageItemRow(
                         )
                         DropdownMenuItem(
                             text = { Text("Download") },
-                            onClick = { /* TODO */ showMenu = false },
+                            onClick = { onDownload(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
                         )
                         DropdownMenuItem(
@@ -260,7 +262,7 @@ fun StorageItemRow(
                         )
                         DropdownMenuItem(
                             text = { Text("Download") },
-                            onClick = { /* TODO */ showMenu = false },
+                            onClick = { onDownload(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
                         )
                         DropdownMenuItem(

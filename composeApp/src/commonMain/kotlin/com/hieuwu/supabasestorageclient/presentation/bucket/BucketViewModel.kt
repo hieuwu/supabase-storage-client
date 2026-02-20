@@ -2,12 +2,14 @@ package com.hieuwu.supabasestorageclient.presentation.bucket
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketContentsUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
+import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +30,9 @@ class BucketViewModel(
     private val deleteFileUseCase: DeleteFileUseCase,
     private val moveFileUseCase: MoveFileUseCase,
     private val getPublicUrlUseCase: GetPublicUrlUseCase,
-    private val clipboardManager: ClipboardManager
+    private val clipboardManager: ClipboardManager,
+    private val downloadManager: DownloadManager,
+    private val directoryPicker: DirectoryPicker
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BucketUiState())
@@ -119,6 +123,21 @@ class BucketViewModel(
         val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
         clipboardManager.copyText(fullPath)
         _uiState.update { it.copy(successMessage = "Path copied to clipboard") }
+    }
+
+    fun downloadItem(name: String) {
+        viewModelScope.launch {
+            val destDir = directoryPicker.pickDirectory()
+            if (destDir == null) return@launch
+            val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
+            downloadManager.download(
+                bucketId = bucketId,
+                path = fullPath,
+                fileName = name,
+                destinationPath = destDir
+            )
+            _uiState.update { it.copy(successMessage = "Download started") }
+        }
     }
 
     fun clearMessages() {

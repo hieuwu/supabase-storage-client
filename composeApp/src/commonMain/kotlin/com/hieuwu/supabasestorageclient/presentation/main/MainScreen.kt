@@ -9,12 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsScreen
+import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsScreen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
 import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
 import kotlinx.coroutines.launch
 
 enum class MainTab {
-    Buckets, Starred, Settings
+    Buckets, Starred, Downloads, Settings
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,6 +89,12 @@ fun MainScreen(
                         onClick = { selectedTab = MainTab.Starred }
                     )
                     NavigationBarItem(
+                        icon = { Icon(Icons.Default.Download, contentDescription = "Downloads") },
+                        label = { Text("Downloads") },
+                        selected = selectedTab == MainTab.Downloads,
+                        onClick = { selectedTab = MainTab.Downloads }
+                    )
+                    NavigationBarItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                         label = { Text("Settings") },
                         selected = selectedTab == MainTab.Settings,
@@ -102,6 +109,7 @@ fun MainScreen(
                         onBucketClick = onNavigateToBucket
                     )
                     MainTab.Starred -> StarredScreen()
+                    MainTab.Downloads -> DownloadsScreen()
                     MainTab.Settings -> SettingsScreen()
                 }
             }

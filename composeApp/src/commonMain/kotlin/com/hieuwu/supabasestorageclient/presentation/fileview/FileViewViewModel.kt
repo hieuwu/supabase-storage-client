@@ -2,12 +2,13 @@ package com.hieuwu.supabasestorageclient.presentation.fileview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.DownloadFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetFileMetadataUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
+import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,10 +32,11 @@ class FileViewViewModel(
     private val fileName: String,
     private val path: String?,
     private val getPublicUrlUseCase: GetPublicUrlUseCase,
-    private val downloadFileUseCase: DownloadFileUseCase,
     private val deleteFileUseCase: DeleteFileUseCase,
     private val getFileMetadataUseCase: GetFileMetadataUseCase,
-    private val clipboardManager: ClipboardManager
+    private val clipboardManager: ClipboardManager,
+    private val downloadManager: DownloadManager,
+    private val directoryPicker: DirectoryPicker
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileViewUiState(bucketId = bucketId, fileName = fileName, path = path))
@@ -49,7 +51,6 @@ class FileViewViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
             
-            // Load Public URL
             getPublicUrlUseCase(bucketId, fullPath).fold(
                 onSuccess = { url ->
                     _uiState.update { it.copy(publicUrl = url) }
@@ -59,7 +60,6 @@ class FileViewViewModel(
                 }
             )
 
-            // Load Metadata
             getFileMetadataUseCase(bucketId, fullPath).fold(
                 onSuccess = { metadata ->
                     _uiState.update { it.copy(metadata = metadata, isLoading = false) }
@@ -73,18 +73,19 @@ class FileViewViewModel(
 
     fun downloadFile() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            val destDir = directoryPicker.pickDirectory()
+            if (destDir == null) {
+                // User cancelled the picker
+                return@launch
+            }
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
-            downloadFileUseCase(bucketId, fullPath).fold(
-                onSuccess = { 
-                    // In a real app, we'd save this to disk.
-                    // For now, we just notify success or failure.
-                    _uiState.update { it.copy(isLoading = false) }
-                 },
-                onFailure = { error ->
-                    _uiState.update { it.copy(error = error.message, isLoading = false) }
-                }
+            downloadManager.download(
+                bucketId = bucketId,
+                path = fullPath,
+                fileName = fileName,
+                destinationPath = destDir
             )
+            _uiState.update { it.copy(successMessage = "Download started") }
         }
     }
 
