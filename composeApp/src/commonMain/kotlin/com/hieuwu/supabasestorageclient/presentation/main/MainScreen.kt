@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -19,17 +20,22 @@ import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen
 import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
 import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
+import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     onLogout: () -> Unit = {},
-    rootNavController: NavHostController
+    rootNavController: NavHostController,
+    viewModel: MainViewModel = koinViewModel()
 ) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -65,6 +71,7 @@ fun MainScreen(
                             currentRoute?.startsWith("buckets-tab") == true -> "Buckets"
                             currentRoute?.startsWith("starred-tab") == true -> "Starred"
                             currentRoute?.startsWith("downloads-tab") == true -> "Downloads"
+                            currentRoute?.startsWith("uploads-tab") == true -> "Uploads"
                             currentRoute?.startsWith("settings-tab") == true -> "Settings"
                             currentRoute?.startsWith("bucket") == true -> "Browse"
                             currentRoute?.startsWith("file-view") == true -> "File"
@@ -88,6 +95,38 @@ fun MainScreen(
                         }
                     }
                 )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            floatingActionButton = {
+                if (currentRoute?.startsWith("bucket") == true) {
+                    var expanded by remember { mutableStateOf(false) }
+                    Box {
+                        FloatingActionButton(onClick = { expanded = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add")
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("New Folder") },
+                                onClick = {
+                                    expanded = false
+                                    viewModel.onNewFolderClick()
+                                },
+                                leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Upload File") },
+                                onClick = {
+                                    expanded = false
+                                    viewModel.onUploadFileClick()
+                                },
+                                leadingIcon = { Icon(Icons.Default.UploadFile, contentDescription = null) }
+                            )
+                        }
+                    }
+                }
             },
             bottomBar = {
                 NavigationBar {
@@ -128,6 +167,18 @@ fun MainScreen(
                         }
                     )
                     NavigationBarItem(
+                        icon = { Icon(Icons.Default.Upload, contentDescription = "Uploads") },
+                        label = { Text("Uploads") },
+                        selected = currentRoute == Screen.UploadsTab.route,
+                        onClick = {
+                            navController.navigate(Screen.UploadsTab.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    NavigationBarItem(
                         icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                         label = { Text("Settings") },
                         selected = currentRoute == Screen.SettingsTab.route,
@@ -156,6 +207,7 @@ fun MainScreen(
                     }
                     composable(Screen.StarredTab.route) { StarredScreen() }
                     composable(Screen.DownloadsTab.route) { DownloadsScreen() }
+                    composable(Screen.UploadsTab.route) { UploadScreen() }
                     composable(Screen.SettingsTab.route) { SettingsScreen() }
 
                     composable(
@@ -205,6 +257,53 @@ fun MainScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    if (uiState.isNewFolderDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissNewFolderDialog() },
+            title = { Text("New Folder") },
+            text = {
+                OutlinedTextField(
+                    value = uiState.newFolderName,
+                    onValueChange = { viewModel.onNewFolderNameChange(it) },
+                    label = { Text("Folder Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.onCreateFolder() }) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onDismissNewFolderDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    LaunchedEffect(uiState.successMessage, uiState.error) {
+        uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
+
+    LaunchedEffect(viewModel.navigateToUploads) {
+        viewModel.navigateToUploads.collect {
+            navController.navigate(Screen.UploadsTab.route) {
+                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
             }
         }
     }

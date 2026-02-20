@@ -58,3 +58,27 @@ class JvmFileOpener : FileOpener {
 }
 
 actual fun getFileOpener(): FileOpener = JvmFileOpener()
+
+class JvmPermissionManager : PermissionManager {
+    override suspend fun requestStoragePermission(): Boolean = true
+}
+
+actual fun getPermissionManager(): PermissionManager = JvmPermissionManager()
+
+class JvmFilePicker : FilePicker {
+    override suspend fun pickFile(): SelectedFile? = withContext(Dispatchers.Main) {
+        val challenger = JFileChooser().apply {
+            fileSelectionMode = JFileChooser.FILES_ONLY
+            dialogTitle = "Select file to upload"
+        }
+        val result = challenger.showOpenDialog(null)
+        if (result == JFileChooser.APPROVE_OPTION) {
+            val file = challenger.selectedFile
+            SelectedFile(file.name, file.readBytes())
+        } else {
+            null
+        }
+    }
+}
+
+actual fun getFilePicker(): FilePicker = JvmFilePicker()

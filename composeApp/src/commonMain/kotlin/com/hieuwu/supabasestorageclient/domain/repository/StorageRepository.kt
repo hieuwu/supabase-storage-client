@@ -14,4 +14,6 @@ interface StorageRepository {
     suspend fun deleteFile(bucketId: String, path: String)
     suspend fun getFileMetadata(bucketId: String, path: String): StorageItem
     suspend fun moveFile(bucketId: String, fromPath: String, toPath: String)
+    suspend fun createFolder(bucketId: String, path: String)
+    fun uploadFileAsFlow(bucketId: String, path: String, data: ByteArray): Flow<io.github.jan.supabase.storage.UploadStatus>
 }

@@ -33,6 +33,34 @@ class AndroidDirectoryPicker : DirectoryPicker {
 
 actual fun getDirectoryPicker(): DirectoryPicker = AndroidDirectoryPicker()
 
+class AndroidFilePicker : FilePicker {
+    private val context: Context
+        get() = KoinPlatformTools.defaultContext().get().get<Context>()
+
+    override suspend fun pickFile(): SelectedFile? {
+        val uri = FilePickerHandler.pickFile() ?: return null
+        val fileName = getFileName(context, uri) ?: "unknown_file"
+        val data = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        return SelectedFile(fileName, data)
+    }
+
+    private fun getFileName(context: Context, uri: Uri): String? {
+        if (uri.scheme == "content") {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1) {
+                        return cursor.getString(nameIndex)
+                    }
+                }
+            }
+        }
+        return uri.path?.substringAfterLast('/')
+    }
+}
+
+actual fun getFilePicker(): FilePicker = AndroidFilePicker()
+
 class AndroidFileOpener : FileOpener {
     private val context: Context
         get() = KoinPlatformTools.defaultContext().get().get<Context>()

@@ -10,6 +10,7 @@ import com.hieuwu.supabasestorageclient.presentation.credentials.CredentialsScre
 import com.hieuwu.supabasestorageclient.presentation.main.MainScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.search.SearchScreen
+import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
 
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -23,6 +24,7 @@ sealed class Screen(val route: String) {
     object BucketsTab : Screen("buckets-tab")
     object StarredTab : Screen("starred-tab")
     object DownloadsTab : Screen("downloads-tab")
+    object UploadsTab : Screen("uploads-tab")
     object SettingsTab : Screen("settings-tab")
     object Bucket : Screen("bucket/{bucketId}?path={path}") {
         fun createRoute(bucketId: String, path: String? = null) = 

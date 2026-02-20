@@ -5,8 +5,10 @@ import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import io.github.jan.supabase.storage.DownloadStatus
+import io.github.jan.supabase.storage.UploadStatus
 import io.github.jan.supabase.storage.BucketApi
 import io.github.jan.supabase.storage.downloadPublicAsFlow
+import io.github.jan.supabase.storage.uploadAsFlow
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -92,5 +94,19 @@ class StorageRepositoryImpl(
 
     override suspend fun moveFile(bucketId: String, fromPath: String, toPath: String) {
         client().storage.from(bucketId).move(fromPath, toPath)
+    }
+
+    override suspend fun createFolder(bucketId: String, path: String) {
+        val placeholderPath = if (path.endsWith("/")) "${path}.placeholder" else "$path/.placeholder"
+        client().storage.from(bucketId).upload(placeholderPath, byteArrayOf(1))
+    }
+
+    override fun uploadFileAsFlow(
+        bucketId: String,
+        path: String,
+        data: ByteArray
+    ): Flow<UploadStatus> = flow {
+        val bucket = client().storage.from(bucketId)
+        emitAll(bucket.uploadAsFlow(path, data))
     }
 }

@@ -10,6 +10,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import com.hieuwu.supabasestorageclient.util.DirectoryPicker
+import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,13 +33,15 @@ class FileBrowserViewModel(
     private val getPublicUrlUseCase: GetPublicUrlUseCase,
     private val clipboardManager: ClipboardManager,
     private val downloadManager: DownloadManager,
-    private val directoryPicker: DirectoryPicker
+    private val directoryPicker: DirectoryPicker,
+    private val contextSelectionManager: ContextSelectionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BucketUiState())
     val uiState: StateFlow<BucketUiState> = _uiState.asStateFlow()
 
     init {
+        contextSelectionManager.setContext(bucketId, path ?: "")
         loadContents()
     }
 
