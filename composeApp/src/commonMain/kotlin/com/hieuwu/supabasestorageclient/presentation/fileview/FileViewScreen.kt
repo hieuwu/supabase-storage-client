@@ -32,20 +32,27 @@ fun FileViewScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
+            // Give some time for the success snackbar to be seen if it was triggered
+            kotlinx.coroutines.delay(1000)
             onBack()
         }
     }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
@@ -90,7 +97,36 @@ fun FileViewScreen(
             FileActionsRow(
                 onDownload = { viewModel.downloadFile() },
                 onGetUrl = { viewModel.copyUrl() },
-                onDelete = { viewModel.deleteFile() }
+                onDelete = { showDeleteDialog = true }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete File") },
+                text = { Text("Are you sure you want to delete '$fileName'? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            viewModel.deleteFile()
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
             )
         }
     }

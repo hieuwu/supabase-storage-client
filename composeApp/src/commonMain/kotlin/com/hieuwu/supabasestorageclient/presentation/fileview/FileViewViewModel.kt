@@ -95,7 +95,11 @@ class FileViewViewModel(
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
             deleteFileUseCase(bucketId, fullPath).fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isDeleted = true, isLoading = false) }
+                    _uiState.update { it.copy(
+                        isDeleted = true,
+                        isLoading = false,
+                        successMessage = "File deleted successfully"
+                    ) }
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(error = error.message, isLoading = false) }
