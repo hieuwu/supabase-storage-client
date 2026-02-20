@@ -32,17 +32,26 @@ class DownloadsViewModel(
     }
 
     fun openFile(item: DownloadItem) {
-        val fullPath = if (item.destinationPath.endsWith("/")) {
-            item.destinationPath + item.fileName
-        } else {
-            "${item.destinationPath}/${item.fileName}"
-        }
-        
+        val fullPath = getFullPath(item)
         if (fileWriter.exists(fullPath)) {
             fileOpener.openFile(fullPath)
         } else {
-            // In a real app, we'd use a UI effect or a Snackbar to notify the user
             println("File does not exist: $fullPath")
+        }
+    }
+
+    fun openDirectory(item: DownloadItem) {
+        val fullPath = getFullPath(item)
+        // Note: openDirectory in our interface takes the path to the file/folder 
+        // and should handle finding the parent if needed, but we can be explicit.
+        fileOpener.openDirectory(fullPath)
+    }
+
+    private fun getFullPath(item: DownloadItem): String {
+        return if (item.destinationPath.endsWith("/")) {
+            item.destinationPath + item.fileName
+        } else {
+            "${item.destinationPath}/${item.fileName}"
         }
     }
 }

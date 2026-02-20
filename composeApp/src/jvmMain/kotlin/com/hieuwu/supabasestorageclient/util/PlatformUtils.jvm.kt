@@ -40,17 +40,19 @@ actual fun getDirectoryPicker(): DirectoryPicker = JvmDirectoryPicker()
 
 class JvmFileOpener : FileOpener {
     override fun openFile(path: String) {
-        try {
-            val file = File(path)
-            if (file.exists()) {
-                // Open the directory and select the file if possible, or just open the folder
-                // For simplicity, let's open the parent folder or the file itself
-                if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().open(file.parentFile)
-                }
+        val file = java.io.File(path)
+        if (file.exists()) {
+            java.awt.Desktop.getDesktop().open(file)
+        }
+    }
+
+    override fun openDirectory(path: String) {
+        val file = java.io.File(path)
+        if (file.exists()) {
+            val directory = if (file.isDirectory) file else file.parentFile
+            if (directory != null && directory.exists()) {
+                java.awt.Desktop.getDesktop().open(directory)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 }

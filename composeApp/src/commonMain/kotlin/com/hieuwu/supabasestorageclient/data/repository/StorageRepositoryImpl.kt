@@ -5,9 +5,11 @@ import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import io.github.jan.supabase.storage.DownloadStatus
-import io.github.jan.supabase.storage.downloadAuthenticatedAsFlow
+import io.github.jan.supabase.storage.BucketApi
+import io.github.jan.supabase.storage.downloadPublicAsFlow
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.jsonPrimitive
@@ -60,12 +62,8 @@ class StorageRepositoryImpl(
     }
 
     override fun downloadFileAsFlow(bucketId: String, path: String): Flow<DownloadStatus> = flow {
-        // We need a client – wrap in a flow so we can suspend at collection time
-        val client = supabaseClientManager.client.first()
-            ?: throw IllegalStateException("Supabase client not initialized")
-        client.storage.from(bucketId).downloadAuthenticatedAsFlow(path).collect { status ->
-            emit(status)
-        }
+        val storage = client().storage.from(bucketId)
+        emitAll(storage.downloadPublicAsFlow(path))
     }
 
     override suspend fun deleteFile(bucketId: String, path: String) {

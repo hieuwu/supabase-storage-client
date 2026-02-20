@@ -5,6 +5,7 @@ import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.util.getDirectoryPicker
 import com.hieuwu.supabasestorageclient.util.getFileOpener
 import com.hieuwu.supabasestorageclient.util.getFileWriter
+import com.hieuwu.supabasestorageclient.util.getPermissionManager
 import com.hieuwu.supabasestorageclient.data.repository.CredentialRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.OnboardingRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.StorageRepositoryImpl
@@ -37,7 +38,8 @@ val coreModule = module {
     single { getFileWriter() }
     single { getDirectoryPicker() }
     single { getFileOpener() }
-    single { DownloadManager(get(), get()) }
+    single { getPermissionManager() }
+    single { DownloadManager(get(), get(), get()) }
 }
 
 val featureModule = module {

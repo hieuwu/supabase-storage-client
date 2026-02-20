@@ -67,8 +67,8 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-            val bucketId = backStackEntry.arguments?.get("bucketId")?.toString().orEmpty()
-            val path = backStackEntry.arguments?.get("path")?.toString()
+            val bucketId = backStackEntry.arguments?.getString("bucketId") ?: ""
+            val path = backStackEntry.arguments?.getString("path")
             com.hieuwu.supabasestorageclient.presentation.bucket.BucketScreen(
                 bucketId = bucketId,
                 path = path,
@@ -100,8 +100,8 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-            val bucketId = backStackEntry.arguments?.getString("bucketId").orEmpty()
-            val fileName = backStackEntry.arguments?.getString("fileName").orEmpty()
+            val bucketId = backStackEntry.arguments?.getString("bucketId") ?: ""
+            val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
             val path = backStackEntry.arguments?.getString("path")
             com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen(
                 bucketId = bucketId,

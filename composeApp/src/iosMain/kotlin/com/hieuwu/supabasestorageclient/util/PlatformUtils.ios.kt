@@ -36,6 +36,17 @@ class IosFileOpener : FileOpener {
         // On iOS, opening files in a file explorer requires UIDocumentInteractionController
         // This is a placeholder; a full implementation would require a UIViewController reference
     }
+
+    override fun openDirectory(path: String) {
+        // iOS doesn't have a direct "open directory" intent like desktop, 
+        // but you can point to the Files app if integrated.
+    }
 }
 
 actual fun getFileOpener(): FileOpener = IosFileOpener()
+
+class IosPermissionManager : PermissionManager {
+    override suspend fun requestStoragePermission(): Boolean = true
+}
+
+actual fun getPermissionManager(): PermissionManager = IosPermissionManager()
