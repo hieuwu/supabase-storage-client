@@ -81,7 +81,8 @@ fun MainScreen(
                         Text(title, fontWeight = FontWeight.Bold)
                     },
                     navigationIcon = {
-                        val isSubScreen = currentRoute?.startsWith("bucket") == true || currentRoute?.startsWith("file-view") == true
+                        val isSubScreen = (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) || 
+                                          currentRoute?.startsWith("file-view") == true
                         if (isSubScreen) {
                             IconButton(onClick = { navController.popBackStack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
