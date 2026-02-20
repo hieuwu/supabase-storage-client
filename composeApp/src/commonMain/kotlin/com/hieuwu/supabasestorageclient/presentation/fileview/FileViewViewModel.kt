@@ -7,6 +7,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCas
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DownloadFileUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetFileMetadataUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
+import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +22,8 @@ data class FileViewUiState(
     val metadata: StorageItem? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val successMessage: String? = null
 )
 
 class FileViewViewModel(
@@ -31,7 +33,8 @@ class FileViewViewModel(
     private val getPublicUrlUseCase: GetPublicUrlUseCase,
     private val downloadFileUseCase: DownloadFileUseCase,
     private val deleteFileUseCase: DeleteFileUseCase,
-    private val getFileMetadataUseCase: GetFileMetadataUseCase
+    private val getFileMetadataUseCase: GetFileMetadataUseCase,
+    private val clipboardManager: ClipboardManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileViewUiState(bucketId = bucketId, fileName = fileName, path = path))
@@ -98,5 +101,16 @@ class FileViewViewModel(
                 }
             )
         }
+    }
+
+    fun copyUrl() {
+        uiState.value.publicUrl?.let { url ->
+            clipboardManager.copyText(url)
+            _uiState.update { it.copy(successMessage = "URL copied to clipboard") }
+        }
+    }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(error = null, successMessage = null) }
     }
 }

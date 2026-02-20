@@ -47,7 +47,7 @@ val featureModule = module {
     // Storage ViewModels
     viewModelOf(::BucketsViewModel)
     viewModel { (bucketId: String, path: String?) -> 
-        BucketViewModel(bucketId, path, get(), get(), get(), get()) 
+        BucketViewModel(bucketId, path, get(), get(), get(), get(), get()) 
     }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(
@@ -57,7 +57,8 @@ val featureModule = module {
             getPublicUrlUseCase = get(),
             downloadFileUseCase = get(),
             deleteFileUseCase = get(),
-            getFileMetadataUseCase = get()
+            getFileMetadataUseCase = get(),
+            clipboardManager = get()
         )
     }
 }

@@ -20,4 +20,7 @@ actual fun platformModule(): Module = module {
         )
         com.russhwolf.settings.SharedPreferencesSettings(sharedPreferences)
     }
+    single<com.hieuwu.supabasestorageclient.util.ClipboardManager> { 
+        com.hieuwu.supabasestorageclient.util.AndroidClipboardManager(get()) 
+    }
 }
