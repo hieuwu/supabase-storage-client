@@ -10,10 +10,6 @@ import com.hieuwu.supabasestorageclient.presentation.credentials.CredentialsScre
 import com.hieuwu.supabasestorageclient.presentation.main.MainScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.search.SearchScreen
-import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
-
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
