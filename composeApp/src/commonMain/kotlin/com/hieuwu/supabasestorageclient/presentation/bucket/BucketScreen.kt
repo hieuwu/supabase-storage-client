@@ -162,12 +162,24 @@ fun StorageItemRow(
             }
         },
         leadingContent = {
+            val extension = item.name.substringAfterLast(".", "").lowercase()
+            val icon = when {
+                item.isFolder -> Icons.Default.Folder
+                isImage(extension) -> Icons.Default.Image
+                isVideo(extension) -> Icons.Default.VideoLibrary
+                isPdf(extension) -> Icons.Default.PictureAsPdf
+                else -> Icons.Default.InsertDriveFile
+            }
             Icon(
-                imageVector = if (item.isFolder) Icons.Default.Folder else Icons.Default.InsertDriveFile,
+                imageVector = icon,
                 contentDescription = null,
-                tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         modifier = Modifier.clickable { onClick() }
     )
 }
+
+private fun isImage(extension: String) = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
+private fun isVideo(extension: String) = extension in listOf("mp4", "mov", "avi", "mkv", "webm")
+private fun isPdf(extension: String) = extension == "pdf"

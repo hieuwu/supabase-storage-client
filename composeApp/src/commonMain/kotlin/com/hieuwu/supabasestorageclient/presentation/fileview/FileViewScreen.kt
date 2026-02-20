@@ -3,15 +3,21 @@ package com.hieuwu.supabasestorageclient.presentation.fileview
 import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewViewModel
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -36,7 +42,14 @@ fun FileViewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(fileName, fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        text = fileName, 
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -121,15 +134,38 @@ fun FileMetadataSection(
     addedOn: String,
     lastModified: String
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(fileName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("$extension - $size", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        MetadataItem(label = "Added on", value = addedOn)
-        MetadataItem(label = "Last modified", value = lastModified)
+    val icon = when {
+        isImage(extension) -> Icons.Default.Image
+        isVideo(extension) -> Icons.Default.VideoLibrary
+        isPdf(extension) -> Icons.Default.PictureAsPdf
+        else -> Icons.Default.InsertDriveFile
     }
+
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp).padding(end = 16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = fileName, 
+                style = MaterialTheme.typography.headlineSmall, 
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "$extension - $size", 
+                style = MaterialTheme.typography.bodyMedium, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    MetadataItem(label = "Added on", value = addedOn)
+    MetadataItem(label = "Last modified", value = lastModified)
 }
 
 @Composable
