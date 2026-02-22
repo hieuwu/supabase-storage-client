@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.hieuwu.supabasestorageclient.presentation.filebrowser
 
 import androidx.compose.foundation.clickable
@@ -15,6 +17,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
@@ -203,24 +206,9 @@ fun StorageItemRow(
                 ) {
                     if (item.isFolder) {
                         DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = { onRename(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Move") },
-                            onClick = { onMove(); showMenu = false },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
                             text = { Text("Copy path") },
                             onClick = { onCopyPath(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Download") },
-                            onClick = { onDownload(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },
@@ -262,6 +250,7 @@ fun StorageItemRow(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenameDialog(
     item: StorageItem,
@@ -281,10 +270,22 @@ fun RenameDialog(
         )
     }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Rename ${if (item.isFolder) "Folder" else "File"}") },
-        text = {
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "Rename ${if (item.isFolder) "Folder" else "File"}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
             OutlinedTextField(
                 value = textFieldValue,
                 onValueChange = { textFieldValue = it },
@@ -292,18 +293,20 @@ fun RenameDialog(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(textFieldValue.text) }) {
+            Button(
+                onClick = { onConfirm(textFieldValue.text) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Rename")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Cancel")
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -314,34 +317,48 @@ fun MoveDialog(
 ) {
     var newPath by remember { mutableStateOf("") }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Move ${if (item.isFolder) "Folder" else "File"}") },
-        text = {
-            Column {
-                Text("Enter new path in current bucket. Leave empty for root.")
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = newPath,
-                    onValueChange = { newPath = it },
-                    label = { Text("New Path") },
-                    placeholder = { Text("path/to/folder") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(newPath) }) {
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "Move ${if (item.isFolder) "Folder" else "File"}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Enter new path in current bucket. Leave empty for root.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            OutlinedTextField(
+                value = newPath,
+                onValueChange = { newPath = it },
+                label = { Text("New Path") },
+                placeholder = { Text("path/to/folder") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = { onConfirm(newPath) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Move")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Cancel")
             }
         }
-    )
+    }
 }
 
 private fun isImage(extension: String) = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")

@@ -283,88 +283,113 @@ fun MainScreen(
     }
 
     if (uiState.isCreateBucketDialogVisible) {
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { viewModel.onDismissCreateBucketDialog() },
-            title = { Text("Create Bucket") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = uiState.newBucketId,
-                        onValueChange = { viewModel.onNewBucketIdChange(it) },
-                        label = { Text("Bucket ID") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "Create Bucket",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                OutlinedTextField(
+                    value = uiState.newBucketId,
+                    onValueChange = { viewModel.onNewBucketIdChange(it) },
+                    label = { Text("Bucket ID") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Public")
+                    Spacer(Modifier.weight(1f))
+                    Switch(
+                        checked = uiState.isNewBucketPublic,
+                        onCheckedChange = { viewModel.onNewBucketPublicToggle(it) }
                     )
-                    Row(
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Public")
-                        Spacer(Modifier.weight(1f))
-                        Switch(
-                            checked = uiState.isNewBucketPublic,
-                            onCheckedChange = { viewModel.onNewBucketPublicToggle(it) }
-                        )
-                    }
-                    OutlinedTextField(
-                        value = uiState.newBucketFileSizeLimit,
-                        onValueChange = { viewModel.onNewBucketFileSizeLimitChange(it) },
-                        label = { Text("File Size Limit") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                }
+                OutlinedTextField(
+                    value = uiState.newBucketFileSizeLimit,
+                    onValueChange = { viewModel.onNewBucketFileSizeLimitChange(it) },
+                    label = { Text("File Size Limit") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                    var unitExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
+                var unitExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = unitExpanded,
+                    onExpandedChange = { unitExpanded = !unitExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = uiState.newBucketFileSizeUnit.name.lowercase().replaceFirstChar { it.uppercase() },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Unit") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
                         expanded = unitExpanded,
-                        onExpandedChange = { unitExpanded = !unitExpanded },
-                        modifier = Modifier.fillMaxWidth()
+                        onDismissRequest = { unitExpanded = false }
                     ) {
-                        OutlinedTextField(
-                            value = uiState.newBucketFileSizeUnit.name.lowercase().replaceFirstChar { it.uppercase() },
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Unit") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = unitExpanded,
-                            onDismissRequest = { unitExpanded = false }
-                        ) {
-                            SizeUnit.entries.forEach { unit ->
-                                DropdownMenuItem(
-                                    text = { Text(unit.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                                    onClick = {
-                                        viewModel.onNewBucketFileSizeUnitChange(unit)
-                                        unitExpanded = false
-                                    }
-                                )
-                            }
+                        SizeUnit.entries.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                onClick = {
+                                    viewModel.onNewBucketFileSizeUnitChange(unit)
+                                    unitExpanded = false
+                                }
+                            )
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(onClick = { viewModel.onConfirmCreateBucket() }) {
+                
+                Button(
+                    onClick = { viewModel.onConfirmCreateBucket() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Create")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onDismissCreateBucketDialog() }) {
+                TextButton(
+                    onClick = { viewModel.onDismissCreateBucketDialog() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Cancel")
                 }
             }
-        )
+        }
     }
 
     if (uiState.isNewFolderDialogVisible) {
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { viewModel.onDismissNewFolderDialog() },
-            title = { Text("New Folder") },
-            text = {
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "New Folder",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
                 OutlinedTextField(
                     value = uiState.newFolderName,
                     onValueChange = { viewModel.onNewFolderNameChange(it) },
@@ -372,18 +397,20 @@ fun MainScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-            },
-            confirmButton = {
-                Button(onClick = { viewModel.onCreateFolder() }) {
+                Button(
+                    onClick = { viewModel.onCreateFolder() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Create")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onDismissNewFolderDialog() }) {
+                TextButton(
+                    onClick = { viewModel.onDismissNewFolderDialog() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Cancel")
                 }
             }
-        )
+        }
     }
 
     LaunchedEffect(uiState.successMessage, uiState.error) {
