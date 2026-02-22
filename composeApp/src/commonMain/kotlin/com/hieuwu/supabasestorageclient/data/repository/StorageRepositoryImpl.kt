@@ -95,7 +95,32 @@ class StorageRepositoryImpl(
     }
 
     override suspend fun moveFile(bucketId: String, fromPath: String, toPath: String) {
-        client().storage.from(bucketId).move(fromPath, toPath)
+        val storage = client().storage.from(bucketId)
+        try {
+            storage.move(fromPath, toPath)
+        } catch (e: Exception) {
+            // If move fails, it might be a folder. Let's try recursive move.
+            val items = storage.list(fromPath)
+            if (items.isNotEmpty()) {
+                moveFolderRecursive(bucketId, fromPath, toPath)
+            } else {
+                throw e
+            }
+        }
+    }
+
+    private suspend fun moveFolderRecursive(bucketId: String, fromPath: String, toPath: String) {
+        val storage = client().storage.from(bucketId)
+        val items = storage.list(fromPath)
+        for (item in items) {
+            val itemFromPath = "$fromPath/${item.name}"
+            val itemToPath = "$toPath/${item.name}"
+            if (item.id == null) { // Folder
+                moveFolderRecursive(bucketId, itemFromPath, itemToPath)
+            } else {
+                storage.move(itemFromPath, itemToPath)
+            }
+        }
     }
 
     override suspend fun createFolder(bucketId: String, path: String) {

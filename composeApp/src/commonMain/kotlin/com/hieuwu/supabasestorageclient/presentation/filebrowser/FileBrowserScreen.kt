@@ -38,6 +38,7 @@ fun BucketScreen(
 
     var itemToRename by remember { mutableStateOf<StorageItem?>(null) }
     var itemToMove by remember { mutableStateOf<StorageItem?>(null) }
+    var itemToDelete by remember { mutableStateOf<StorageItem?>(null) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -79,7 +80,7 @@ fun BucketScreen(
                                 },
                                 onRename = { itemToRename = item },
                                 onMove = { itemToMove = item },
-                                onDelete = { viewModel.deleteItem(item.name) },
+                                onDelete = { itemToDelete = item },
                                 onGetUrl = { viewModel.getPublicUrl(item.name) },
                                 onCopyPath = { viewModel.copyPath(item.name) },
                                 onDownload = { viewModel.downloadItem(item.name) }
@@ -112,7 +113,44 @@ fun BucketScreen(
                 }
             )
         }
+
+        itemToDelete?.let { item ->
+            DeleteConfirmationDialog(
+                item = item,
+                onDismiss = { itemToDelete = null },
+                onConfirm = {
+                    viewModel.deleteItem(item.name)
+                    itemToDelete = null
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    item: StorageItem,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete ${if (item.isFolder) "Folder" else "File"}") },
+        text = { Text("Are you sure you want to delete '${item.name}'? This action cannot be undone.") },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -211,12 +249,16 @@ fun StorageItemRow(
                             leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = { onDelete(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                            text = { Text("Rename") },
+                            onClick = { onRename(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
                         )
-                    }
- else {
+                        DropdownMenuItem(
+                            text = { Text("Move") },
+                            onClick = { onMove(); showMenu = false },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
+                        )
+                    } else {
                         DropdownMenuItem(
                             text = { Text("Get URL") },
                             onClick = { onGetUrl(); showMenu = false },
