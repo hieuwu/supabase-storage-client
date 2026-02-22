@@ -79,6 +79,7 @@ kotlin {
             implementation(libs.androidx.navigation.compose)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+            implementation(libs.kermit)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

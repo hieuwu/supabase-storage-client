@@ -1,6 +1,7 @@
 package com.hieuwu.supabasestorageclient.data.repository
 
 import com.hieuwu.supabasestorageclient.domain.repository.OnboardingRepository
+import co.touchlab.kermit.Logger
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 
@@ -10,7 +11,8 @@ import com.russhwolf.settings.set
  * uses Keychain on iOS, and StorageSettings on WASM
  */
 class OnboardingRepositoryImpl(
-    private val settings: Settings
+    private val settings: Settings,
+    private val logger: Logger
 ) : OnboardingRepository {
     
     companion object {

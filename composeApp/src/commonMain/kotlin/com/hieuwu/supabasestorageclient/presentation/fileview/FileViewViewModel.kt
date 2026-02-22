@@ -9,6 +9,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetFileMetadataU
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import com.hieuwu.supabasestorageclient.util.DirectoryPicker
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +37,8 @@ class FileViewViewModel(
     private val getFileMetadataUseCase: GetFileMetadataUseCase,
     private val clipboardManager: ClipboardManager,
     private val downloadManager: DownloadManager,
-    private val directoryPicker: DirectoryPicker
+    private val directoryPicker: DirectoryPicker,
+    private val logger: Logger
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FileViewUiState(bucketId = bucketId, fileName = fileName, path = path))
@@ -56,6 +58,7 @@ class FileViewViewModel(
                     _uiState.update { it.copy(publicUrl = url) }
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Failed to get public URL for $fullPath" }
                     _uiState.update { it.copy(error = error.message) }
                 }
             )
@@ -65,6 +68,7 @@ class FileViewViewModel(
                     _uiState.update { it.copy(metadata = metadata, isLoading = false) }
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Failed to get metadata for $fullPath" }
                     _uiState.update { it.copy(error = error.message, isLoading = false) }
                 }
             )
@@ -102,6 +106,7 @@ class FileViewViewModel(
                     ) }
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Failed to delete file $fullPath" }
                     _uiState.update { it.copy(error = error.message, isLoading = false) }
                 }
             )

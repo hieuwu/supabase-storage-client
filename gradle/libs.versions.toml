@@ -26,6 +26,7 @@ androidx-security-crypto = "1.1.0-alpha06"
 materialIconsExtended = "1.7.3"
 navigationCompose = "2.9.2"
 coil = "3.0.4"
+kermit = "2.0.4"
 
 
 [libraries]
@@ -71,6 +72,7 @@ androidx-security-crypto = { module = "androidx.security:security-crypto", versi
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 
 # Kotlinx

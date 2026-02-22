@@ -7,6 +7,7 @@ import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketsUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.EmptyBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteBucketUseCase
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +27,8 @@ class BucketsViewModel(
     private val getBucketsUseCase: GetBucketsUseCase,
     private val emptyBucketUseCase: EmptyBucketUseCase,
     private val deleteBucketUseCase: DeleteBucketUseCase,
-    private val contextSelectionManager: ContextSelectionManager
+    private val contextSelectionManager: ContextSelectionManager,
+    private val logger: Logger
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BucketsUiState())
@@ -45,6 +47,7 @@ class BucketsViewModel(
                     _uiState.value = _uiState.value.copy(buckets = buckets, isLoading = false)
                 }
                 .onFailure { error ->
+                    logger.e(error) { "Failed to load buckets" }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
                 }
         }
@@ -71,6 +74,7 @@ class BucketsViewModel(
                     )
                 }
                 .onFailure { error ->
+                    logger.e(error) { "Failed to empty bucket $bucketId" }
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = "Failed to empty bucket: ${error.message}",
@@ -94,6 +98,7 @@ class BucketsViewModel(
                     loadBuckets()
                 }
                 .onFailure { error ->
+                    logger.e(error) { "Failed to delete bucket $bucketId" }
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = "Failed to delete bucket: ${error.message}",

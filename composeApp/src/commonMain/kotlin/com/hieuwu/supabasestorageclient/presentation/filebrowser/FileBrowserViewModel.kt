@@ -11,6 +11,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseC
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +35,8 @@ class FileBrowserViewModel(
     private val clipboardManager: ClipboardManager,
     private val downloadManager: DownloadManager,
     private val directoryPicker: DirectoryPicker,
-    private val contextSelectionManager: ContextSelectionManager
+    private val contextSelectionManager: ContextSelectionManager,
+    private val logger: Logger
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BucketUiState())
@@ -53,6 +55,7 @@ class FileBrowserViewModel(
                     _uiState.value = _uiState.value.copy(items = items, isLoading = false)
                 }
                 .onFailure { error ->
+                    logger.e(error) { "Failed to load contents for bucket $bucketId at path $path" }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
                 }
         }

@@ -7,11 +7,13 @@ import com.russhwolf.settings.set
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class CredentialRepositoryImpl(
-    private val settings: Settings
+    private val settings: Settings,
+    private val logger: Logger
 ) : CredentialRepository {
 
     private val _credentials = MutableStateFlow<List<Credential>>(emptyList())
@@ -31,6 +33,7 @@ class CredentialRepositoryImpl(
             val list = Json.decodeFromString<List<Credential>>(json)
             _credentials.value = list
         } catch (e: Exception) {
+            logger.e(e) { "Error decoding credentials from settings" }
             _credentials.value = emptyList()
         }
     }

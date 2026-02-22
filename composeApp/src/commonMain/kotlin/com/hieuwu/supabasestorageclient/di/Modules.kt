@@ -35,16 +35,18 @@ import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewMo
 import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsViewModel
 import com.hieuwu.supabasestorageclient.presentation.main.MainViewModel
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadViewModel
+import co.touchlab.kermit.Logger
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val coreModule = module {
+    single { Logger.withTag("SupabaseStorageClient") }
     single { SupabaseClientManager() }
-    single<OnboardingRepository> { OnboardingRepositoryImpl(get()) }
-    single<CredentialRepository> { CredentialRepositoryImpl(get()) }
-    single<StorageRepository> { StorageRepositoryImpl(get()) }
+    single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
+    single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
+    single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
     single { getFileWriter() }
     single { getDirectoryPicker() }
     single { getFilePicker() }
@@ -76,7 +78,7 @@ val featureModule = module {
     // Storage ViewModels
     viewModelOf(::BucketsViewModel)
     viewModel { (bucketId: String, path: String?) -> 
-        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get())
+        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(
@@ -88,7 +90,8 @@ val featureModule = module {
             getFileMetadataUseCase = get(),
             clipboardManager = get(),
             downloadManager = get(),
-            directoryPicker = get()
+            directoryPicker = get(),
+            logger = get()
         )
     }
     viewModelOf(::DownloadsViewModel)

@@ -14,46 +14,58 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import co.touchlab.kermit.Logger
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 class StorageRepositoryImpl(
-    private val supabaseClientManager: SupabaseClientManager
+    private val supabaseClientManager: SupabaseClientManager,
+    private val logger: Logger
 ) : StorageRepository {
 
     private suspend fun client() =
         supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
 
     override suspend fun getBuckets(): List<Bucket> {
-        return client().storage.retrieveBuckets().map { bucket ->
-            Bucket(
-                id = bucket.id,
-                name = bucket.name,
-                owner = bucket.owner ?: "",
-                public = bucket.public,
-                createdAt = bucket.createdAt.toString(),
-                updatedAt = bucket.updatedAt.toString(),
-                allowedMimeTypes = bucket.allowedMimeTypes,
-                fileSizeLimit = bucket.fileSizeLimit
-            )
+        return try {
+            client().storage.retrieveBuckets().map { bucket ->
+                Bucket(
+                    id = bucket.id,
+                    name = bucket.name,
+                    owner = bucket.owner ?: "",
+                    public = bucket.public,
+                    createdAt = bucket.createdAt.toString(),
+                    updatedAt = bucket.updatedAt.toString(),
+                    allowedMimeTypes = bucket.allowedMimeTypes,
+                    fileSizeLimit = bucket.fileSizeLimit
+                )
+            }
+        } catch (e: Exception) {
+            logger.e(e) { "Error fetching buckets" }
+            throw e
         }
     }
 
     override suspend fun getBucketContents(bucketId: String, path: String): List<StorageItem> {
-        val bucket = client().storage.from(bucketId)
-        val list = bucket.list(path)
-        return list.map { file ->
-            val size = file.metadata?.get("size")?.jsonPrimitive?.longOrNull
-            StorageItem(
-                name = file.name,
-                id = file.id,
-                updatedAt = file.updatedAt,
-                createdAt = file.createdAt,
-                lastAccessedAt = file.lastAccessedAt,
-                metadata = emptyMap(),
-                isFolder = file.id == null,
-                size = size
-            )
+        return try {
+            val bucket = client().storage.from(bucketId)
+            val list = bucket.list(path)
+            list.map { file ->
+                val size = file.metadata?.get("size")?.jsonPrimitive?.longOrNull
+                StorageItem(
+                    name = file.name,
+                    id = file.id,
+                    updatedAt = file.updatedAt,
+                    createdAt = file.createdAt,
+                    lastAccessedAt = file.lastAccessedAt,
+                    metadata = emptyMap(),
+                    isFolder = file.id == null,
+                    size = size
+                )
+            }
+        } catch (e: Exception) {
+            logger.e(e) { "Error fetching bucket contents for bucket $bucketId at path $path" }
+            throw e
         }
     }
 
@@ -142,19 +154,29 @@ class StorageRepositoryImpl(
     }
 
     override suspend fun deleteBucket(bucketId: String) {
-        client().storage.deleteBucket(bucketId)
+        try {
+            client().storage.deleteBucket(bucketId)
+        } catch (e: Exception) {
+            logger.e(e) { "Error deleting bucket $bucketId" }
+            throw e
+        }
     }
 
     override suspend fun createBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?) {
-        client().storage.createBucket(id) {
-            this.public = public
-            this.fileSizeLimit = when (unit) {
-                SizeUnit.BYTES -> fileSizeLimit?.bytes
-                SizeUnit.KILOBYTES -> fileSizeLimit?.kilobytes
-                SizeUnit.MEGABYTES -> fileSizeLimit?.megabytes
-                SizeUnit.GIGABYTES -> fileSizeLimit?.gigabytes
-                null -> null
+        try {
+            client().storage.createBucket(id) {
+                this.public = public
+                this.fileSizeLimit = when (unit) {
+                    SizeUnit.BYTES -> fileSizeLimit?.bytes
+                    SizeUnit.KILOBYTES -> fileSizeLimit?.kilobytes
+                    SizeUnit.MEGABYTES -> fileSizeLimit?.megabytes
+                    SizeUnit.GIGABYTES -> fileSizeLimit?.gigabytes
+                    null -> null
+                }
             }
+        } catch (e: Exception) {
+            logger.e(e) { "Error creating bucket $id" }
+            throw e
         }
     }
 }
