@@ -19,7 +19,9 @@ data class CredentialsUiState(
     val isSettingUp: Boolean = false,
     val error: String? = null,
     val showDeleteConfirmation: Boolean = false,
-    val credentialToDelete: Credential? = null
+    val credentialToDelete: Credential? = null,
+    val showEditSheet: Boolean = false,
+    val credentialToEdit: Credential? = null
 )
 
 class CredentialsViewModel(
@@ -96,6 +98,31 @@ class CredentialsViewModel(
                 _uiState.update { it.copy(error = "Failed to add credential: ${e.message}") }
             }
         }
+    }
+
+    fun updateCredential(id: String, name: String, url: String, key: String) {
+        viewModelScope.launch {
+            try {
+                val updatedCredential = Credential(
+                    id = id,
+                    name = name,
+                    url = url,
+                    key = key
+                )
+                credentialRepository.saveCredential(updatedCredential)
+                hideEditSheet()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to update credential: ${e.message}") }
+            }
+        }
+    }
+
+    fun showEditSheet(credential: Credential) {
+        _uiState.update { it.copy(showEditSheet = true, credentialToEdit = credential) }
+    }
+
+    fun hideEditSheet() {
+        _uiState.update { it.copy(showEditSheet = false, credentialToEdit = null) }
     }
 
     fun clearError() {

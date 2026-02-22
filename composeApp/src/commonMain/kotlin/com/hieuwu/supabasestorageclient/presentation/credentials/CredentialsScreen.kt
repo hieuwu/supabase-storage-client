@@ -35,14 +35,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,50 +101,15 @@ fun CredentialsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.credentials, key = { it.id }) { credential ->
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { dismissValue ->
-                                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.showDeleteDialog(credential)
-                                    false
-                                } else {
-                                    false
-                                }
-                            }
+                        CredentialItem(
+                            credential = credential,
+                            isExpanded = uiState.showCredentialsId.contains(credential.id),
+                            isLastUsed = uiState.lastUsedId == credential.id,
+                            onToggleVisibility = { viewModel.toggleCredentialVisibility(credential.id) },
+                            onSelect = { viewModel.selectCredential(credential) },
+                            onEdit = { viewModel.showEditSheet(credential) },
+                            onDelete = { viewModel.showDeleteDialog(credential) }
                         )
-
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            enableDismissFromStartToEnd = false,
-                            backgroundContent = {
-                                val color = when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                                    else -> Color.Transparent
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(color, shape = MaterialTheme.shapes.medium)
-                                        .padding(horizontal = 20.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                    }
-                                }
-                            }
-                        ) {
-                            CredentialItem(
-                                credential = credential,
-                                isExpanded = uiState.showCredentialsId.contains(credential.id),
-                                isLastUsed = uiState.lastUsedId == credential.id,
-                                onToggleVisibility = { viewModel.toggleCredentialVisibility(credential.id) },
-                                onSelect = { viewModel.selectCredential(credential) }
-                            )
-                        }
                     }
                 }
             }
@@ -203,6 +165,23 @@ fun CredentialsScreen(
                     showAddSheet = false
                 },
                 onCancel = { showAddSheet = false }
+            )
+        }
+    }
+
+    if (uiState.showEditSheet && uiState.credentialToEdit != null) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.hideEditSheet() },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            EditCredentialSheet(
+                credential = uiState.credentialToEdit!!,
+                onUpdate = { name, url, key ->
+                    viewModel.updateCredential(uiState.credentialToEdit!!.id, name, url, key)
+                },
+                onCancel = { viewModel.hideEditSheet() }
             )
         }
     }
@@ -278,9 +257,44 @@ private fun AddCredentialSheet(
     onAdd: (name: String, url: String, key: String) -> Unit,
     onCancel: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var key by remember { mutableStateOf("") }
+    CredentialForm(
+        title = "Add Supabase Credentials",
+        confirmButtonLabel = "Add",
+        onConfirm = onAdd,
+        onCancel = onCancel
+    )
+}
+
+@Composable
+private fun EditCredentialSheet(
+    credential: com.hieuwu.supabasestorageclient.domain.model.Credential,
+    onUpdate: (name: String, url: String, key: String) -> Unit,
+    onCancel: () -> Unit
+) {
+    CredentialForm(
+        title = "Edit Supabase Credentials",
+        confirmButtonLabel = "Save",
+        initialName = credential.name,
+        initialUrl = credential.url,
+        initialKey = credential.key,
+        onConfirm = onUpdate,
+        onCancel = onCancel
+    )
+}
+
+@Composable
+private fun CredentialForm(
+    title: String,
+    confirmButtonLabel: String,
+    onConfirm: (name: String, url: String, key: String) -> Unit,
+    onCancel: () -> Unit,
+    initialName: String = "",
+    initialUrl: String = "",
+    initialKey: String = ""
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var url by remember { mutableStateOf(initialUrl) }
+    var key by remember { mutableStateOf(initialKey) }
     
     // Masking logic for the input
     var showKey by remember { mutableStateOf(false) }
@@ -292,7 +306,7 @@ private fun AddCredentialSheet(
             .padding(bottom = 32.dp)
     ) {
         Text(
-            text = "Add Supabase Credentials",
+            text = title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -348,11 +362,11 @@ private fun AddCredentialSheet(
                 Text("Cancel")
             }
             Button(
-                onClick = { if (name.isNotBlank() && url.isNotBlank() && key.isNotBlank()) onAdd(name, url, key) },
+                onClick = { if (name.isNotBlank() && url.isNotBlank() && key.isNotBlank()) onConfirm(name, url, key) },
                 modifier = Modifier.weight(1f),
                 enabled = name.isNotBlank() && url.isNotBlank() && key.isNotBlank()
             ) {
-                Text("Add")
+                Text(confirmButtonLabel)
             }
         }
     }
