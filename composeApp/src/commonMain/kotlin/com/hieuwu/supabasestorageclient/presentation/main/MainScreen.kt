@@ -101,7 +101,13 @@ fun MainScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { rootNavController.navigate(Screen.Search.route) }) {
+                        IconButton(onClick = { 
+                            val bucketId = if (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) {
+                                // Extract bucketId from route bucket/{bucketId}?path={path}
+                                navBackStackEntry?.arguments?.getString("bucketId")
+                            } else null
+                            rootNavController.navigate(Screen.Search.createRoute(bucketId)) 
+                        }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
                         IconButton(onClick = { viewModel.onLogoutClick() }) {

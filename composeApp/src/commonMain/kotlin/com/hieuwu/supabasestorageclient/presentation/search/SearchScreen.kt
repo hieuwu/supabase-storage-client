@@ -18,14 +18,17 @@ import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import org.koin.compose.viewmodel.koinViewModel
 
+import org.koin.core.parameter.parametersOf
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
+    bucketId: String?,
     onBack: () -> Unit,
     onNavigateToBucket: (String) -> Unit,
     onNavigateToFolder: (String, String) -> Unit,
     onNavigateToFile: (String, String, String?) -> Unit,
-    viewModel: SearchViewModel = koinViewModel()
+    viewModel: SearchViewModel = koinViewModel { parametersOf(bucketId) }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -50,50 +53,17 @@ fun SearchScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
+            OutlinedTextField(
+                value = uiState.query,
+                onValueChange = { viewModel.onQueryChange(it) },
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = uiState.query,
-                    onValueChange = { viewModel.onQueryChange(it) },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Search...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    singleLine = true
-                )
-
-                var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier.width(120.dp)
-                ) {
-                    OutlinedTextField(
-                        value = uiState.searchType.name.lowercase().replaceFirstChar { it.uppercase() },
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                        modifier = Modifier.menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        SearchType.entries.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                                onClick = {
-                                    viewModel.onSearchTypeChange(type)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+                placeholder = { 
+                    val placeholder = if (bucketId == null) "Search in Buckets..." else "Search in this bucket..."
+                    Text(placeholder) 
+                },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true
+            )
 
             if (uiState.isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -107,31 +77,55 @@ fun SearchScreen(
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (uiState.searchType == SearchType.BUCKET) {
-                    items(uiState.buckets) { bucket ->
-                        BucketResultRow(
-                            bucket = bucket,
-                            onClick = { onNavigateToBucket(bucket.id) }
+            if (uiState.query.isBlank()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (bucketId == null) Icons.Default.Storage else Icons.Default.Folder,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                         )
-                        HorizontalDivider()
+                        Text(
+                            text = if (bucketId == null) "Searching in Buckets" else "Searching in current bucket",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                } else {
-                    items(uiState.storageItems) { result ->
-                        StorageItemResultRow(
-                            item = result.item,
-                            onClick = {
-                                if (result.item.isFolder) {
-                                    onNavigateToFolder(result.bucketId, result.item.name)
-                                } else {
-                                    onNavigateToFile(result.bucketId, result.item.name, null)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (uiState.searchType == SearchType.BUCKET) {
+                        items(uiState.buckets) { bucket ->
+                            BucketResultRow(
+                                bucket = bucket,
+                                onClick = { onNavigateToBucket(bucket.id) }
+                            )
+                            HorizontalDivider()
+                        }
+                    } else {
+                        items(uiState.storageItems) { result ->
+                            StorageItemResultRow(
+                                item = result.item,
+                                onClick = {
+                                    if (result.item.isFolder) {
+                                        onNavigateToFolder(result.bucketId, result.item.name)
+                                    } else {
+                                        onNavigateToFile(result.bucketId, result.item.name, null)
+                                    }
                                 }
-                            }
-                        )
-                        HorizontalDivider()
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             }

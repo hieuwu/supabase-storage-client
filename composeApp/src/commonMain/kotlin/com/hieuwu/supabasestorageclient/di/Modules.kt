@@ -98,6 +98,8 @@ val featureModule = module {
     viewModelOf(::DownloadsViewModel)
     viewModelOf(::MainViewModel)
     viewModelOf(::UploadViewModel)
-    viewModelOf(::SearchViewModel)
+    viewModel { (bucketId: String?) ->
+        SearchViewModel(bucketId, get(), get(), get())
+    }
 }
 

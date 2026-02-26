@@ -25,7 +25,10 @@ sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Credentials : Screen("credentials")
     object Main : Screen("main")
-    object Search : Screen("search")
+    object Search : Screen("search?bucketId={bucketId}") {
+        fun createRoute(bucketId: String? = null) = 
+            "search" + if (bucketId != null) "?bucketId=$bucketId" else ""
+    }
     object About : Screen("about")
     object BucketsTab : Screen("buckets-tab")
     object StarredTab : Screen("starred-tab")
@@ -67,17 +70,27 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.Search.route) {
+        composable(
+            route = Screen.Search.route,
+            arguments = listOf(
+                navArgument("bucketId") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val bucketId = backStackEntry.arguments?.getString("bucketId")
             SearchScreen(
+                bucketId = bucketId,
                 onBack = { navController.popBackStack() },
-                onNavigateToBucket = { bucketId ->
-                    navController.navigate(Screen.Bucket.createRoute(bucketId))
+                onNavigateToBucket = { bId ->
+                    navController.navigate(Screen.Bucket.createRoute(bId))
                 },
-                onNavigateToFolder = { bucketId, path ->
-                    navController.navigate(Screen.Bucket.createRoute(bucketId, path))
+                onNavigateToFolder = { bId, path ->
+                    navController.navigate(Screen.Bucket.createRoute(bId, path))
                 },
-                onNavigateToFile = { bucketId, fileName, path ->
-                    navController.navigate(Screen.FileView.createRoute(bucketId, fileName, path))
+                onNavigateToFile = { bId, fileName, path ->
+                    navController.navigate(Screen.FileView.createRoute(bId, fileName, path))
                 }
             )
         }

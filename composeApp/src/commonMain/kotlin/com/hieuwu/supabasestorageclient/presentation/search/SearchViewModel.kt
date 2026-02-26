@@ -29,12 +29,17 @@ data class SearchUiState(
 )
 
 class SearchViewModel(
+    private val bucketId: String?,
     private val getBucketsUseCase: GetBucketsUseCase,
     private val getBucketContentsUseCase: GetBucketContentsUseCase,
     private val logger: Logger
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SearchUiState())
+    private val _uiState = MutableStateFlow(
+        SearchUiState(
+            searchType = if (bucketId == null) SearchType.BUCKET else SearchType.FILE
+        )
+    )
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private val queryFlow = MutableStateFlow("")
@@ -47,7 +52,7 @@ class SearchViewModel(
                 .distinctUntilChanged()
                 .collect { query ->
                     if (query.isNotBlank()) {
-                        performSearch(query, _uiState.value.searchType)
+                        performSearch(query)
                     } else {
                         _uiState.update { it.copy(buckets = emptyList(), storageItems = emptyList(), isLoading = false) }
                     }
@@ -60,48 +65,38 @@ class SearchViewModel(
         queryFlow.value = newQuery
     }
 
-    fun onSearchTypeChange(newType: SearchType) {
-        _uiState.update { it.copy(searchType = newType) }
-        if (_uiState.value.query.isNotBlank()) {
-            performSearch(_uiState.value.query, newType)
-        }
-    }
-
-    private fun performSearch(query: String, type: SearchType) {
+    private fun performSearch(query: String) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                when (type) {
-                    SearchType.BUCKET -> {
-                        getBucketsUseCase().onSuccess { buckets ->
-                            val filtered = buckets.filter { it.name.contains(query, ignoreCase = true) }
-                            _uiState.update { it.copy(buckets = filtered, storageItems = emptyList(), isLoading = false) }
-                        }.onFailure { e ->
-                            _uiState.update { it.copy(isLoading = false, error = e.message) }
+                if (bucketId == null) {
+                    // Search for buckets
+                    getBucketsUseCase().onSuccess { buckets ->
+                        val filtered = buckets.filter { it.name.contains(query, ignoreCase = true) }
+                        _uiState.update {
+                            it.copy(
+                                buckets = filtered,
+                                storageItems = emptyList(),
+                                isLoading = false,
+                                searchType = SearchType.BUCKET
+                            )
                         }
+                    }.onFailure { e ->
+                        _uiState.update { it.copy(isLoading = false, error = e.message) }
                     }
-                    SearchType.FOLDER, SearchType.FILE -> {
-                        getBucketsUseCase().onSuccess { buckets ->
-                            val allResults = mutableListOf<SearchResult>()
-                            val jobs = buckets.map { bucket ->
-                                async {
-                                    val items = getBucketContentsUseCase(bucket.id, "").getOrNull() ?: emptyList()
-                                    items.map { SearchResult(it, bucket.id) }
-                                }
-                            }
-                            val results = awaitAll(*jobs.toTypedArray())
-                            results.forEach { allResults.addAll(it) }
-
-                            val filtered = allResults.filter { result ->
-                                val nameMatches = result.item.name.contains(query, ignoreCase = true)
-                                val typeMatches = if (type == SearchType.FOLDER) result.item.isFolder else !result.item.isFolder
-                                nameMatches && typeMatches
-                            }
-                            _uiState.update { it.copy(storageItems = filtered, buckets = emptyList(), isLoading = false) }
-                        }.onFailure { e ->
-                            _uiState.update { it.copy(isLoading = false, error = e.message) }
-                        }
+                } else {
+                    // Search for files and folders in the specific bucket
+                    val items = getBucketContentsUseCase(bucketId, "").getOrNull() ?: emptyList()
+                    val filtered = items.filter { it.name.contains(query, ignoreCase = true) }
+                        .map { SearchResult(it, bucketId) }
+                    _uiState.update {
+                        it.copy(
+                            storageItems = filtered,
+                            buckets = emptyList(),
+                            isLoading = false,
+                            searchType = SearchType.FILE // This can be refined to show both files and folders
+                        )
                     }
                 }
             } catch (e: Exception) {
