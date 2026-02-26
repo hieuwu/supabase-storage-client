@@ -35,6 +35,7 @@ import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewMo
 import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsViewModel
 import com.hieuwu.supabasestorageclient.presentation.main.MainViewModel
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadViewModel
+import com.hieuwu.supabasestorageclient.presentation.search.SearchViewModel
 import co.touchlab.kermit.Logger
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -97,5 +98,6 @@ val featureModule = module {
     viewModelOf(::DownloadsViewModel)
     viewModelOf(::MainViewModel)
     viewModelOf(::UploadViewModel)
+    viewModelOf(::SearchViewModel)
 }
 
