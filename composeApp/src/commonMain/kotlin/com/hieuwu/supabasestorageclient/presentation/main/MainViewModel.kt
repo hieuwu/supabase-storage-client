@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
+import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
+import com.hieuwu.supabasestorageclient.SupabaseClientManager
+import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.UploadFileUseCase
@@ -28,7 +31,13 @@ data class MainUiState(
     val newBucketFileSizeUnit: SizeUnit = SizeUnit.MEGABYTES,
     val error: String? = null,
     val successMessage: String? = null,
-    val isUploading: Boolean = false
+    val isUploading: Boolean = false,
+    val isCredentialsSheetVisible: Boolean = false,
+    val credentials: List<Credential> = emptyList(),
+    val lastUsedId: String? = null,
+    val showCredentialSwitchConfirmation: Boolean = false,
+    val selectedCredentialForSwitch: Credential? = null,
+    val isSettingUpCredential: Boolean = false
 )
 
 class MainViewModel(
@@ -37,7 +46,9 @@ class MainViewModel(
     private val uploadFileUseCase: UploadFileUseCase,
     private val createBucketUseCase: CreateBucketUseCase,
     private val filePicker: FilePicker,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val credentialRepository: CredentialRepository,
+    private val supabaseClientManager: SupabaseClientManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -45,6 +56,22 @@ class MainViewModel(
 
     private val _navigateToUploads = MutableSharedFlow<Unit>()
     val navigateToUploads: SharedFlow<Unit> = _navigateToUploads.asSharedFlow()
+
+    private val _navigateToBuckets = MutableSharedFlow<Unit>()
+    val navigateToBuckets: SharedFlow<Unit> = _navigateToBuckets.asSharedFlow()
+
+    init {
+        observeCredentials()
+    }
+
+    private fun observeCredentials() {
+        viewModelScope.launch {
+            credentialRepository.getCredentials().collect { credentials ->
+                val lastUsedId = credentialRepository.getLastUsedId()
+                _uiState.update { it.copy(credentials = credentials, lastUsedId = lastUsedId) }
+            }
+        }
+    }
 
     fun onNewFolderClick() {
         _uiState.update { it.copy(isNewFolderDialogVisible = true) }
@@ -167,5 +194,55 @@ class MainViewModel(
 
     fun clearMessages() {
         _uiState.update { it.copy(error = null, successMessage = null, isUploading = false) }
+    }
+
+    fun onLogoutClick() {
+        _uiState.update { it.copy(isCredentialsSheetVisible = true) }
+    }
+
+    fun onDismissCredentialsSheet() {
+        _uiState.update { it.copy(isCredentialsSheetVisible = false) }
+    }
+
+    fun onCredentialClick(credential: Credential) {
+        if (credential.id == _uiState.value.lastUsedId) return
+        _uiState.update {
+            it.copy(
+                isCredentialsSheetVisible = false,
+                showCredentialSwitchConfirmation = true,
+                selectedCredentialForSwitch = credential
+            )
+        }
+    }
+
+    fun onDismissCredentialSwitchConfirmation() {
+        _uiState.update { it.copy(showCredentialSwitchConfirmation = false, selectedCredentialForSwitch = null) }
+    }
+
+    fun onConfirmCredentialSwitch() {
+        val credential = _uiState.value.selectedCredentialForSwitch ?: return
+        _uiState.update { it.copy(showCredentialSwitchConfirmation = false, isSettingUpCredential = true) }
+        viewModelScope.launch {
+            try {
+                credentialRepository.setLastUsedId(credential.id)
+                val newClient = supabaseClientManager.createClient(credential)
+                // Optionally verify client
+                supabaseClientManager.setClient(newClient)
+                _navigateToBuckets.emit(Unit)
+                _uiState.update { it.copy(lastUsedId = credential.id, isSettingUpCredential = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Switch failed: ${e.message}", isSettingUpCredential = false) }
+            }
+        }
+    }
+
+    fun onRemoveCredential(id: String) {
+        viewModelScope.launch {
+            credentialRepository.removeCredential(id)
+            if (id == _uiState.value.lastUsedId) {
+                // If removing current one, clear client
+                supabaseClientManager.clearClient()
+            }
+        }
     }
 }

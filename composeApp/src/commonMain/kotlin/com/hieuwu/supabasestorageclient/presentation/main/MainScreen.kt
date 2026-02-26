@@ -1,5 +1,6 @@
 package com.hieuwu.supabasestorageclient.presentation.main
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -25,6 +26,7 @@ import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
 import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
+import com.hieuwu.supabasestorageclient.domain.model.Credential
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -102,7 +104,7 @@ fun MainScreen(
                         IconButton(onClick = { rootNavController.navigate(Screen.Search.route) }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
-                        IconButton(onClick = onLogout) {
+                        IconButton(onClick = { viewModel.onLogoutClick() }) {
                             Icon(Icons.Default.Logout, contentDescription = "Logout")
                         }
                     }
@@ -432,5 +434,117 @@ fun MainScreen(
                 restoreState = true
             }
         }
+    }
+
+    LaunchedEffect(viewModel.navigateToBuckets) {
+        viewModel.navigateToBuckets.collect {
+            navController.navigate(Screen.BucketsTab.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+        }
+    }
+
+    if (uiState.isCredentialsSheetVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onDismissCredentialsSheet() },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    "Credentials",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                uiState.credentials.forEach { credential ->
+                    val isSelected = credential.id == uiState.lastUsedId
+                    ListItem(
+                        headlineContent = { Text(credential.name) },
+                        supportingContent = { Text(credential.url) },
+                        leadingContent = {
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            } else {
+                                Icon(Icons.Default.AccountCircle, contentDescription = null)
+                            }
+                        },
+                        trailingContent = {
+                            var menuExpanded by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                                }
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Remove") },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.onRemoveCredential(credential.id)
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.clickable {
+                            viewModel.onCredentialClick(credential)
+                        }
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        viewModel.onDismissCredentialsSheet()
+                        rootNavController.navigate(Screen.Credentials.route)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add New Credential")
+                }
+            }
+        }
+    }
+
+    if (uiState.showCredentialSwitchConfirmation) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissCredentialSwitchConfirmation() },
+            title = { Text("Change Credentials") },
+            text = { Text("Are you sure you want to change credentials to ${uiState.selectedCredentialForSwitch?.name}?") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onConfirmCredentialSwitch() }) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onDismissCredentialSwitchConfirmation() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (uiState.isSettingUpCredential) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            title = { Text("Setting up") },
+            text = {
+                Box(Modifier.fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        )
     }
 }
