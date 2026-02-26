@@ -9,12 +9,13 @@ import com.hieuwu.supabasestorageclient.util.getPermissionManager
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.upload.UploadManager
+import com.hieuwu.supabasestorageclient.domain.repository.OnboardingRepository
+import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
+import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.data.repository.CredentialRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.OnboardingRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.StorageRepositoryImpl
-import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
-import com.hieuwu.supabasestorageclient.domain.repository.OnboardingRepository
-import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
+import com.hieuwu.supabasestorageclient.data.repository.SettingsRepositoryImpl
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
@@ -36,7 +37,9 @@ import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsViewMode
 import com.hieuwu.supabasestorageclient.presentation.main.MainViewModel
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadViewModel
 import com.hieuwu.supabasestorageclient.presentation.search.SearchViewModel
+import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -48,6 +51,7 @@ val coreModule = module {
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
     single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
+    single<SettingsRepository> { SettingsRepositoryImpl(get()) }
     single { getFileWriter() }
     single { getDirectoryPicker() }
     single { getFilePicker() }
@@ -97,6 +101,7 @@ val featureModule = module {
     }
     viewModelOf(::DownloadsViewModel)
     viewModelOf(::MainViewModel)
+    viewModelOf(::SettingsViewModel)
     viewModelOf(::UploadViewModel)
     viewModel { (bucketId: String?) ->
         SearchViewModel(bucketId, get(), get(), get())

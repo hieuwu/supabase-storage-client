@@ -12,6 +12,8 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseC
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.UploadFileUseCase
 import com.hieuwu.supabasestorageclient.util.FilePicker
 import com.hieuwu.supabasestorageclient.util.PermissionManager
+import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
+import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -48,6 +50,7 @@ class MainViewModel(
     private val filePicker: FilePicker,
     private val permissionManager: PermissionManager,
     private val credentialRepository: CredentialRepository,
+    private val settingsRepository: SettingsRepository,
     private val supabaseClientManager: SupabaseClientManager
 ) : ViewModel() {
 
@@ -60,8 +63,11 @@ class MainViewModel(
     private val _navigateToBuckets = MutableSharedFlow<Unit>()
     val navigateToBuckets: SharedFlow<Unit> = _navigateToBuckets.asSharedFlow()
 
+    private var currentSettings: UserSettings? = null
+
     init {
         observeCredentials()
+        observeSettings()
     }
 
     private fun observeCredentials() {
@@ -69,6 +75,14 @@ class MainViewModel(
             credentialRepository.getCredentials().collect { credentials ->
                 val lastUsedId = credentialRepository.getLastUsedId()
                 _uiState.update { it.copy(credentials = credentials, lastUsedId = lastUsedId) }
+            }
+        }
+    }
+
+    private fun observeSettings() {
+        viewModelScope.launch {
+            settingsRepository.getSettings().collect { settings ->
+                currentSettings = settings
             }
         }
     }
@@ -86,7 +100,13 @@ class MainViewModel(
     }
 
     fun onCreateBucketClick() {
-        _uiState.update { it.copy(isCreateBucketDialogVisible = true) }
+        _uiState.update { 
+            it.copy(
+                isCreateBucketDialogVisible = true,
+                newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
+                newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES
+            )
+        }
     }
 
     fun onDismissCreateBucketDialog() {
@@ -95,8 +115,8 @@ class MainViewModel(
                 isCreateBucketDialogVisible = false,
                 newBucketId = "",
                 isNewBucketPublic = true,
-                newBucketFileSizeLimit = "",
-                newBucketFileSizeUnit = SizeUnit.MEGABYTES
+                newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
+                newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES
             )
         }
     }
@@ -133,8 +153,8 @@ class MainViewModel(
                             isCreateBucketDialogVisible = false,
                             newBucketId = "",
                             isNewBucketPublic = true,
-                            newBucketFileSizeLimit = "",
-                            newBucketFileSizeUnit = SizeUnit.MEGABYTES,
+                            newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
+                            newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES,
                             successMessage = "Bucket created"
                         )
                     }
