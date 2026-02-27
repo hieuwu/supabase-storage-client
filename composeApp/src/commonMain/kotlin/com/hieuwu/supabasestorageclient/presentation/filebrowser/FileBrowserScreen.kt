@@ -64,7 +64,7 @@ fun BucketScreen(
             } else {
                 PullToRefreshBox(
                     isRefreshing = uiState.isLoading,
-                    onRefresh = { viewModel.loadContents() }
+                    onRefresh = { viewModel.refreshContents() }
                 ) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(uiState.items) { item ->

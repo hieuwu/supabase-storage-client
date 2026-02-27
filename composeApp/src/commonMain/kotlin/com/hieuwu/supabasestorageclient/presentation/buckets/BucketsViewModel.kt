@@ -8,6 +8,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketsUseCas
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.EmptyBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteBucketUseCase
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,7 @@ data class BucketsUiState(
 
 class BucketsViewModel(
     private val getBucketsUseCase: GetBucketsUseCase,
+    private val refreshBucketsUseCase: RefreshBucketsUseCase,
     private val emptyBucketUseCase: EmptyBucketUseCase,
     private val deleteBucketUseCase: DeleteBucketUseCase,
     private val contextSelectionManager: ContextSelectionManager,
@@ -48,6 +50,20 @@ class BucketsViewModel(
                 }
                 .onFailure { error ->
                     logger.e(error) { "Failed to load buckets" }
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                }
+        }
+    }
+
+    fun refreshBuckets() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            refreshBucketsUseCase()
+                .onSuccess {
+                    loadBuckets()
+                }
+                .onFailure { error ->
+                    logger.e(error) { "Failed to refresh buckets" }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
                 }
         }

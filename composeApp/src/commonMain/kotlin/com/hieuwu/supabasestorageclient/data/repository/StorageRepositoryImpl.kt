@@ -20,15 +20,48 @@ import kotlinx.serialization.json.longOrNull
 
 class StorageRepositoryImpl(
     private val supabaseClientManager: SupabaseClientManager,
-    private val logger: Logger
+    private val logger: Logger,
+    private val database: com.hieuwu.supabasestorageclient.database.AppDatabase,
+    private val credentialRepository: com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 ) : StorageRepository {
 
     private suspend fun client() =
         supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
 
+    private val dbQueries = database.appDatabaseQueries
+
+    private fun getCurrentCredentialId(): String {
+        return credentialRepository.getLastUsedId() ?: "default"
+    }
+
     override suspend fun getBuckets(): List<Bucket> {
+        val credentialId = getCurrentCredentialId()
+        logger.d { "Fetching buckets for credential: $credentialId" }
         return try {
-            client().storage.retrieveBuckets().map { bucket ->
+            val cachedBuckets = dbQueries.getAllBuckets(credentialId).executeAsList()
+            if (cachedBuckets.isNotEmpty()) {
+                logger.d { "Retrieved ${cachedBuckets.size} buckets from local cache" }
+            }
+            
+            val mappedCached = cachedBuckets.map { bucket ->
+                Bucket(
+                    id = bucket.id,
+                    name = bucket.name,
+                    owner = bucket.owner,
+                    public = bucket.is_public != 0L,
+                    createdAt = bucket.created_at,
+                    updatedAt = bucket.updated_at,
+                    allowedMimeTypes = bucket.allowed_mime_types?.split(","),
+                    fileSizeLimit = bucket.file_size_limit
+                )
+            }
+            
+            // If we have cached data, we can return it and fetch in background? 
+            // For now, let's just use it as a cache: try network, if fails use cache.
+            // Or better: update cache always.
+            
+            logger.d { "Fetching buckets from remote Supabase" }
+            val remoteBuckets = client().storage.retrieveBuckets().map { bucket ->
                 Bucket(
                     id = bucket.id,
                     name = bucket.name,
@@ -40,19 +73,51 @@ class StorageRepositoryImpl(
                     fileSizeLimit = bucket.fileSizeLimit
                 )
             }
+
+            // Update cache
+            remoteBuckets.forEach { bucket ->
+                dbQueries.insertBucket(
+                    credential_id = credentialId,
+                    id = bucket.id,
+                    name = bucket.name,
+                    owner = bucket.owner,
+                    is_public = if (bucket.public) 1L else 0L,
+                    created_at = bucket.createdAt,
+                    updated_at = bucket.updatedAt,
+                    allowed_mime_types = bucket.allowedMimeTypes?.joinToString(","),
+                    file_size_limit = bucket.fileSizeLimit
+                )
+            }
+            
+            remoteBuckets
         } catch (e: Exception) {
-            logger.e(e) { "Error fetching buckets" }
-            throw e
+            logger.e(e) { "Error fetching buckets, trying cache" }
+            val cached = dbQueries.getAllBuckets(credentialId).executeAsList().map { bucket ->
+                Bucket(
+                    id = bucket.id,
+                    name = bucket.name,
+                    owner = bucket.owner,
+                    public = bucket.is_public != 0L,
+                    createdAt = bucket.created_at,
+                    updatedAt = bucket.updated_at,
+                    allowedMimeTypes = bucket.allowed_mime_types?.split(","),
+                    fileSizeLimit = bucket.file_size_limit
+                )
+            }
+            if (cached.isEmpty()) throw e else cached
         }
     }
 
     override suspend fun getBucketContents(bucketId: String, path: String): List<StorageItem> {
+        val credentialId = getCurrentCredentialId()
+        logger.d { "Fetching contents for bucket: $bucketId, path: $path, credential: $credentialId" }
         return try {
             val bucket = client().storage.from(bucketId)
+            logger.d { "Fetching contents from remote Supabase" }
             val list = bucket.list(path)
-            list.map { file ->
+            val items = list.map { file ->
                 val size = file.metadata?.get("size")?.jsonPrimitive?.longOrNull
-                StorageItem(
+                val item = StorageItem(
                     name = file.name,
                     id = file.id,
                     updatedAt = file.updatedAt,
@@ -62,10 +127,46 @@ class StorageRepositoryImpl(
                     isFolder = file.id == null,
                     size = size
                 )
+                
+                // Update cache
+                dbQueries.insertStorageItem(
+                    credential_id = credentialId,
+                    bucket_id = bucketId,
+                    path = if (path.isEmpty()) file.name else "$path/${file.name}",
+                    name = file.name,
+                    id = file.id,
+                    is_folder = if (file.id == null) 1L else 0L,
+                    size = size,
+                    updated_at = file.updatedAt?.toString(),
+                    created_at = file.createdAt?.toString(),
+                    last_accessed_at = file.lastAccessedAt?.toString()
+                )
+                item
             }
+            items
         } catch (e: Exception) {
-            logger.e(e) { "Error fetching bucket contents for bucket $bucketId at path $path" }
-            throw e
+            logger.e(e) { "Error fetching bucket contents for bucket $bucketId at path $path, trying cache" }
+            val cached = if (path.isEmpty()) {
+                logger.d { "Fetching contents from local cache (root)" }
+                dbQueries.getStorageItemsForBucketRoot(credentialId, bucketId).executeAsList()
+            } else {
+                logger.d { "Fetching contents from local cache (path: $path)" }
+                dbQueries.getStorageItemsForBucketPath(credentialId, bucketId, "$path/%").executeAsList()
+            }
+            
+            val mapped = cached.map { item ->
+                StorageItem(
+                    name = item.name,
+                    id = item.id,
+                    updatedAt = item.updated_at?.let { kotlinx.datetime.Instant.parse(it) },
+                    createdAt = item.created_at?.let { kotlinx.datetime.Instant.parse(it) },
+                    lastAccessedAt = item.last_accessed_at?.let { kotlinx.datetime.Instant.parse(it) },
+                    metadata = emptyMap(),
+                    isFolder = item.is_folder != 0L,
+                    size = item.size
+                )
+            }
+            if (mapped.isEmpty()) throw e else mapped
         }
     }
 
@@ -178,5 +279,24 @@ class StorageRepositoryImpl(
             logger.e(e) { "Error creating bucket $id" }
             throw e
         }
+    }
+
+    override suspend fun clearCache(credentialId: String?) {
+        val id = credentialId ?: getCurrentCredentialId()
+        logger.d { "Clearing local cache for credential: $id" }
+        dbQueries.deleteAllBuckets(id)
+        dbQueries.deleteAllStorageItems(id)
+    }
+
+    override suspend fun clearBucketsCache() {
+        val credentialId = getCurrentCredentialId()
+        logger.d { "Clearing buckets cache for credential: $credentialId" }
+        dbQueries.deleteAllBuckets(credentialId)
+    }
+
+    override suspend fun clearContentsCache(bucketId: String) {
+        val credentialId = getCurrentCredentialId()
+        logger.d { "Clearing contents cache for bucket: $bucketId, credential: $credentialId" }
+        dbQueries.deleteStorageItemsForBucket(credentialId, bucketId)
     }
 }

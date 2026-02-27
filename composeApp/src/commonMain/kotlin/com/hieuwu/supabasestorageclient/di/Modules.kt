@@ -40,6 +40,9 @@ import com.hieuwu.supabasestorageclient.presentation.search.SearchViewModel
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.ClearCacheUseCase
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketContentsUseCase
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketsUseCase
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -50,7 +53,8 @@ val coreModule = module {
     single { SupabaseClientManager() }
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
-    single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
+    single { com.hieuwu.supabasestorageclient.database.AppDatabase(get<com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory>().createDriver()) }
+    single<StorageRepository> { StorageRepositoryImpl(get(), get(), get(), get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(get()) }
     single { getFileWriter() }
     single { getDirectoryPicker() }
@@ -64,7 +68,7 @@ val coreModule = module {
 
 val featureModule = module {
     viewModel { OnboardingViewModel(get()) }
-    viewModel { CredentialsViewModel(get(), get()) }
+    viewModel { CredentialsViewModel(get(), get(), get(), get()) }
 
     // Storage UseCases
     singleOf(::GetBucketsUseCase)
@@ -79,11 +83,14 @@ val featureModule = module {
     singleOf(::EmptyBucketUseCase)
     singleOf(::CreateBucketUseCase)
     singleOf(::DeleteBucketUseCase)
+    singleOf(::ClearCacheUseCase)
+    singleOf(::RefreshBucketsUseCase)
+    singleOf(::RefreshBucketContentsUseCase)
 
     // Storage ViewModels
     viewModelOf(::BucketsViewModel)
     viewModel { (bucketId: String, path: String?) -> 
-        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get())
+        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(

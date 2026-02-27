@@ -26,7 +26,9 @@ data class CredentialsUiState(
 
 class CredentialsViewModel(
     private val credentialRepository: CredentialRepository,
-    private val supabaseClientManager: SupabaseClientManager
+    private val supabaseClientManager: SupabaseClientManager,
+    private val clearCacheUseCase: com.hieuwu.supabasestorageclient.feature.usecase.storage.ClearCacheUseCase,
+    private val logger: co.touchlab.kermit.Logger
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CredentialsUiState())
@@ -66,16 +68,30 @@ class CredentialsViewModel(
 
     fun selectCredential(credential: Credential) {
         viewModelScope.launch {
+            logger.d { "Selecting credential: ${credential.name} (${credential.id})" }
             _uiState.update { it.copy(isSettingUp = true, error = null) }
             try {
+                // Clear cache for the current credential before switching
+                val currentId = credentialRepository.getLastUsedId()
+                if (currentId != null) {
+                    clearCacheUseCase(currentId)
+                }
+
                 credentialRepository.setLastUsedId(credential.id)
+                
+                // Clear cache for the new credential to ensure a fresh state
+                clearCacheUseCase(credential.id)
+                
                 val newClient = supabaseClientManager.createClient(credential)
 
+                logger.d { "Verifying new client connection..." }
                 newClient.storage.retrieveBuckets()
                 
                 supabaseClientManager.setClient(newClient)
+                logger.d { "Active credential switched to ${credential.name}" }
                 _uiState.update { it.copy(lastUsedId = credential.id) }
             } catch (e: Exception) {
+                logger.e(e) { "Credential selection failed" }
                 _uiState.update { it.copy(error = "Verification failed: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isSettingUp = false) }

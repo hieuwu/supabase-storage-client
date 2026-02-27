@@ -8,4 +8,5 @@ actual fun platformModule(): Module = module {
     single<com.hieuwu.supabasestorageclient.util.ClipboardManager> { 
         com.hieuwu.supabasestorageclient.util.IosClipboardManager() 
     }
+    single { com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory() }
 }

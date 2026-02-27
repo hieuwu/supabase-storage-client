@@ -15,4 +15,5 @@ class JvmClipboardManager : com.hieuwu.supabasestorageclient.util.ClipboardManag
 
 actual fun platformModule(): Module = module {
     single<com.hieuwu.supabasestorageclient.util.ClipboardManager> { JvmClipboardManager() }
+    single { com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory() }
 }

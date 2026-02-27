@@ -11,6 +11,7 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseC
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
+import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketContentsUseCase
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,7 @@ class FileBrowserViewModel(
     private val bucketId: String,
     private val path: String?,
     private val getBucketContentsUseCase: GetBucketContentsUseCase,
+    private val refreshBucketContentsUseCase: RefreshBucketContentsUseCase,
     private val deleteFileUseCase: DeleteFileUseCase,
     private val moveFileUseCase: MoveFileUseCase,
     private val getPublicUrlUseCase: GetPublicUrlUseCase,
@@ -56,6 +58,20 @@ class FileBrowserViewModel(
                 }
                 .onFailure { error ->
                     logger.e(error) { "Failed to load contents for bucket $bucketId at path $path" }
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                }
+        }
+    }
+
+    fun refreshContents() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            refreshBucketContentsUseCase(bucketId)
+                .onSuccess {
+                    loadContents()
+                }
+                .onFailure { error ->
+                    logger.e(error) { "Failed to refresh contents for bucket $bucketId" }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
                 }
         }

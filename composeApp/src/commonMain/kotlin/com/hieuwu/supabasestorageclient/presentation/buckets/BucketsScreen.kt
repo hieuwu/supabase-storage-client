@@ -38,7 +38,7 @@ fun BucketsScreen(
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
-            onRefresh = { viewModel.loadBuckets() },
+            onRefresh = { viewModel.refreshBuckets() },
             modifier = Modifier.padding(padding).fillMaxSize()
         ) {
             if (uiState.isLoading && uiState.buckets.isEmpty()) {
