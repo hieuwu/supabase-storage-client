@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.downloads
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
@@ -19,6 +21,9 @@ class DownloadsViewModel(
     val downloads: StateFlow<List<DownloadItem>> = downloadManager.downloads
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _showDeleteConfirmationDialog = mutableStateOf<DownloadItem?>(null)
+    val showDeleteConfirmationDialog: State<DownloadItem?> = _showDeleteConfirmationDialog
+
     fun pauseDownload(id: String) {
         downloadManager.pause(id)
     }
@@ -29,6 +34,19 @@ class DownloadsViewModel(
 
     fun cancelDownload(id: String) {
         downloadManager.cancel(id)
+    }
+
+    fun confirmDelete(item: DownloadItem) {
+        _showDeleteConfirmationDialog.value = item
+    }
+
+    fun dismissDeleteConfirmation() {
+        _showDeleteConfirmationDialog.value = null
+    }
+
+    fun deleteDownload(id: String) {
+        downloadManager.deleteDownload(id)
+        dismissDeleteConfirmation()
     }
 
     fun openFile(item: DownloadItem) {

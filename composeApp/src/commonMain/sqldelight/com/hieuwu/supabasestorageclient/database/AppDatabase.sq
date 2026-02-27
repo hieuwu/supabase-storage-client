@@ -25,6 +25,20 @@ CREATE TABLE storage_item_entity (
     PRIMARY KEY (credential_id, bucket_id, path)
 );
 
+CREATE TABLE download_item_entity (
+    id TEXT NOT NULL,
+    credential_id TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    bucket_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    total_size INTEGER NOT NULL,
+    downloaded_size INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    downloaded_time TEXT,
+    destination_path TEXT NOT NULL,
+    PRIMARY KEY (id, credential_id)
+);
+
 -- Bucket Operations
 insertBucket:
 INSERT OR REPLACE INTO bucket_entity(credential_id, id, name, owner, is_public, created_at, updated_at, allowed_mime_types, file_size_limit)
@@ -58,3 +72,17 @@ DELETE FROM storage_item_entity WHERE credential_id = ? AND bucket_id = ?;
 
 deleteAllStorageItems:
 DELETE FROM storage_item_entity WHERE credential_id = ?;
+
+-- Download Item Operations
+insertDownloadItem:
+INSERT OR REPLACE INTO download_item_entity(id, credential_id, file_name, bucket_id, path, total_size, downloaded_size, status, downloaded_time, destination_path)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getDownloadItems:
+SELECT * FROM download_item_entity WHERE credential_id = ?;
+
+deleteDownloadItem:
+DELETE FROM download_item_entity WHERE id = ? AND credential_id = ?;
+
+deleteAllDownloadItems:
+DELETE FROM download_item_entity WHERE credential_id = ?;

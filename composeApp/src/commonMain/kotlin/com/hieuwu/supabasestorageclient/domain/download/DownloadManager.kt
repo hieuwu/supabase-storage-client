@@ -2,6 +2,8 @@ package com.hieuwu.supabasestorageclient.domain.download
 
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
+import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
+import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import com.hieuwu.supabasestorageclient.util.FileWriter
 import com.hieuwu.supabasestorageclient.util.PermissionManager
@@ -12,6 +14,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -21,7 +25,9 @@ import kotlinx.datetime.Clock
 class DownloadManager(
     private val storageRepository: StorageRepository,
     private val fileWriter: FileWriter,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val downloadRepository: DownloadRepository,
+    private val credentialRepository: CredentialRepository
 ) {
     private val _downloads = MutableStateFlow<List<DownloadItem>>(emptyList())
     val downloads: StateFlow<List<DownloadItem>> = _downloads.asStateFlow()
@@ -32,6 +38,21 @@ class DownloadManager(
     // Accumulate byte data across chunks
     private val byteBuffers = mutableMapOf<String, MutableList<ByteArray>>()
     private val buffersMutex = Mutex()
+
+    init {
+        scope.launch {
+            credentialRepository.getCredentials().collectLatest {
+                val lastUsedId = credentialRepository.getLastUsedId()
+                if (lastUsedId != null) {
+                    downloadRepository.getDownloadItems(lastUsedId).collect { items ->
+                        _downloads.value = items
+                    }
+                } else {
+                    _downloads.value = emptyList()
+                }
+            }
+        }
+    }
 
     fun download(bucketId: String, path: String, fileName: String, destinationPath: String) {
         val id = "$bucketId:$path"
@@ -47,12 +68,7 @@ class DownloadManager(
             destinationPath = destinationPath
         )
 
-        // Replace or add item
-        _downloads.update { list ->
-            val existing = list.indexOfFirst { it.id == id }
-            if (existing >= 0) list.toMutableList().also { it[existing] = item }
-            else list + item
-        }
+        updateAndPersistItem(item)
 
         val job = scope.launch {
             try {
@@ -61,27 +77,20 @@ class DownloadManager(
                 }
 
                 if (!permissionManager.requestStoragePermission()) {
-                    _downloads.update { list ->
-                        list.map {
-                            if (it.id == id) it.copy(status = DownloadStatus.Error) else it
-                        }
-                    }
+                    val currentItem = _downloads.value.find { it.id == id }
+                    currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
                     return@launch
                 }
 
                 storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
-                    // println("DownloadManager: Received status: ${status::class.simpleName}")
                     when (status) {
                         is SupabaseDownloadStatus.Progress -> {
-                            _downloads.update { list ->
-                                list.map {
-                                    if (it.id == id) it.copy(
-                                        downloadedSize = status.totalBytesReceived,
-                                        totalSize = status.contentLength,
-                                        status = DownloadStatus.Downloading
-                                    ) else it
-                                }
-                            }
+                            val currentItem = _downloads.value.find { it.id == id }
+                            currentItem?.copy(
+                                downloadedSize = status.totalBytesReceived,
+                                totalSize = status.contentLength,
+                                status = DownloadStatus.Downloading
+                            )?.let { updateAndPersistItem(it) }
                         }
                         is SupabaseDownloadStatus.ByteData -> {
                             buffersMutex.withLock {
@@ -91,15 +100,10 @@ class DownloadManager(
                             val currentSize = buffersMutex.withLock {
                                 byteBuffers[id]?.sumOf { chunk -> chunk.size.toLong() } ?: 0L
                             }
-                            _downloads.update { list ->
-                                list.map {
-                                    if (it.id == id) it.copy(downloadedSize = currentSize) else it
-                                }
-                            }
+                            val currentItem = _downloads.value.find { it.id == id }
+                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(it) }
                         }
                         SupabaseDownloadStatus.Success -> {
-                            // Just mark status as completed in UI if we want, 
-                            // but we will do the final write after collect finishes.
                         }
                     }
                 }
@@ -126,37 +130,40 @@ class DownloadManager(
                     
                     fileWriter.writeToFile(fullPath, allBytes)
 
-                    _downloads.update { list ->
-                        list.map {
-                            if (it.id == id) it.copy(
-                                status = DownloadStatus.Completed,
-                                downloadedTime = Clock.System.now(),
-                                downloadedSize = totalSizeBytes.toLong()
-                            ) else it
-                        }
-                    }
+                    val currentItem = _downloads.value.find { it.id == id }
+                    currentItem?.copy(
+                        status = DownloadStatus.Completed,
+                        downloadedTime = Clock.System.now(),
+                        downloadedSize = totalSizeBytes.toLong()
+                    )?.let { updateAndPersistItem(it) }
                 } else {
-                    // No data received? If it reached here without error, maybe it was a 0-byte file.
-                    // But usually, we should have at least one ByteData event if the file has content.
-                    _downloads.update { list ->
-                        list.map {
-                            if (it.id == id) it.copy(status = DownloadStatus.Completed) else it
-                        }
-                    }
+                    val currentItem = _downloads.value.find { it.id == id }
+                    currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(it) }
                 }
 
             } catch (e: Exception) {
                 buffersMutex.withLock {
                     byteBuffers.remove(id)
                 }
-                _downloads.update { list ->
-                    list.map {
-                        if (it.id == id) it.copy(status = DownloadStatus.Error) else it
-                    }
-                }
+                val currentItem = _downloads.value.find { it.id == id }
+                currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
             }
         }
         downloadJobs[id] = job
+    }
+
+    private fun updateAndPersistItem(item: DownloadItem) {
+        _downloads.update { list ->
+            val existing = list.indexOfFirst { it.id == item.id }
+            if (existing >= 0) list.toMutableList().also { it[existing] = item }
+            else list + item
+        }
+        scope.launch {
+            val lastUsedId = credentialRepository.getLastUsedId()
+            if (lastUsedId != null) {
+                downloadRepository.insertDownloadItem(lastUsedId, item)
+            }
+        }
     }
 
     fun pause(id: String) {
@@ -166,9 +173,8 @@ class DownloadManager(
                 byteBuffers.remove(id)
             }
         }
-        _downloads.update { list ->
-            list.map { if (it.id == id) it.copy(status = DownloadStatus.Paused) else it }
-        }
+        val currentItem = _downloads.value.find { it.id == id }
+        currentItem?.copy(status = DownloadStatus.Paused)?.let { updateAndPersistItem(it) }
     }
 
     fun resume(id: String) {
@@ -182,7 +188,15 @@ class DownloadManager(
             buffersMutex.withLock {
                 byteBuffers.remove(id)
             }
+            val lastUsedId = credentialRepository.getLastUsedId()
+            if (lastUsedId != null) {
+                downloadRepository.deleteDownloadItem(lastUsedId, id)
+            }
         }
         _downloads.update { it.filter { item -> item.id != id } }
+    }
+
+    fun deleteDownload(id: String) {
+        cancel(id)
     }
 }

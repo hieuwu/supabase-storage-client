@@ -7,8 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,6 +24,7 @@ fun DownloadsScreen(
     viewModel: DownloadsViewModel = koinViewModel()
 ) {
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
+    val itemToDelete by viewModel.showDeleteConfirmationDialog
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (downloads.isEmpty()) {
@@ -59,11 +59,34 @@ fun DownloadsScreen(
                         onPause = { viewModel.pauseDownload(item.id) },
                         onResume = { viewModel.resumeDownload(item.id) },
                         onCancel = { viewModel.cancelDownload(item.id) },
+                        onDelete = { viewModel.confirmDelete(item) },
                         onOpenFile = { viewModel.openFile(item) },
                         onOpenDirectory = { viewModel.openDirectory(item) }
                     )
                 }
             }
+        }
+
+        itemToDelete?.let { item ->
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissDeleteConfirmation() },
+                title = { Text("Delete Download") },
+                text = { Text("Are you sure you want to delete '${item.fileName}' from your download list?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.deleteDownload(item.id) }
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.dismissDeleteConfirmation() }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
@@ -74,9 +97,12 @@ fun DownloadItemRow(
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
+    onDelete: () -> Unit,
     onOpenFile: () -> Unit,
     onOpenDirectory: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onOpenFile() }
     ) {
@@ -123,8 +149,33 @@ fun DownloadItemRow(
                         }
                     }
                     
-                    IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.Close, contentDescription = "Cancel")
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            if (item.status == DownloadStatus.Downloading || item.status == DownloadStatus.Paused) {
+                                DropdownMenuItem(
+                                    text = { Text("Cancel") },
+                                    onClick = {
+                                        onCancel()
+                                        showMenu = false
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.Close, contentDescription = null) }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                onClick = {
+                                    onDelete()
+                                    showMenu = false
+                                },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                            )
+                        }
                     }
                 }
             }
