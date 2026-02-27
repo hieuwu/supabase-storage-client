@@ -79,7 +79,7 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-            val bucketId = backStackEntry.arguments?.getString("bucketId")
+            val bucketId = backStackEntry.savedStateHandle.get("bucketId") as? String
             SearchScreen(
                 bucketId = bucketId,
                 onBack = { navController.popBackStack() },
@@ -108,8 +108,9 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-            val bucketId = backStackEntry.arguments?.getString("bucketId") ?: ""
-            val path = backStackEntry.arguments?.getString("path")
+            val bucketId = backStackEntry.savedStateHandle?.get("bucketId") ?: ""
+            val path = backStackEntry.savedStateHandle?.get("path") ?: ""
+
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -149,9 +150,9 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-            val bucketId = backStackEntry.arguments?.getString("bucketId") ?: ""
-            val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
-            val path = backStackEntry.arguments?.getString("path")
+            val bucketId = backStackEntry.savedStateHandle?.get("bucketId") as? String ?: ""
+            val fileName = backStackEntry.savedStateHandle?.get("fileName") as? String ?: ""
+            val path = backStackEntry.savedStateHandle?.get("path") as? String
             Scaffold(
                 topBar = {
                     TopAppBar(

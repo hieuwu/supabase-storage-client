@@ -86,11 +86,15 @@ fun MainScreen(
                         Text(title, fontWeight = FontWeight.Bold)
                     },
                     navigationIcon = {
-                        val isSubScreen = (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) || 
-                                          currentRoute?.startsWith("file-view") == true
+                        val isSubScreen =
+                            (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) ||
+                                    currentRoute?.startsWith("file-view") == true
                         if (isSubScreen) {
                             IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back"
+                                )
                             }
                         } else {
                             IconButton(onClick = {
@@ -101,12 +105,13 @@ fun MainScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { 
-                            val bucketId = if (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) {
-                                // Extract bucketId from route bucket/{bucketId}?path={path}
-                                navBackStackEntry?.arguments?.getString("bucketId")
-                            } else null
-                            rootNavController.navigate(Screen.Search.createRoute(bucketId)) 
+                        IconButton(onClick = {
+                            val bucketId =
+                                if (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) {
+                                    // Extract bucketId from route bucket/{bucketId}?path={path}
+                                     navBackStackEntry?.savedStateHandle?.get<String>("bucketId") ?: ""
+                                } else null
+                            rootNavController.navigate(Screen.Search.createRoute(bucketId))
                         }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
@@ -126,6 +131,7 @@ fun MainScreen(
                             text = { Text("Create bucket") }
                         )
                     }
+
                     currentRoute?.startsWith("bucket") == true -> {
                         var expanded by remember { mutableStateOf(false) }
                         Box {
@@ -142,7 +148,12 @@ fun MainScreen(
                                         expanded = false
                                         viewModel.onNewFolderClick()
                                     },
-                                    leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) }
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.CreateNewFolder,
+                                            contentDescription = null
+                                        )
+                                    }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Upload File") },
@@ -150,7 +161,12 @@ fun MainScreen(
                                         expanded = false
                                         viewModel.onUploadFileClick()
                                     },
-                                    leadingIcon = { Icon(Icons.Default.UploadFile, contentDescription = null) }
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.UploadFile,
+                                            contentDescription = null
+                                        )
+                                    }
                                 )
                             }
                         }
@@ -162,7 +178,9 @@ fun MainScreen(
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Storage, contentDescription = "Buckets") },
                         label = { Text("Buckets") },
-                        selected = currentRoute == Screen.BucketsTab.route || currentRoute?.startsWith("bucket") == true || currentRoute?.startsWith("file-view") == true,
+                        selected = currentRoute == Screen.BucketsTab.route || currentRoute?.startsWith(
+                            "bucket"
+                        ) == true || currentRoute?.startsWith("file-view") == true,
                         onClick = {
                             navController.navigate(Screen.BucketsTab.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -249,8 +267,8 @@ fun MainScreen(
                             }
                         )
                     ) { backStackEntry ->
-                        val bucketId = backStackEntry.arguments?.getString("bucketId") ?: ""
-                        val path = backStackEntry.arguments?.getString("path")
+                        val bucketId = backStackEntry.savedStateHandle.get<String>("bucketId") ?: ""
+                        val path = backStackEntry.savedStateHandle.get<String>("path") ?: ""
                         BucketScreen(
                             bucketId = bucketId,
                             path = path,
@@ -259,7 +277,13 @@ fun MainScreen(
                                 navController.navigate(Screen.Bucket.createRoute(bucketId, newPath))
                             },
                             onNavigateToFile = { bId, fileName, p ->
-                                navController.navigate(Screen.FileView.createRoute(bId, fileName, p))
+                                navController.navigate(
+                                    Screen.FileView.createRoute(
+                                        bId,
+                                        fileName,
+                                        p
+                                    )
+                                )
                             }
                         )
                     }
@@ -275,9 +299,9 @@ fun MainScreen(
                             }
                         )
                     ) { backStackEntry ->
-                        val bucketId = backStackEntry.arguments?.getString("bucketId") ?: ""
-                        val fileName = backStackEntry.arguments?.getString("fileName") ?: ""
-                        val path = backStackEntry.arguments?.getString("path")
+                        val bucketId = backStackEntry.savedStateHandle.get("bucketId") ?: ""
+                        val fileName =  backStackEntry.savedStateHandle.get("fileName") ?: ""
+                        val path = backStackEntry.savedStateHandle.get("path") ?: ""
                         FileViewScreen(
                             bucketId = bucketId,
                             fileName = fileName,
@@ -341,7 +365,8 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = uiState.newBucketFileSizeUnit.name.lowercase().replaceFirstChar { it.uppercase() },
+                        value = uiState.newBucketFileSizeUnit.name.lowercase()
+                            .replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Unit") },
@@ -355,7 +380,10 @@ fun MainScreen(
                     ) {
                         SizeUnit.entries.forEach { unit ->
                             DropdownMenuItem(
-                                text = { Text(unit.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                text = {
+                                    Text(
+                                        unit.name.lowercase().replaceFirstChar { it.uppercase() })
+                                },
                                 onClick = {
                                     viewModel.onNewBucketFileSizeUnitChange(unit)
                                     unitExpanded = false
@@ -364,7 +392,7 @@ fun MainScreen(
                         }
                     }
                 }
-                
+
                 Button(
                     onClick = { viewModel.onConfirmCreateBucket() },
                     modifier = Modifier.fillMaxWidth()
@@ -475,7 +503,11 @@ fun MainScreen(
                         supportingContent = { Text(credential.url) },
                         leadingContent = {
                             if (isSelected) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             } else {
                                 Icon(Icons.Default.AccountCircle, contentDescription = null)
                             }
@@ -496,7 +528,12 @@ fun MainScreen(
                                             menuExpanded = false
                                             viewModel.onRemoveCredential(credential.id)
                                         },
-                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = null
+                                            )
+                                        }
                                     )
                                 }
                             }
@@ -547,7 +584,10 @@ fun MainScreen(
             confirmButton = {},
             title = { Text("Setting up") },
             text = {
-                Box(Modifier.fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                Box(
+                    Modifier.fillMaxWidth(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }

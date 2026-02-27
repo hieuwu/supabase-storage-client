@@ -7,11 +7,14 @@ import kotlinx.cinterop.*
 import platform.posix.*
 
 class IosFileWriter : FileWriter {
+    @OptIn(ExperimentalForeignApi::class)
     override fun writeToFile(path: String, data: ByteArray) {
-        val nsData = NSData.create(
-            bytes = data.toCValues(),
-            length = data.size.toULong()
-        )
+        val nsData = data.usePinned { pinned ->
+            NSData.create(
+                bytes = pinned.addressOf(0),
+                length = data.size.toULong()
+            )
+        }
         nsData.writeToFile(path, true)
     }
 

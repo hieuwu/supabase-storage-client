@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
+import com.hieuwu.supabasestorageclient.util.format
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -179,7 +180,7 @@ fun formatSize(downloaded: Long, total: Long): String {
 fun formatBytes(bytes: Long): String {
     if (bytes < 1024) return "$bytes B"
     val kb = bytes / 1024.0
-    if (kb < 1024) return "${"%.1f".format(kb)} KB"
+    if (kb < 1024) return "${kb.format(1)} KB"
     val mb = kb / 1024.0
-    return "${"%.1f".format(mb)} MB"
+    return "${mb.format(1)} MB"
 }

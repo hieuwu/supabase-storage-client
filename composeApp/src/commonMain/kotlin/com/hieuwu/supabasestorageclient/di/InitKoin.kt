@@ -7,8 +7,7 @@ import org.koin.dsl.KoinAppDeclaration
 
 expect fun platformModule(): Module
 
-fun initKoin(appDeclaration: KoinAppDeclaration = {}) = startKoin {
-    appDeclaration()
+fun initKoin() = startKoin {
     Logger.d { "Koin initialized" }
     modules(
         platformModule(),
