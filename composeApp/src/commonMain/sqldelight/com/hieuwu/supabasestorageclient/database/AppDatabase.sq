@@ -1,0 +1,60 @@
+CREATE TABLE bucket_entity (
+    credential_id TEXT NOT NULL,
+    id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    owner TEXT NOT NULL,
+    is_public INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    allowed_mime_types TEXT,
+    file_size_limit INTEGER,
+    PRIMARY KEY (credential_id, id)
+);
+
+CREATE TABLE storage_item_entity (
+    credential_id TEXT NOT NULL,
+    bucket_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    name TEXT NOT NULL,
+    id TEXT,
+    is_folder INTEGER NOT NULL,
+    size INTEGER,
+    updated_at TEXT,
+    created_at TEXT,
+    last_accessed_at TEXT,
+    PRIMARY KEY (credential_id, bucket_id, path)
+);
+
+-- Bucket Operations
+insertBucket:
+INSERT OR REPLACE INTO bucket_entity(credential_id, id, name, owner, is_public, created_at, updated_at, allowed_mime_types, file_size_limit)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllBuckets:
+SELECT * FROM bucket_entity WHERE credential_id = ?;
+
+deleteBucket:
+DELETE FROM bucket_entity WHERE credential_id = ? AND id = ?;
+
+deleteAllBuckets:
+DELETE FROM bucket_entity WHERE credential_id = ?;
+
+-- Storage Item Operations
+insertStorageItem:
+INSERT OR REPLACE INTO storage_item_entity(credential_id, bucket_id, path, name, id, is_folder, size, updated_at, created_at, last_accessed_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getStorageItemsForBucketPath:
+SELECT * FROM storage_item_entity WHERE credential_id = ? AND bucket_id = ? AND path LIKE ?;
+
+getStorageItemsForBucketRoot:
+SELECT * FROM storage_item_entity WHERE credential_id = ? AND bucket_id = ? AND path NOT LIKE '%/%';
+
+deleteStorageItem:
+DELETE FROM storage_item_entity WHERE credential_id = ? AND bucket_id = ? AND path = ?;
+
+deleteStorageItemsForBucket:
+DELETE FROM storage_item_entity WHERE credential_id = ? AND bucket_id = ?;
+
+deleteAllStorageItems:
+DELETE FROM storage_item_entity WHERE credential_id = ?;
