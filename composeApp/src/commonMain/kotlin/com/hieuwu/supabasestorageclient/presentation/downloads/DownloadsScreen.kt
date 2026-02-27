@@ -59,8 +59,8 @@ fun DownloadsScreen(
                         onPause = { viewModel.pauseDownload(item.id) },
                         onResume = { viewModel.resumeDownload(item.id) },
                         onCancel = { viewModel.cancelDownload(item.id) },
-                        onClick = { viewModel.openDirectory(item) },
-                        onOpenFile = { viewModel.openFile(item) }
+                        onOpenFile = { viewModel.openFile(item) },
+                        onOpenDirectory = { viewModel.openDirectory(item) }
                     )
                 }
             }
@@ -74,11 +74,11 @@ fun DownloadItemRow(
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
-    onClick: () -> Unit,
-    onOpenFile: () -> Unit
+    onOpenFile: () -> Unit,
+    onOpenDirectory: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+        modifier = Modifier.fillMaxWidth().clickable { onOpenFile() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -118,8 +118,8 @@ fun DownloadItemRow(
                     }
                     
                     if (item.status == DownloadStatus.Completed) {
-                        IconButton(onClick = onOpenFile) {
-                            Icon(Icons.Default.Folder, contentDescription = "Open File")
+                        IconButton(onClick = onOpenDirectory) {
+                            Icon(Icons.Default.Folder, contentDescription = "Open Directory")
                         }
                     }
                     
