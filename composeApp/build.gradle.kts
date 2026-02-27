@@ -88,6 +88,9 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
         }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
     }
 }
 
