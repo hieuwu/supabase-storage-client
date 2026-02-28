@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,82 +45,106 @@ fun StarredScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else if (uiState.items.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    Icons.Default.StarOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "No Starred Items",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Your starred files and folders will appear here.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            if (uiState.viewMode == ViewMode.LIST) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(uiState.items) { item ->
-                        StarredItemRow(
-                            item = item,
-                            onClick = {
-                                when {
-                                    item.isBucket -> onNavigateToBucket(item.bucketId)
-                                    item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
-                                    else -> onNavigateToFile(
-                                        item.bucketId,
-                                        item.itemName,
-                                        item.path?.substringBeforeLast("/", "")
-                                    )
-                                }
-                            },
-                            onUnstar = { viewModel.unstarItem(item.itemId) }
-                        )
-                        HorizontalDivider()
-                    }
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadStarredItems() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (uiState.isLoading && uiState.items.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+            } else if (uiState.items.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Default.StarOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No Starred Items",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Your starred files and folders will appear here.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(140.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(uiState.items) { item ->
-                        StarredItemGrid(
-                            item = item,
-                            onClick = {
-                                when {
-                                    item.isBucket -> onNavigateToBucket(item.bucketId)
-                                    item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
-                                    else -> onNavigateToFile(
-                                        item.bucketId,
-                                        item.itemName,
-                                        item.path?.substringBeforeLast("/", "")
-                                    )
-                                }
-                            },
-                            onUnstar = { viewModel.unstarItem(item.itemId) }
-                        )
+                    TextButton(
+                        onClick = { viewModel.onClearAllClick() },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Clear All")
+                    }
+                }
+                if (uiState.viewMode == ViewMode.LIST) {
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(uiState.items) { item ->
+                            StarredItemRow(
+                                item = item,
+                                onClick = {
+                                    when {
+                                        item.isBucket -> onNavigateToBucket(item.bucketId)
+                                        item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
+                                        else -> onNavigateToFile(
+                                            item.bucketId,
+                                            item.itemName,
+                                            item.path?.substringBeforeLast("/", "")
+                                        )
+                                    }
+                                },
+                                onUnstar = { viewModel.unstarItem(item.itemId) }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(140.dp),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(uiState.items) { item ->
+                            StarredItemGrid(
+                                item = item,
+                                onClick = {
+                                    when {
+                                        item.isBucket -> onNavigateToBucket(item.bucketId)
+                                        item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
+                                        else -> onNavigateToFile(
+                                            item.bucketId,
+                                            item.itemName,
+                                            item.path?.substringBeforeLast("/", "")
+                                        )
+                                    }
+                                },
+                                onUnstar = { viewModel.unstarItem(item.itemId) }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
     }
 
     if (uiState.showClearAllConfirmation) {

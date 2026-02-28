@@ -30,7 +30,7 @@ class StarredViewModel(
         loadStarredItems()
     }
 
-    private fun loadStarredItems() {
+    fun loadStarredItems() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val starredItems = starredRepository.getStarredItems()

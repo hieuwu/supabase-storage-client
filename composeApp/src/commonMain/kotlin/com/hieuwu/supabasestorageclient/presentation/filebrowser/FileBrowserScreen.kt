@@ -51,6 +51,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -104,62 +105,70 @@ fun BucketScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            if (uiState.isLoading && uiState.items.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
-                if (uiState.viewMode == ViewMode.LIST) {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(uiState.items) { item ->
-                            StorageItemRow(
-                                item = item,
-                                onClick = {
-                                    if (item.isFolder) {
-                                        val nextPath =
-                                            if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                        onNavigateToFolder(nextPath)
-                                    } else {
-                                        onNavigateToFile(bucketId, item.name, path)
-                                    }
-                                },
-                                onRename = { itemToRename = item },
-                                onMove = { itemToMove = item },
-                                onDelete = { itemToDelete = item },
-                                onStar = { viewModel.toggleStar(item) },
-                                onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                onCopyPath = { viewModel.copyPath(item.name) },
-                                onDownload = { viewModel.downloadItem(item.name) }
-                            )
-                            HorizontalDivider()
-                        }
+            PullToRefreshBox(
+                isRefreshing = uiState.isLoading,
+                onRefresh = { viewModel.refreshContents() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (uiState.isLoading && uiState.items.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(120.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(uiState.items) { item ->
-                            StorageItemGrid(
-                                item = item,
-                                onClick = {
-                                    if (item.isFolder) {
-                                        val nextPath =
-                                            if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                        onNavigateToFolder(nextPath)
-                                    } else {
-                                        onNavigateToFile(bucketId, item.name, path)
-                                    }
-                                },
-                                onRename = { itemToRename = item },
-                                onMove = { itemToMove = item },
-                                onDelete = { itemToDelete = item },
-                                onStar = { viewModel.toggleStar(item) },
-                                onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                onCopyPath = { viewModel.copyPath(item.name) },
-                                onDownload = { viewModel.downloadItem(item.name) }
-                            )
+                    if (uiState.viewMode == ViewMode.LIST) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(uiState.items) { item ->
+                                StorageItemRow(
+                                    item = item,
+                                    onClick = {
+                                        if (item.isFolder) {
+                                            val nextPath =
+                                                if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                            onNavigateToFolder(nextPath)
+                                        } else {
+                                            onNavigateToFile(bucketId, item.name, path)
+                                        }
+                                    },
+                                    onRename = { itemToRename = item },
+                                    onMove = { itemToMove = item },
+                                    onDelete = { itemToDelete = item },
+                                    onStar = { viewModel.toggleStar(item) },
+                                    onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                    onCopyPath = { viewModel.copyPath(item.name) },
+                                    onDownload = { viewModel.downloadItem(item.name) }
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(120.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(uiState.items) { item ->
+                                StorageItemGrid(
+                                    item = item,
+                                    onClick = {
+                                        if (item.isFolder) {
+                                            val nextPath =
+                                                if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                            onNavigateToFolder(nextPath)
+                                        } else {
+                                            onNavigateToFile(bucketId, item.name, path)
+                                        }
+                                    },
+                                    onRename = { itemToRename = item },
+                                    onMove = { itemToMove = item },
+                                    onDelete = { itemToDelete = item },
+                                    onStar = { viewModel.toggleStar(item) },
+                                    onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                    onCopyPath = { viewModel.copyPath(item.name) },
+                                    onDownload = { viewModel.downloadItem(item.name) }
+                                )
+                            }
                         }
                     }
                 }
