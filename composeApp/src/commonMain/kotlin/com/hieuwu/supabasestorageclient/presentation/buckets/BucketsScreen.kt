@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -230,52 +231,47 @@ fun BucketListItem(
             )
         },
         trailingContent = {
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onToggleStar) {
+                    Icon(
+                        if (bucket.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                        contentDescription = if (bucket.isStarred) "Unstar" else "Star",
+                        tint = if (bucket.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(if (bucket.isStarred) "Unstar" else "Star") },
-                        onClick = {
-                            showMenu = false
-                            onToggleStar()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                if (bucket.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
-                                contentDescription = null,
-                                tint = if (bucket.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Update bucket") },
-                        onClick = {
-                            showMenu = false
-                            // Leave update bucket for now
-                        },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Empty bucket") },
-                        onClick = {
-                            showMenu = false
-                            onEmptyClick()
-                        },
-                        leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete bucket") },
-                        onClick = {
-                            showMenu = false
-                            onDeleteClick()
-                        },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                    )
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Update bucket") },
+                            onClick = {
+                                showMenu = false
+                                // Leave update bucket for now
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Empty bucket") },
+                            onClick = {
+                                showMenu = false
+                                onEmptyClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete bucket") },
+                            onClick = {
+                                showMenu = false
+                                onDeleteClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                        )
+                    }
                 }
             }
         },

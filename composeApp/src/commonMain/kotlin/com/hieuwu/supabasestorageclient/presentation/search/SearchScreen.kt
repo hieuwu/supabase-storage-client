@@ -114,7 +114,8 @@ fun SearchScreen(
                         items(uiState.buckets) { bucket ->
                             BucketResultRow(
                                 bucket = bucket,
-                                onClick = { onNavigateToBucket(bucket.id) }
+                                onClick = { onNavigateToBucket(bucket.id) },
+                                onToggleStar = { viewModel.toggleStar(bucket) }
                             )
                             HorizontalDivider()
                         }
@@ -128,7 +129,8 @@ fun SearchScreen(
                                     } else {
                                         onNavigateToFile(result.bucketId, result.item.name, null)
                                     }
-                                }
+                                },
+                                onToggleStar = { viewModel.toggleStar(result.item, result.bucketId) }
                             )
                             HorizontalDivider()
                         }
@@ -149,7 +151,8 @@ fun SearchScreen(
 @Composable
 fun BucketResultRow(
     bucket: Bucket,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onToggleStar: () -> Unit
 ) {
     ListItem(
         headlineContent = { Text(bucket.name, fontWeight = FontWeight.SemiBold) },
@@ -163,6 +166,15 @@ fun BucketResultRow(
         leadingContent = {
             Icon(Icons.Default.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         },
+        trailingContent = {
+            IconButton(onClick = onToggleStar) {
+                Icon(
+                    if (bucket.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                    contentDescription = if (bucket.isStarred) "Unstar" else "Star",
+                    tint = if (bucket.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         modifier = Modifier.clickable { onClick() }
     )
 }
@@ -170,7 +182,8 @@ fun BucketResultRow(
 @Composable
 fun StorageItemResultRow(
     item: StorageItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onToggleStar: () -> Unit
 ) {
     ListItem(
         headlineContent = { Text(item.name) },
@@ -195,6 +208,15 @@ fun StorageItemResultRow(
                 contentDescription = null,
                 tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
+        },
+        trailingContent = {
+            IconButton(onClick = onToggleStar) {
+                Icon(
+                    if (item.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                    contentDescription = if (item.isStarred) "Unstar" else "Star",
+                    tint = if (item.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         modifier = Modifier.clickable { onClick() }
     )

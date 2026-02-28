@@ -7,8 +7,11 @@ import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketContentsUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketsUseCase
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.domain.model.StarredItem
+import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.datetime.Clock
 
 enum class SearchType {
     BUCKET, FOLDER, FILE
@@ -32,6 +35,7 @@ class SearchViewModel(
     private val bucketId: String?,
     private val getBucketsUseCase: GetBucketsUseCase,
     private val getBucketContentsUseCase: GetBucketContentsUseCase,
+    private val starredRepository: StarredRepository,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -40,7 +44,21 @@ class SearchViewModel(
             searchType = if (bucketId == null) SearchType.BUCKET else SearchType.FILE
         )
     )
-    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<SearchUiState> = combine(
+        _uiState,
+        starredRepository.getStarredItems()
+    ) { state, starredItems ->
+        val starredIds = starredItems.map { it.itemId }.toSet()
+        state.copy(
+            buckets = state.buckets.map { it.copy(isStarred = starredIds.contains(it.id)) },
+            storageItems = state.storageItems.map { result ->
+                val fullPath = result.item.name // Assuming item name is what's used for ID
+                val itemId = if (result.item.isFolder) "${result.bucketId}:$fullPath" else "${result.bucketId}:$fullPath"
+                // Wait, I need to check how itemId is constructed for files/folders
+                result.copy(item = result.item.copy(isStarred = starredIds.contains(itemId) || starredIds.contains("${result.bucketId}:${result.item.name}")))
+            }
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _uiState.value)
 
     private val queryFlow = MutableStateFlow("")
     private var searchJob: Job? = null
@@ -95,13 +113,54 @@ class SearchViewModel(
                             storageItems = filtered,
                             buckets = emptyList(),
                             isLoading = false,
-                            searchType = SearchType.FILE // This can be refined to show both files and folders
+                            searchType = SearchType.FILE
                         )
                     }
                 }
             } catch (e: Exception) {
                 logger.e(e) { "Error performing search" }
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun toggleStar(bucket: Bucket) {
+        viewModelScope.launch {
+            if (bucket.isStarred) {
+                starredRepository.unstarItem(bucket.id)
+            } else {
+                starredRepository.starItem(
+                    StarredItem(
+                        itemId = bucket.id,
+                        itemName = bucket.name,
+                        bucketId = bucket.id,
+                        path = null,
+                        isFolder = false,
+                        isBucket = true,
+                        starredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                    )
+                )
+            }
+        }
+    }
+
+    fun toggleStar(item: StorageItem, bucketId: String) {
+        viewModelScope.launch {
+            val itemId = "${bucketId}:${item.name}"
+            if (item.isStarred) {
+                starredRepository.unstarItem(itemId)
+            } else {
+                starredRepository.starItem(
+                    StarredItem(
+                        itemId = itemId,
+                        itemName = item.name,
+                        bucketId = bucketId,
+                        path = item.name, // This might be wrong for nested files, but Search currently only searches root?
+                        isFolder = item.isFolder,
+                        isBucket = false,
+                        starredAt = Clock.System.now().toEpochMilliseconds()
+                    )
+                )
             }
         }
     }

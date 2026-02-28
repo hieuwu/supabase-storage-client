@@ -122,6 +122,6 @@ val featureModule = module {
     viewModelOf(::UploadViewModel)
     viewModelOf(::StarredViewModel)
     viewModel { (bucketId: String?) ->
-        SearchViewModel(bucketId, get(), get(), get())
+        SearchViewModel(bucketId, get(), get(), get(), get())
     }
 }

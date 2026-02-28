@@ -318,25 +318,22 @@ fun StorageItemRow(
             )
         },
         trailingContent = {
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(if (item.isStarred) "Unstar" else "Star") },
-                        onClick = { onStar(); showMenu = false },
-                        leadingIcon = { 
-                            Icon(
-                                if (item.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
-                                contentDescription = null,
-                                tint = if (item.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            ) 
-                        }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onStar) {
+                    Icon(
+                        imageVector = if (item.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                        contentDescription = if (item.isStarred) "Unstar" else "Star",
+                        tint = if (item.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
                     if (item.isFolder) {
                         DropdownMenuItem(
                             text = { Text("Copy path") },
@@ -351,7 +348,12 @@ fun StorageItemRow(
                         DropdownMenuItem(
                             text = { Text("Move") },
                             onClick = { onMove(); showMenu = false },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                    contentDescription = null
+                                )
+                            }
                         )
                     } else {
                         DropdownMenuItem(
@@ -367,7 +369,12 @@ fun StorageItemRow(
                         DropdownMenuItem(
                             text = { Text("Move") },
                             onClick = { onMove(); showMenu = false },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) }
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                    contentDescription = null
+                                )
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Download") },
@@ -379,6 +386,7 @@ fun StorageItemRow(
                             onClick = { onDelete(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
                         )
+                    }
                     }
                 }
             }
@@ -441,74 +449,74 @@ fun StorageItemGrid(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
-                        if (item.isFolder) {
-                            DropdownMenuItem(
-                                text = { Text("Copy path") },
-                                onClick = { onCopyPath(); showMenu = false },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Rename") },
-                                onClick = { onRename(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Move") },
-                                onClick = { onMove(); showMenu = false },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.DriveFileMove,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                        } else {
-                            DropdownMenuItem(
-                                text = { Text("Get URL") },
-                                onClick = { onGetUrl(); showMenu = false },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Rename") },
-                                onClick = { onRename(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Move") },
-                                onClick = { onMove(); showMenu = false },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.DriveFileMove,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Download") },
-                                onClick = { onDownload(); showMenu = false },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Download,
-                                        contentDescription = null
-                                    )
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete") },
-                                onClick = { onDelete(); showMenu = false },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                            )
-                        }
+                    if (item.isFolder) {
+                        DropdownMenuItem(
+                            text = { Text("Copy path") },
+                            onClick = { onCopyPath(); showMenu = false },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = { onRename(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Move") },
+                            onClick = { onMove(); showMenu = false },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text("Get URL") },
+                            onClick = { onGetUrl(); showMenu = false },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = { onRename(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Move") },
+                            onClick = { onMove(); showMenu = false },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Download") },
+                            onClick = { onDownload(); showMenu = false },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Download,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = { onDelete(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                        )
+                    }
                     }
                 }
             }
