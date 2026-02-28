@@ -16,9 +16,11 @@ class SupabaseClientManager {
     val client: StateFlow<SupabaseClient?> = _client.asStateFlow()
 
     fun createClient(credential: Credential): SupabaseClient {
+        val sanitizedUrl = credential.url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
+        val sanitizedKey = credential.key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
         return createSupabaseClient(
-            supabaseUrl = credential.url,
-            supabaseKey = credential.key
+            supabaseUrl = sanitizedUrl,
+            supabaseKey = sanitizedKey
         ) {
             install(Postgrest)
             install(Storage)
