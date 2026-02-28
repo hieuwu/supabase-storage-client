@@ -50,6 +50,11 @@ private val LightColorScheme = lightColorScheme(
     outline = SupaBucktColors.OutlineLight,
     error = SupaBucktColors.Error,
     onError = SupaBucktColors.OnError,
+    surfaceContainer = SupaBucktColors.SurfaceLight,
+    surfaceContainerLow = SupaBucktColors.SurfaceLight,
+    surfaceContainerHigh = SupaBucktColors.SurfaceVariantLight,
+    surfaceContainerHighest = SupaBucktColors.SurfaceVariantLight,
+    surfaceContainerLowest = SupaBucktColors.SurfaceLight,
 )
 
 // Dark theme
@@ -65,6 +70,11 @@ private val DarkColorScheme = darkColorScheme(
     outline = SupaBucktColors.OutlineDark,
     error = SupaBucktColors.Error,
     onError = SupaBucktColors.OnError,
+    surfaceContainer = SupaBucktColors.SurfaceDark,
+    surfaceContainerLow = SupaBucktColors.SurfaceDark,
+    surfaceContainerHigh = SupaBucktColors.SurfaceVariantDark,
+    surfaceContainerHighest = SupaBucktColors.SurfaceVariantDark,
+    surfaceContainerLowest = SupaBucktColors.SurfaceDark,
 )
 
 
