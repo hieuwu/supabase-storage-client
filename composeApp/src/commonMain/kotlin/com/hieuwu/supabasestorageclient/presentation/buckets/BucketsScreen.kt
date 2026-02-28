@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatSize
 import org.koin.compose.viewmodel.koinViewModel
@@ -94,6 +95,13 @@ fun BucketsScreen(
                         Text("Retry")
                     }
                 }
+            } else if (uiState.buckets.isEmpty()) {
+                EmptyState(
+                    icon = Icons.Default.Storage,
+                    title = "No buckets found",
+                    subtitle = "You don't have any buckets yet. Create one to start storing files.",
+                    modifier = Modifier.align(Alignment.Center)
+                )
             } else {
                 if (uiState.viewMode == ViewMode.LIST) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {

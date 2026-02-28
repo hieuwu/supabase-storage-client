@@ -67,6 +67,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatSize
 import org.koin.compose.viewmodel.koinViewModel
@@ -116,6 +117,13 @@ fun BucketScreen(
                     Box(modifier = Modifier.fillMaxSize()) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
+                } else if (uiState.items.isEmpty()) {
+                    EmptyState(
+                        icon = Icons.Default.Folder,
+                        title = "No files found",
+                        subtitle = "This folder is empty. Upload some files to get started.",
+                        modifier = Modifier.fillMaxSize()
+                    )
                 } else {
                     if (uiState.viewMode == ViewMode.LIST) {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
