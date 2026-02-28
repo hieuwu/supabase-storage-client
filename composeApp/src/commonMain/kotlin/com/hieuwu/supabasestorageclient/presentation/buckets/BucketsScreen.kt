@@ -70,20 +70,22 @@ import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatSize
 import org.koin.compose.viewmodel.koinViewModel
+import com.hieuwu.supabasestorageclient.domain.model.Bucket
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun BucketsScreen(
     onBucketClick: (String) -> Unit,
-    viewModel: BucketsViewModel = koinViewModel(),
-    modifier: Modifier = Modifier
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    viewModel: BucketsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
@@ -111,48 +113,46 @@ fun BucketsScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
-                SharedTransitionLayout {
-                    AnimatedContent(
-                        targetState = uiState.viewMode,
-                        transitionSpec = {
-                            fadeIn().togetherWith(fadeOut())
-                        },
-                        label = "BucketsViewModeTransition"
-                    ) { targetViewMode ->
-                        if (targetViewMode == ViewMode.LIST) {
-                            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                items(uiState.buckets) { bucket ->
-                                    BucketListItem(
-                                        bucket = bucket,
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        onClick = { onBucketClick(bucket.id) },
-                                        onToggleStar = { viewModel.toggleStar(bucket) },
-                                        onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
-                                        onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
-                                    )
-                                    HorizontalDivider()
-                                }
+                AnimatedContent(
+                    targetState = uiState.viewMode,
+                    transitionSpec = {
+                        fadeIn().togetherWith(fadeOut())
+                    },
+                    label = "BucketsViewModeTransition"
+                ) { targetViewMode ->
+                    if (targetViewMode == ViewMode.LIST) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(uiState.buckets) { bucket ->
+                                BucketListItem(
+                                    bucket = bucket,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    onClick = { onBucketClick(bucket.id) },
+                                    onToggleStar = { viewModel.toggleStar(bucket) },
+                                    onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
+                                    onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
+                                )
+                                HorizontalDivider()
                             }
-                        } else {
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(160.dp),
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(uiState.buckets) { bucket ->
-                                    BucketGridItem(
-                                        bucket = bucket,
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        onClick = { onBucketClick(bucket.id) },
-                                        onToggleStar = { viewModel.toggleStar(bucket) },
-                                        onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
-                                        onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
-                                    )
-                                }
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(160.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(uiState.buckets) { bucket ->
+                                BucketGridItem(
+                                    bucket = bucket,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    onClick = { onBucketClick(bucket.id) },
+                                    onToggleStar = { viewModel.toggleStar(bucket) },
+                                    onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
+                                    onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
+                                )
                             }
                         }
                     }
@@ -219,7 +219,7 @@ fun BucketsScreen(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BucketListItem(
-    bucket: com.hieuwu.supabasestorageclient.domain.model.Bucket,
+    bucket: Bucket,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
@@ -235,36 +235,17 @@ fun BucketListItem(
                     text = bucket.name,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "text-${bucket.id}"),
+                        rememberSharedContentState(key = "text-${bucket.name}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 )
             }
         },
         supportingContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                val mimeTypes = bucket.allowedMimeTypes?.joinToString(", ") ?: "All"
-                val sizeLimit = if (bucket.fileSizeLimit != null) formatSize(bucket.fileSizeLimit) else "None"
-
-                Text("Allowed Types: $mimeTypes", style = MaterialTheme.typography.labelSmall)
-                Text("Size Limit: $sizeLimit", style = MaterialTheme.typography.labelSmall)
-                Text("Created: ${formatDate(bucket.createdAt)}", style = MaterialTheme.typography.labelSmall)
-
-                if (bucket.public) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text("Public", style = MaterialTheme.typography.labelSmall) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            labelColor = MaterialTheme.colorScheme.primary
-                        ),
-                        border = SuggestionChipDefaults.suggestionChipBorder(
-                            enabled = true,
-                            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+            if (bucket.public) {
+                Text("Public", color = MaterialTheme.colorScheme.primary)
+            } else {
+                Text("Private")
             }
         },
         leadingContent = {
@@ -274,7 +255,7 @@ fun BucketListItem(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "icon-${bucket.id}"),
+                        rememberSharedContentState(key = "icon-${bucket.name}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 )
@@ -332,7 +313,7 @@ fun BucketListItem(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BucketGridItem(
-    bucket: com.hieuwu.supabasestorageclient.domain.model.Bucket,
+    bucket: Bucket,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,

@@ -15,6 +15,9 @@ import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,12 +27,15 @@ import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun FileViewScreen(
     bucketId: String,
     fileName: String,
     path: String?,
     onBack: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: FileViewViewModel = koinViewModel(parameters = { parametersOf(bucketId, fileName, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -91,7 +97,9 @@ fun FileViewScreen(
                 extension = fileName.substringAfterLast(".", ""),
                 size = uiState.metadata?.size?.let { formatSize(it) } ?: "Unknown",
                 addedOn = formatDate(uiState.metadata?.createdAt),
-                lastModified = formatDate(uiState.metadata?.updatedAt)
+                lastModified = formatDate(uiState.metadata?.updatedAt),
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -156,13 +164,16 @@ fun FileViewerContent(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun FileMetadataSection(
     fileName: String,
     extension: String,
     size: String,
     addedOn: String,
-    lastModified: String
+    lastModified: String,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val icon = when {
         isImage(extension) -> Icons.Default.Image
@@ -172,18 +183,32 @@ fun FileMetadataSection(
     }
 
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp).padding(end = 16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = fileName, 
-                style = MaterialTheme.typography.headlineSmall, 
-                fontWeight = FontWeight.Bold,
+        with(sharedTransitionScope) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(end = 16.dp)
+                    .sharedElement(
+                        rememberSharedContentState(key = "icon-$fileName"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            with(sharedTransitionScope) {
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "text-$fileName"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
             Text(
                 text = "$extension - $size", 
                 style = MaterialTheme.typography.bodyMedium, 

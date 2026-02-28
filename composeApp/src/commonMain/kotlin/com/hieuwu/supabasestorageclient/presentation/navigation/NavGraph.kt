@@ -20,6 +20,9 @@ import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen
 import com.hieuwu.supabasestorageclient.presentation.main.MainScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.search.SearchScreen
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.AnimatedVisibilityScope
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -53,128 +56,143 @@ fun NavGraph(
     onOnboardingComplete: () -> Unit,
     onLogout: () -> Unit
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(onComplete = onOnboardingComplete)
-        }
-        composable(Screen.Credentials.route) {
-            CredentialsScreen()
-        }
-        composable(Screen.Main.route) {
-            MainScreen(
-                onLogout = onLogout,
-                rootNavController = navController
-            )
-        }
+    SharedTransitionLayout {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination
+        ) {
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(onComplete = onOnboardingComplete)
+            }
+            composable(Screen.Credentials.route) {
+                CredentialsScreen()
+            }
+            composable(Screen.Main.route) {
+                MainScreen(
+                    onLogout = onLogout,
+                    rootNavController = navController,
+                    sharedTransitionScope = this@SharedTransitionLayout
+                )
+            }
 
-        composable(
-            route = Screen.Search.route,
-            arguments = listOf(
-                navArgument("bucketId") {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) { backStackEntry ->
-            val bucketId = backStackEntry.savedStateHandle.get("bucketId") as? String
-            SearchScreen(
-                bucketId = bucketId,
-                onBack = { navController.popBackStack() },
-                onNavigateToBucket = { bId ->
-                    navController.navigate(Screen.Bucket.createRoute(bId))
-                },
-                onNavigateToFolder = { bId, path ->
-                    navController.navigate(Screen.Bucket.createRoute(bId, path))
-                },
-                onNavigateToFile = { bId, fileName, path ->
-                    navController.navigate(Screen.FileView.createRoute(bId, fileName, path))
-                }
-            )
-        }
-        composable(Screen.About.route) {
-            AboutScreen(onBack = { navController.popBackStack() })
-        }
+            composable(
+                route = Screen.Search.route,
+                arguments = listOf(
+                    navArgument("bucketId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val bucketId = backStackEntry.savedStateHandle.get("bucketId") as? String
+                SearchScreen(
+                    bucketId = bucketId,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToBucket = { bId ->
+                        navController.navigate(Screen.Bucket.createRoute(bId))
+                    },
+                    onNavigateToFolder = { bId, path ->
+                        navController.navigate(Screen.Bucket.createRoute(bId, path))
+                    },
+                    onNavigateToFile = { bId, fileName, path ->
+                        navController.navigate(Screen.FileView.createRoute(bId, fileName, path))
+                    },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@composable
+                )
+            }
+            composable(Screen.About.route) {
+                AboutScreen(onBack = { navController.popBackStack() })
+            }
 
-        composable(
-            route = Screen.Bucket.route,
-            arguments = listOf(
-                navArgument("bucketId") { type = NavType.StringType },
-                navArgument("path") {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) { backStackEntry ->
-            val bucketId = backStackEntry.savedStateHandle?.get("bucketId") ?: ""
-            val path = backStackEntry.savedStateHandle?.get("path") ?: ""
+            composable(
+                route = Screen.Bucket.route,
+                arguments = listOf(
+                    navArgument("bucketId") { type = NavType.StringType },
+                    navArgument("path") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val bucketId = backStackEntry.savedStateHandle?.get("bucketId") ?: ""
+                val path = backStackEntry.savedStateHandle?.get("path") ?: ""
 
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Browse") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Browse") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
+                                }
                             }
-                        }
-                    )
-                }
-            ) { padding ->
-                Box(modifier = Modifier.padding(padding)) {
-                    BucketScreen(
-                        bucketId = bucketId,
-                        path = path,
-                        onBack = { navController.popBackStack() },
-                        onNavigateToFolder = { newPath ->
-                            navController.navigate(Screen.Bucket.createRoute(bucketId, newPath))
-                        },
-                        onNavigateToFile = { bId, fileName, p ->
-                            navController.navigate(Screen.FileView.createRoute(bId, fileName, p))
-                        }
-                    )
+                        )
+                    }
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        BucketScreen(
+                            bucketId = bucketId,
+                            path = path,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToFolder = { newPath ->
+                                navController.navigate(Screen.Bucket.createRoute(bucketId, newPath))
+                            },
+                            onNavigateToFile = { bId, fileName, p ->
+                                navController.navigate(Screen.FileView.createRoute(bId, fileName, p))
+                            },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
                 }
             }
-        }
 
-        composable(
-            route = Screen.FileView.route,
-            arguments = listOf(
-                navArgument("bucketId") { type = NavType.StringType },
-                navArgument("fileName") { type = NavType.StringType },
-                navArgument("path") {
-                    type = NavType.StringType
-                    nullable = true
-                }
-            )
-        ) { backStackEntry ->
-            val bucketId = backStackEntry.savedStateHandle?.get("bucketId") as? String ?: ""
-            val fileName = backStackEntry.savedStateHandle?.get("fileName") as? String ?: ""
-            val path = backStackEntry.savedStateHandle?.get("path") as? String
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("File") },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            composable(
+                route = Screen.FileView.route,
+                arguments = listOf(
+                    navArgument("bucketId") { type = NavType.StringType },
+                    navArgument("fileName") { type = NavType.StringType },
+                    navArgument("path") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val bucketId = backStackEntry.savedStateHandle?.get("bucketId") as? String ?: ""
+                val fileName = backStackEntry.savedStateHandle?.get("fileName") as? String ?: ""
+                val path = backStackEntry.savedStateHandle?.get("path") as? String
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("File") },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
+                                }
                             }
-                        }
-                    )
-                }
-            ) { padding ->
-                Box(modifier = Modifier.padding(padding)) {
-                    FileViewScreen(
-                        bucketId = bucketId,
-                        fileName = fileName,
-                        path = path,
-                        onBack = { navController.popBackStack() }
-                    )
+                        )
+                    }
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        FileViewScreen(
+                            bucketId = bucketId,
+                            fileName = fileName,
+                            path = path,
+                            onBack = { navController.popBackStack() },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
                 }
             }
-        }
 
+        }
     }
 }

@@ -8,6 +8,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +33,8 @@ fun SearchScreen(
     onNavigateToBucket: (String) -> Unit,
     onNavigateToFolder: (String, String) -> Unit,
     onNavigateToFile: (String, String, String?) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: SearchViewModel = koinViewModel { parametersOf(bucketId) }
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -111,7 +116,9 @@ fun SearchScreen(
                             BucketResultRow(
                                 bucket = bucket,
                                 onClick = { onNavigateToBucket(bucket.id) },
-                                onToggleStar = { viewModel.toggleStar(bucket) }
+                                onToggleStar = { viewModel.toggleStar(bucket) },
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
                             )
                             HorizontalDivider()
                         }
@@ -126,7 +133,9 @@ fun SearchScreen(
                                         onNavigateToFile(result.bucketId, result.item.name, null)
                                     }
                                 },
-                                onToggleStar = { viewModel.toggleStar(result.item, result.bucketId) }
+                                onToggleStar = { viewModel.toggleStar(result.item, result.bucketId) },
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
                             )
                             HorizontalDivider()
                         }
@@ -144,14 +153,28 @@ fun SearchScreen(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BucketResultRow(
     bucket: Bucket,
     onClick: () -> Unit,
-    onToggleStar: () -> Unit
+    onToggleStar: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     ListItem(
-        headlineContent = { Text(bucket.name, fontWeight = FontWeight.SemiBold) },
+        headlineContent = {
+            with(sharedTransitionScope) {
+                Text(
+                    text = bucket.name,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "text-${bucket.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
+        },
         supportingContent = {
             if (bucket.public) {
                 Text("Public", color = MaterialTheme.colorScheme.primary)
@@ -160,7 +183,17 @@ fun BucketResultRow(
             }
         },
         leadingContent = {
-            Icon(Icons.Default.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            with(sharedTransitionScope) {
+                Icon(
+                    Icons.Default.Storage,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "icon-${bucket.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
         },
         trailingContent = {
             IconButton(onClick = onToggleStar) {
@@ -175,14 +208,27 @@ fun BucketResultRow(
     )
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun StorageItemResultRow(
     item: StorageItem,
     onClick: () -> Unit,
-    onToggleStar: () -> Unit
+    onToggleStar: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     ListItem(
-        headlineContent = { Text(item.name) },
+        headlineContent = {
+            with(sharedTransitionScope) {
+                Text(
+                    text = item.name,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "text-${item.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
+        },
         supportingContent = {
             if (!item.isFolder) {
                 val sizeStr = item.size?.let { formatSize(it) } ?: ""
@@ -199,11 +245,17 @@ fun StorageItemResultRow(
                 extension == "pdf" -> Icons.Default.PictureAsPdf
                 else -> Icons.Default.InsertDriveFile
             }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            with(sharedTransitionScope) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "icon-${item.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
         },
         trailingContent = {
             IconButton(onClick = onToggleStar) {

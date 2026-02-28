@@ -19,6 +19,9 @@ import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsScreen
 import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsScreen
@@ -31,12 +34,13 @@ import com.hieuwu.supabasestorageclient.domain.model.Credential
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun MainScreen(
     onLogout: () -> Unit = {},
     rootNavController: NavHostController,
-    viewModel: MainViewModel = koinViewModel()
+    viewModel: MainViewModel = koinViewModel(),
+    sharedTransitionScope: SharedTransitionScope
 ) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -312,7 +316,9 @@ fun MainScreen(
                         BucketsScreen(
                             onBucketClick = { bucketId ->
                                 navController.navigate(Screen.Bucket.createRoute(bucketId))
-                            }
+                            },
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = this@composable
                         )
                     }
                     composable(Screen.StarredTab.route) { 
@@ -325,7 +331,9 @@ fun MainScreen(
                             },
                             onNavigateToFile = { bId, fileName, p ->
                                 navController.navigate(Screen.FileView.createRoute(bId, fileName, p))
-                            }
+                            },
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = this@composable
                         ) 
                     }
                     composable(Screen.DownloadsTab.route) { DownloadsScreen() }
@@ -359,7 +367,9 @@ fun MainScreen(
                                         p
                                     )
                                 )
-                            }
+                            },
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = this@composable
                         )
                     }
 
@@ -381,7 +391,9 @@ fun MainScreen(
                             bucketId = bucketId,
                             fileName = fileName,
                             path = path,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = this@composable
                         )
                     }
                 }

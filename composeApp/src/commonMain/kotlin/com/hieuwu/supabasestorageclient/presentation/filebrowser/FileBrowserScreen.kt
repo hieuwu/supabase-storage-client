@@ -89,6 +89,8 @@ fun BucketScreen(
     onBack: () -> Unit,
     onNavigateToFolder: (String) -> Unit,
     onNavigateToFile: (String, String, String?) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: FileBrowserViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -133,72 +135,70 @@ fun BucketScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    SharedTransitionLayout {
-                        AnimatedContent(
-                            targetState = uiState.viewMode,
-                            transitionSpec = {
-                                fadeIn().togetherWith(fadeOut())
-                            },
-                            label = "ViewModeTransition"
-                        ) { targetViewMode ->
-                            if (targetViewMode == ViewMode.LIST) {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    items(uiState.items) { item ->
-                                        StorageItemRow(
-                                            item = item,
-                                            sharedTransitionScope = this@SharedTransitionLayout,
-                                            animatedVisibilityScope = this@AnimatedContent,
-                                            onClick = {
-                                                if (item.isFolder) {
-                                                    val nextPath =
-                                                        if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                                    onNavigateToFolder(nextPath)
-                                                } else {
-                                                    onNavigateToFile(bucketId, item.name, path)
-                                                }
-                                            },
-                                            onRename = { itemToRename = item },
-                                            onMove = { itemToMove = item },
-                                            onDelete = { itemToDelete = item },
-                                            onStar = { viewModel.toggleStar(item) },
-                                            onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                            onCopyPath = { viewModel.copyPath(item.name) },
-                                            onDownload = { viewModel.downloadItem(item.name) }
-                                        )
-                                        HorizontalDivider()
-                                    }
+                    AnimatedContent(
+                        targetState = uiState.viewMode,
+                        transitionSpec = {
+                            fadeIn().togetherWith(fadeOut())
+                        },
+                        label = "ViewModeTransition"
+                    ) { targetViewMode ->
+                        if (targetViewMode == ViewMode.LIST) {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(uiState.items) { item ->
+                                    StorageItemRow(
+                                        item = item,
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        onClick = {
+                                            if (item.isFolder) {
+                                                val nextPath =
+                                                    if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                                onNavigateToFolder(nextPath)
+                                            } else {
+                                                onNavigateToFile(bucketId, item.name, path)
+                                            }
+                                        },
+                                        onRename = { itemToRename = item },
+                                        onMove = { itemToMove = item },
+                                        onDelete = { itemToDelete = item },
+                                        onStar = { viewModel.toggleStar(item) },
+                                        onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                        onCopyPath = { viewModel.copyPath(item.name) },
+                                        onDownload = { viewModel.downloadItem(item.name) }
+                                    )
+                                    HorizontalDivider()
                                 }
-                            } else {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Adaptive(120.dp),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    items(uiState.items) { item ->
-                                        StorageItemGrid(
-                                            item = item,
-                                            sharedTransitionScope = this@SharedTransitionLayout,
-                                            animatedVisibilityScope = this@AnimatedContent,
-                                            onClick = {
-                                                if (item.isFolder) {
-                                                    val nextPath =
-                                                        if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                                    onNavigateToFolder(nextPath)
-                                                } else {
-                                                    onNavigateToFile(bucketId, item.name, path)
-                                                }
-                                            },
-                                            onRename = { itemToRename = item },
-                                            onMove = { itemToMove = item },
-                                            onDelete = { itemToDelete = item },
-                                            onStar = { viewModel.toggleStar(item) },
-                                            onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                            onCopyPath = { viewModel.copyPath(item.name) },
-                                            onDownload = { viewModel.downloadItem(item.name) }
-                                        )
-                                    }
+                            }
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(120.dp),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(uiState.items) { item ->
+                                    StorageItemGrid(
+                                        item = item,
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        onClick = {
+                                            if (item.isFolder) {
+                                                val nextPath =
+                                                    if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                                onNavigateToFolder(nextPath)
+                                            } else {
+                                                onNavigateToFile(bucketId, item.name, path)
+                                            }
+                                        },
+                                        onRename = { itemToRename = item },
+                                        onMove = { itemToMove = item },
+                                        onDelete = { itemToDelete = item },
+                                        onStar = { viewModel.toggleStar(item) },
+                                        onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                        onCopyPath = { viewModel.copyPath(item.name) },
+                                        onDownload = { viewModel.downloadItem(item.name) }
+                                    )
                                 }
                             }
                         }

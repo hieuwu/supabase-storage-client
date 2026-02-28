@@ -36,6 +36,8 @@ fun StarredScreen(
     onNavigateToBucket: (String) -> Unit,
     onNavigateToFolder: (String, String) -> Unit,
     onNavigateToFile: (String, String, String?) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: StarredViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -85,70 +87,68 @@ fun StarredScreen(
                         Text("Clear All")
                     }
                 }
-                SharedTransitionLayout {
-                    AnimatedContent(
-                        targetState = uiState.viewMode,
-                        transitionSpec = {
-                            fadeIn().togetherWith(fadeOut())
-                        },
-                        label = "StarredViewModeTransition"
-                    ) { targetViewMode ->
-                        if (targetViewMode == ViewMode.LIST) {
-                            LazyColumn(modifier = Modifier.weight(1f)) {
-                                items(uiState.items) { item ->
-                                    StarredItemRow(
-                                        item = item,
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        onClick = {
-                                            when {
-                                                item.isBucket -> onNavigateToBucket(item.bucketId)
-                                                item.isFolder -> onNavigateToFolder(
-                                                    item.bucketId,
-                                                    item.path ?: ""
-                                                )
-                                                else -> onNavigateToFile(
-                                                    item.bucketId,
-                                                    item.itemName,
-                                                    item.path?.substringBeforeLast("/", "")
-                                                )
-                                            }
-                                        },
-                                        onUnstar = { viewModel.unstarItem(item.itemId) }
-                                    )
-                                    HorizontalDivider()
-                                }
+                AnimatedContent(
+                    targetState = uiState.viewMode,
+                    transitionSpec = {
+                        fadeIn().togetherWith(fadeOut())
+                    },
+                    label = "StarredViewModeTransition"
+                ) { targetViewMode ->
+                    if (targetViewMode == ViewMode.LIST) {
+                        LazyColumn(modifier = Modifier.weight(1f)) {
+                            items(uiState.items) { item ->
+                                StarredItemRow(
+                                    item = item,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    onClick = {
+                                        when {
+                                            item.isBucket -> onNavigateToBucket(item.bucketId)
+                                            item.isFolder -> onNavigateToFolder(
+                                                item.bucketId,
+                                                item.path ?: ""
+                                            )
+                                            else -> onNavigateToFile(
+                                                item.bucketId,
+                                                item.itemName,
+                                                item.path?.substringBeforeLast("/", "")
+                                            )
+                                        }
+                                    },
+                                    onUnstar = { viewModel.unstarItem(item.itemId) }
+                                )
+                                HorizontalDivider()
                             }
-                        } else {
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(140.dp),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(uiState.items) { item ->
-                                    StarredItemGrid(
-                                        item = item,
-                                        sharedTransitionScope = this@SharedTransitionLayout,
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        onClick = {
-                                            when {
-                                                item.isBucket -> onNavigateToBucket(item.bucketId)
-                                                item.isFolder -> onNavigateToFolder(
-                                                    item.bucketId,
-                                                    item.path ?: ""
-                                                )
-                                                else -> onNavigateToFile(
-                                                    item.bucketId,
-                                                    item.itemName,
-                                                    item.path?.substringBeforeLast("/", "")
-                                                )
-                                            }
-                                        },
-                                        onUnstar = { viewModel.unstarItem(item.itemId) }
-                                    )
-                                }
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(140.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(uiState.items) { item ->
+                                StarredItemGrid(
+                                    item = item,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    onClick = {
+                                        when {
+                                            item.isBucket -> onNavigateToBucket(item.bucketId)
+                                            item.isFolder -> onNavigateToFolder(
+                                                item.bucketId,
+                                                item.path ?: ""
+                                            )
+                                            else -> onNavigateToFile(
+                                                item.bucketId,
+                                                item.itemName,
+                                                item.path?.substringBeforeLast("/", "")
+                                            )
+                                        }
+                                    },
+                                    onUnstar = { viewModel.unstarItem(item.itemId) }
+                                )
                             }
                         }
                     }
@@ -195,7 +195,7 @@ fun StarredItemRow(
                 Text(
                     item.itemName,
                     modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "text-${item.itemId}"),
+                        rememberSharedContentState(key = "text-${item.itemName}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 )
@@ -221,7 +221,7 @@ fun StarredItemRow(
                     contentDescription = null,
                     tint = if (item.isFolder || item.isBucket) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "icon-${item.itemId}"),
+                        rememberSharedContentState(key = "icon-${item.itemName}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 )
@@ -294,7 +294,7 @@ fun StarredItemGrid(
                         .size(48.dp)
                         .padding(vertical = 8.dp)
                         .sharedElement(
-                            rememberSharedContentState(key = "icon-${item.itemId}"),
+                            rememberSharedContentState(key = "icon-${item.itemName}"),
                             animatedVisibilityScope = animatedVisibilityScope
                         )
                 )
@@ -308,7 +308,7 @@ fun StarredItemGrid(
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "text-${item.itemId}"),
+                        rememberSharedContentState(key = "text-${item.itemName}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 )
