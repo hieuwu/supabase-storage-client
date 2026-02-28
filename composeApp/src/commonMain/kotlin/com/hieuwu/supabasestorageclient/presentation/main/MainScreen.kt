@@ -292,7 +292,19 @@ fun MainScreen(
                             }
                         )
                     }
-                    composable(Screen.StarredTab.route) { StarredScreen() }
+                    composable(Screen.StarredTab.route) { 
+                        StarredScreen(
+                            onNavigateToBucket = { bucketId ->
+                                navController.navigate(Screen.Bucket.createRoute(bucketId))
+                            },
+                            onNavigateToFolder = { bucketId, path ->
+                                navController.navigate(Screen.Bucket.createRoute(bucketId, path))
+                            },
+                            onNavigateToFile = { bId, fileName, p ->
+                                navController.navigate(Screen.FileView.createRoute(bId, fileName, p))
+                            }
+                        ) 
+                    }
                     composable(Screen.DownloadsTab.route) { DownloadsScreen() }
                     composable(Screen.UploadsTab.route) { UploadScreen() }
                     composable(Screen.SettingsTab.route) { SettingsScreen() }

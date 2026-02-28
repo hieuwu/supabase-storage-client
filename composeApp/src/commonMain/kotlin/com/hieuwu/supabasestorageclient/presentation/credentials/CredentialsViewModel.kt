@@ -92,7 +92,8 @@ class CredentialsViewModel(
                 _uiState.update { it.copy(lastUsedId = credential.id) }
             } catch (e: Exception) {
                 logger.e(e) { "Credential selection failed" }
-                _uiState.update { it.copy(error = "Verification failed: ${e.message}") }
+                val errorMessage = e.message ?: e.toString()
+                _uiState.update { it.copy(error = "Verification failed: $errorMessage") }
             } finally {
                 _uiState.update { it.copy(isSettingUp = false) }
             }
@@ -103,11 +104,13 @@ class CredentialsViewModel(
     fun addCredential(name: String, url: String, key: String) {
         viewModelScope.launch {
             try {
+                val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
+                val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
                 val newCredential = Credential(
                     id = Uuid.random().toString(),
-                    name = name,
-                    url = url,
-                    key = key
+                    name = name.trim(),
+                    url = sanitizedUrl,
+                    key = sanitizedKey
                 )
                 credentialRepository.saveCredential(newCredential)
             } catch (e: Exception) {
@@ -119,11 +122,13 @@ class CredentialsViewModel(
     fun updateCredential(id: String, name: String, url: String, key: String) {
         viewModelScope.launch {
             try {
+                val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
+                val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
                 val updatedCredential = Credential(
                     id = id,
-                    name = name,
-                    url = url,
-                    key = key
+                    name = name.trim(),
+                    url = sanitizedUrl,
+                    key = sanitizedKey
                 )
                 credentialRepository.saveCredential(updatedCredential)
                 hideEditSheet()

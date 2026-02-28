@@ -10,5 +10,6 @@ data class StorageItem(
     val lastAccessedAt: Instant?,
     val metadata: Map<String, Any>?,
     val isFolder: Boolean,
-    val size: Long? = null
+    val size: Long? = null,
+    val isStarred: Boolean = false
 )

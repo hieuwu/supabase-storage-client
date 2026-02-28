@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -104,6 +106,20 @@ fun BucketsScreen(
                                         expanded = showMenu,
                                         onDismissRequest = { showMenu = false }
                                     ) {
+                                        DropdownMenuItem(
+                                            text = { Text(if (bucket.isStarred) "Unstar" else "Star") },
+                                            onClick = {
+                                                showMenu = false
+                                                viewModel.toggleStar(bucket)
+                                            },
+                                            leadingIcon = { 
+                                                Icon(
+                                                    if (bucket.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                                                    contentDescription = null,
+                                                    tint = if (bucket.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                ) 
+                                            }
+                                        )
                                         DropdownMenuItem(
                                             text = { Text("Update bucket") },
                                             onClick = {

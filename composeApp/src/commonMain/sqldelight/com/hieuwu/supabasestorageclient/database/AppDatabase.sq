@@ -86,3 +86,32 @@ DELETE FROM download_item_entity WHERE id = ? AND credential_id = ?;
 
 deleteAllDownloadItems:
 DELETE FROM download_item_entity WHERE credential_id = ?;
+
+-- Starred Item Operations
+CREATE TABLE starred_entity (
+    credential_id TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    item_name TEXT NOT NULL,
+    bucket_id TEXT NOT NULL,
+    path TEXT,
+    is_folder INTEGER NOT NULL,
+    is_bucket INTEGER NOT NULL,
+    starred_at INTEGER NOT NULL,
+    PRIMARY KEY (credential_id, item_id)
+);
+
+insertStarredItem:
+INSERT OR REPLACE INTO starred_entity(credential_id, item_id, item_name, bucket_id, path, is_folder, is_bucket, starred_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteStarredItem:
+DELETE FROM starred_entity WHERE credential_id = ? AND item_id = ?;
+
+deleteAllStarredItems:
+DELETE FROM starred_entity WHERE credential_id = ?;
+
+getStarredItems:
+SELECT * FROM starred_entity WHERE credential_id = ? ORDER BY starred_at DESC;
+
+isItemStarred:
+SELECT COUNT(*) FROM starred_entity WHERE credential_id = ? AND item_id = ?;

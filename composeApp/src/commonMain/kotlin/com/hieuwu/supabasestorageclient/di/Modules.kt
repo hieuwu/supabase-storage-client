@@ -18,6 +18,8 @@ import com.hieuwu.supabasestorageclient.data.repository.StorageRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.SettingsRepositoryImpl
 import com.hieuwu.supabasestorageclient.data.repository.DownloadRepositoryImpl
 import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
+import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
+import com.hieuwu.supabasestorageclient.data.repository.StarredRepositoryImpl
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
@@ -40,6 +42,7 @@ import com.hieuwu.supabasestorageclient.presentation.main.MainViewModel
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadViewModel
 import com.hieuwu.supabasestorageclient.presentation.search.SearchViewModel
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
+import com.hieuwu.supabasestorageclient.presentation.starred.StarredViewModel
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.ClearCacheUseCase
@@ -64,6 +67,7 @@ val coreModule = module {
     single { getFileOpener() }
     single { getPermissionManager() }
     single<DownloadRepository> { DownloadRepositoryImpl(get()) }
+    single<StarredRepository> { StarredRepositoryImpl(get(), get()) }
     single { DownloadManager(get(), get(), get(), get(), get()) }
     single { UploadManager(get(), get()) }
     single { ContextSelectionManager() }
@@ -93,7 +97,7 @@ val featureModule = module {
     // Storage ViewModels
     viewModelOf(::BucketsViewModel)
     viewModel { (bucketId: String, path: String?) -> 
-        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(
@@ -113,6 +117,7 @@ val featureModule = module {
     viewModelOf(::MainViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::UploadViewModel)
+    viewModelOf(::StarredViewModel)
     viewModel { (bucketId: String?) ->
         SearchViewModel(bucketId, get(), get(), get())
     }

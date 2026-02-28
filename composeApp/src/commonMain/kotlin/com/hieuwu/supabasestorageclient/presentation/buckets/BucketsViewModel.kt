@@ -8,6 +8,8 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketsUseCas
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.EmptyBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteBucketUseCase
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.domain.model.StarredItem
+import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +31,7 @@ class BucketsViewModel(
     private val refreshBucketsUseCase: RefreshBucketsUseCase,
     private val emptyBucketUseCase: EmptyBucketUseCase,
     private val deleteBucketUseCase: DeleteBucketUseCase,
+    private val starredRepository: StarredRepository,
     private val contextSelectionManager: ContextSelectionManager,
     private val logger: Logger
 ) : ViewModel() {
@@ -44,14 +47,23 @@ class BucketsViewModel(
     fun loadBuckets() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            getBucketsUseCase()
-                .onSuccess { buckets ->
-                    _uiState.value = _uiState.value.copy(buckets = buckets, isLoading = false)
-                }
-                .onFailure { error ->
+            val result = getBucketsUseCase()
+            val starredItems = starredRepository.getStarredItems()
+
+            // Note: In a real app we'd combine these with Flow.combine or similar
+            // For now let's collect the latest starred items when we load buckets
+            starredItems.collect { stars ->
+                result.onSuccess { buckets ->
+                    val starredIds = stars.filter { it.isBucket }.map { it.itemId }.toSet()
+                    val updatedBuckets =
+                        buckets.map { it.copy(isStarred = starredIds.contains(it.id)) }
+                    _uiState.value =
+                        _uiState.value.copy(buckets = updatedBuckets, isLoading = false)
+                }.onFailure { error ->
                     logger.e(error) { "Failed to load buckets" }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
                 }
+            }
         }
     }
 
@@ -134,5 +146,27 @@ class BucketsViewModel(
 
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(successMessage = null, error = null)
+    }
+
+    fun toggleStar(bucket: Bucket) {
+        viewModelScope.launch {
+            if (bucket.isStarred) {
+                starredRepository.unstarItem(bucket.id)
+                _uiState.value = _uiState.value.copy(successMessage = "Unstarred successfully")
+            } else {
+                starredRepository.starItem(
+                    StarredItem(
+                        itemId = bucket.id,
+                        itemName = bucket.name,
+                        bucketId = bucket.id,
+                        path = null,
+                        isFolder = false,
+                        isBucket = true,
+                        starredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                    )
+                )
+                _uiState.value = _uiState.value.copy(successMessage = "Starred successfully")
+            }
+        }
     }
 }

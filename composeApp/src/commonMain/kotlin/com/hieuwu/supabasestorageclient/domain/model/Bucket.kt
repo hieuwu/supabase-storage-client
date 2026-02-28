@@ -8,5 +8,6 @@ data class Bucket(
     val createdAt: String,
     val updatedAt: String,
     val allowedMimeTypes: List<String>?,
-    val fileSizeLimit: Long?
+    val fileSizeLimit: Long?,
+    val isStarred: Boolean = false
 )

@@ -13,6 +13,8 @@ import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketContentsUseCase
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
+import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +39,7 @@ class FileBrowserViewModel(
     private val clipboardManager: ClipboardManager,
     private val downloadManager: DownloadManager,
     private val directoryPicker: DirectoryPicker,
+    private val starredRepository: StarredRepository,
     private val contextSelectionManager: ContextSelectionManager,
     private val logger: Logger
 ) : ViewModel() {
@@ -52,14 +55,20 @@ class FileBrowserViewModel(
     fun loadContents() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            getBucketContentsUseCase(bucketId, path.orEmpty())
-                .onSuccess { items ->
-                    _uiState.value = _uiState.value.copy(items = items, isLoading = false)
-                }
-                .onFailure { error ->
+            val result = getBucketContentsUseCase(bucketId, path.orEmpty())
+            starredRepository.getStarredItems().collect { stars ->
+                result.onSuccess { items ->
+                    val starredPaths = stars.filter { it.bucketId == bucketId }.map { it.path ?: "" }.toSet()
+                    val updatedItems = items.map { item ->
+                        val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                        item.copy(isStarred = starredPaths.contains(fullPath))
+                    }
+                    _uiState.value = _uiState.value.copy(items = updatedItems, isLoading = false)
+                }.onFailure { error ->
                     logger.e(error) { "Failed to load contents for bucket $bucketId at path $path" }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
                 }
+            }
         }
     }
 
@@ -164,5 +173,29 @@ class FileBrowserViewModel(
 
     fun clearMessages() {
         _uiState.update { it.copy(error = null, successMessage = null) }
+    }
+
+    fun toggleStar(item: StorageItem) {
+        viewModelScope.launch {
+            val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+            val itemId = "$bucketId:$fullPath"
+            if (item.isStarred) {
+                starredRepository.unstarItem(itemId)
+                _uiState.update { it.copy(successMessage = "Unstarred successfully") }
+            } else {
+                starredRepository.starItem(
+                    StarredItem(
+                        itemId = itemId,
+                        itemName = item.name,
+                        bucketId = bucketId,
+                        path = fullPath,
+                        isFolder = item.isFolder,
+                        isBucket = false,
+                        starredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                    )
+                )
+                _uiState.update { it.copy(successMessage = "Starred successfully") }
+            }
+        }
     }
 }

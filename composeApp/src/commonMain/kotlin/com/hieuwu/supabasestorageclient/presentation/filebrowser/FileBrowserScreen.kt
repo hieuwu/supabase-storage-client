@@ -81,6 +81,7 @@ fun BucketScreen(
                                 onRename = { itemToRename = item },
                                 onMove = { itemToMove = item },
                                 onDelete = { itemToDelete = item },
+                                onStar = { viewModel.toggleStar(item) },
                                 onGetUrl = { viewModel.getPublicUrl(item.name) },
                                 onCopyPath = { viewModel.copyPath(item.name) },
                                 onDownload = { viewModel.downloadItem(item.name) }
@@ -203,6 +204,7 @@ fun StorageItemRow(
     onRename: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
+    onStar: () -> Unit,
     onGetUrl: () -> Unit,
     onCopyPath: () -> Unit,
     onDownload: () -> Unit
@@ -242,6 +244,17 @@ fun StorageItemRow(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(if (item.isStarred) "Unstar" else "Star") },
+                        onClick = { onStar(); showMenu = false },
+                        leadingIcon = { 
+                            Icon(
+                                if (item.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                                contentDescription = null,
+                                tint = if (item.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            ) 
+                        }
+                    )
                     if (item.isFolder) {
                         DropdownMenuItem(
                             text = { Text("Copy path") },
