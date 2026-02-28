@@ -13,11 +13,16 @@ import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewMo
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
+import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
+import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.presentation.theme.SupaBucktTheme
 
 @Composable
 fun App() {
-    SupaBucktTheme {
+    val settingsViewModel: SettingsViewModel = koinViewModel()
+    val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
+    
+    SupaBucktTheme(appTheme = settings?.theme ?: AppTheme.SYSTEM) {
         val onboardingViewModel: OnboardingViewModel = koinViewModel()
         val isOnboardingCompleted by onboardingViewModel.isCompleted.collectAsStateWithLifecycle()
         
