@@ -76,12 +76,12 @@ fun BucketsScreen(
                                             onClick = {},
                                             label = { Text("Public", style = MaterialTheme.typography.labelSmall) },
                                             colors = SuggestionChipDefaults.suggestionChipColors(
-                                                containerColor = Color(0xFFE8F5E9),
-                                                labelColor = Color(0xFF2E7D32)
+                                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                labelColor = MaterialTheme.colorScheme.primary
                                             ),
                                             border = SuggestionChipDefaults.suggestionChipBorder(
                                                 enabled = true,
-                                                borderColor = Color(0xFF81C784)
+                                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                             ),
                                             modifier = Modifier.padding(top = 4.dp)
                                         )

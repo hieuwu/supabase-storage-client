@@ -118,7 +118,13 @@ fun MainScreen(
                         IconButton(onClick = { viewModel.onLogoutClick() }) {
                             Icon(Icons.Default.Logout, contentDescription = "Logout")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -128,14 +134,20 @@ fun MainScreen(
                         ExtendedFloatingActionButton(
                             onClick = { viewModel.onCreateBucketClick() },
                             icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                            text = { Text("Create bucket") }
+                            text = { Text("Create bucket") },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     }
 
                     currentRoute?.startsWith("bucket") == true -> {
                         var expanded by remember { mutableStateOf(false) }
                         Box {
-                            FloatingActionButton(onClick = { expanded = true }) {
+                            FloatingActionButton(
+                                onClick = { expanded = true },
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ) {
                                 Icon(Icons.Default.Add, contentDescription = "Add")
                             }
                             DropdownMenu(
@@ -174,13 +186,21 @@ fun MainScreen(
                 }
             },
             bottomBar = {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ) {
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Storage, contentDescription = "Buckets") },
                         label = { Text("Buckets") },
                         selected = currentRoute == Screen.BucketsTab.route || currentRoute?.startsWith(
                             "bucket"
                         ) == true || currentRoute?.startsWith("file-view") == true,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        ),
                         onClick = {
                             navController.navigate(Screen.BucketsTab.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -193,6 +213,11 @@ fun MainScreen(
                         icon = { Icon(Icons.Default.Star, contentDescription = "Starred") },
                         label = { Text("Starred") },
                         selected = currentRoute == Screen.StarredTab.route,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        ),
                         onClick = {
                             navController.navigate(Screen.StarredTab.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -205,6 +230,11 @@ fun MainScreen(
                         icon = { Icon(Icons.Default.Download, contentDescription = "Downloads") },
                         label = { Text("Downloads") },
                         selected = currentRoute == Screen.DownloadsTab.route,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        ),
                         onClick = {
                             navController.navigate(Screen.DownloadsTab.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -217,6 +247,11 @@ fun MainScreen(
                         icon = { Icon(Icons.Default.Upload, contentDescription = "Uploads") },
                         label = { Text("Uploads") },
                         selected = currentRoute == Screen.UploadsTab.route,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        ),
                         onClick = {
                             navController.navigate(Screen.UploadsTab.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -229,6 +264,11 @@ fun MainScreen(
                         icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                         label = { Text("Settings") },
                         selected = currentRoute == Screen.SettingsTab.route,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        ),
                         onClick = {
                             navController.navigate(Screen.SettingsTab.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }

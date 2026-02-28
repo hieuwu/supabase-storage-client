@@ -66,6 +66,7 @@ val coreModule = module {
     single<DownloadRepository> { DownloadRepositoryImpl(get()) }
     single { DownloadManager(get(), get(), get(), get(), get()) }
     single { UploadManager(get(), get()) }
+    single { ContextSelectionManager() }
 }
 
 val featureModule = module {
@@ -116,4 +117,3 @@ val featureModule = module {
         SearchViewModel(bucketId, get(), get(), get())
     }
 }
-

@@ -42,7 +42,13 @@ fun SearchScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         }
     ) { padding ->
@@ -149,7 +155,7 @@ fun BucketResultRow(
         headlineContent = { Text(bucket.name, fontWeight = FontWeight.SemiBold) },
         supportingContent = {
             if (bucket.public) {
-                Text("Public", color = Color(0xFF2E7D32))
+                Text("Public", color = MaterialTheme.colorScheme.primary)
             } else {
                 Text("Private")
             }
