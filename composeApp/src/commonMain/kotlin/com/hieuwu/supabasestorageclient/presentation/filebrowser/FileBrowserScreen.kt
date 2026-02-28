@@ -67,6 +67,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.util.formatDate
+import com.hieuwu.supabasestorageclient.util.formatSize
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -297,8 +299,8 @@ fun StorageItemRow(
         headlineContent = { Text(item.name) },
         supportingContent = {
             if (!item.isFolder) {
-                val sizeStr = item.size?.let { "${it / 1024} KB" } ?: ""
-                val dateStr = item.updatedAt?.toString()?.take(10) ?: ""
+                val sizeStr = item.size?.let { formatSize(it) } ?: ""
+                val dateStr = formatDate(item.updatedAt)
                 Text("$sizeStr • $dateStr")
             }
         },

@@ -22,3 +22,15 @@ fun Double.format(decimals: Int): String {
         s.split(".")[0]
     }
 }
+
+fun formatSize(bytes: Long): String {
+    val kb = bytes / 1024.0
+    val mb = kb / 1024.0
+    val gb = mb / 1024.0
+    return when {
+        gb >= 1 -> "${gb.toLong()} GB"
+        mb >= 1 -> "${mb.toLong()} MB"
+        kb >= 1 -> "${kb.toLong()} KB"
+        else -> "$bytes Bytes"
+    }
+}

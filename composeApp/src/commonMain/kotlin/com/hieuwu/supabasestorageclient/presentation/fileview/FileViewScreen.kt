@@ -1,6 +1,8 @@
 package com.hieuwu.supabasestorageclient.presentation.fileview
 
 import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewViewModel
+import com.hieuwu.supabasestorageclient.util.formatDate
+import com.hieuwu.supabasestorageclient.util.formatSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
@@ -87,9 +89,9 @@ fun FileViewScreen(
             FileMetadataSection(
                 fileName = fileName,
                 extension = fileName.substringAfterLast(".", ""),
-                size = uiState.metadata?.size?.let { "${it / 1024} KB" } ?: "Unknown",
-                addedOn = uiState.metadata?.createdAt?.toString() ?: "Unknown",
-                lastModified = uiState.metadata?.updatedAt?.toString() ?: "Unknown"
+                size = uiState.metadata?.size?.let { formatSize(it) } ?: "Unknown",
+                addedOn = formatDate(uiState.metadata?.createdAt),
+                lastModified = formatDate(uiState.metadata?.updatedAt)
             )
 
             Spacer(modifier = Modifier.height(24.dp))

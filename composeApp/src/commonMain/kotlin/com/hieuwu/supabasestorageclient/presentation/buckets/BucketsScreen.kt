@@ -58,6 +58,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.util.formatDate
+import com.hieuwu.supabasestorageclient.util.formatSize
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,7 +206,7 @@ fun BucketListItem(
 
                 Text("Allowed Types: $mimeTypes", style = MaterialTheme.typography.labelSmall)
                 Text("Size Limit: $sizeLimit", style = MaterialTheme.typography.labelSmall)
-                Text("Created: ${bucket.createdAt}", style = MaterialTheme.typography.labelSmall)
+                Text("Created: ${formatDate(bucket.createdAt)}", style = MaterialTheme.typography.labelSmall)
 
                 if (bucket.public) {
                     SuggestionChip(
@@ -370,15 +372,4 @@ fun BucketGridItem(
     }
 }
 
-private fun formatSize(bytes: Long): String {
-    val kb = bytes / 1024.0
-    val mb = kb / 1024.0
-    val gb = mb / 1024.0
-    return when {
-        gb >= 1 -> "${gb.toLong()} GB"
-        mb >= 1 -> "${mb.toLong()} MB"
-        kb >= 1 -> "${kb.toLong()} KB"
-        else -> "$bytes Bytes"
-    }
-}
 
