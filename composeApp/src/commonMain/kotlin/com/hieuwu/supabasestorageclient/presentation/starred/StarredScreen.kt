@@ -3,7 +3,11 @@ package com.hieuwu.supabasestorageclient.presentation.starred
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -39,50 +43,35 @@ fun StarredScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Starred Items", fontWeight = FontWeight.Bold) },
-                actions = {
-                    if (uiState.items.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onClearAllClick() }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear All")
-                        }
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = modifier.fillMaxSize()
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.items.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.Default.StarOutline,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "No Starred Items",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Your starred files and folders will appear here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
+    Box(modifier = modifier.fillMaxSize()) {
+        if (uiState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        } else if (uiState.items.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.StarOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No Starred Items",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Your starred files and folders will appear here.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            if (uiState.viewMode == ViewMode.LIST) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.items) { item ->
                         StarredItemRow(
@@ -91,12 +80,42 @@ fun StarredScreen(
                                 when {
                                     item.isBucket -> onNavigateToBucket(item.bucketId)
                                     item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
-                                    else -> onNavigateToFile(item.bucketId, item.itemName, item.path?.substringBeforeLast("/", ""))
+                                    else -> onNavigateToFile(
+                                        item.bucketId,
+                                        item.itemName,
+                                        item.path?.substringBeforeLast("/", "")
+                                    )
                                 }
                             },
                             onUnstar = { viewModel.unstarItem(item.itemId) }
                         )
                         HorizontalDivider()
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(140.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(uiState.items) { item ->
+                        StarredItemGrid(
+                            item = item,
+                            onClick = {
+                                when {
+                                    item.isBucket -> onNavigateToBucket(item.bucketId)
+                                    item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
+                                    else -> onNavigateToFile(
+                                        item.bucketId,
+                                        item.itemName,
+                                        item.path?.substringBeforeLast("/", "")
+                                    )
+                                }
+                            },
+                            onUnstar = { viewModel.unstarItem(item.itemId) }
+                        )
                     }
                 }
             }
@@ -168,4 +187,71 @@ fun StarredItemRow(
         },
         modifier = Modifier.clickable { onClick() }
     )
+}
+
+@Composable
+fun StarredItemGrid(
+    item: StarredItem,
+    onClick: () -> Unit,
+    onUnstar: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = onUnstar,
+                    modifier = Modifier.align(Alignment.TopStart).size(24.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "Unstar",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            val icon = when {
+                item.isBucket -> Icons.Default.Storage
+                item.isFolder -> Icons.Default.Folder
+                else -> Icons.Default.InsertDriveFile
+            }
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (item.isFolder || item.isBucket) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp).padding(vertical = 8.dp)
+            )
+
+            Text(
+                text = item.itemName,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+
+            val typeStr = when {
+                item.isBucket -> "Bucket"
+                item.isFolder -> "Folder"
+                else -> "File"
+            }
+            Text(
+                text = typeStr,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

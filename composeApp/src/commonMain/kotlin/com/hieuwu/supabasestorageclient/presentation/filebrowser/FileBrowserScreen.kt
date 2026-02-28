@@ -4,23 +4,68 @@ package com.hieuwu.supabasestorageclient.presentation.filebrowser
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
+import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -62,17 +107,15 @@ fun BucketScreen(
             if (uiState.isLoading && uiState.items.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                PullToRefreshBox(
-                    isRefreshing = uiState.isLoading,
-                    onRefresh = { viewModel.refreshContents() }
-                ) {
+                if (uiState.viewMode == ViewMode.LIST) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(uiState.items) { item ->
                             StorageItemRow(
                                 item = item,
                                 onClick = {
                                     if (item.isFolder) {
-                                        val nextPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                        val nextPath =
+                                            if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
                                         onNavigateToFolder(nextPath)
                                     } else {
                                         onNavigateToFile(bucketId, item.name, path)
@@ -87,6 +130,36 @@ fun BucketScreen(
                                 onDownload = { viewModel.downloadItem(item.name) }
                             )
                             HorizontalDivider()
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(120.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(uiState.items) { item ->
+                            StorageItemGrid(
+                                item = item,
+                                onClick = {
+                                    if (item.isFolder) {
+                                        val nextPath =
+                                            if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                        onNavigateToFolder(nextPath)
+                                    } else {
+                                        onNavigateToFile(bucketId, item.name, path)
+                                    }
+                                },
+                                onRename = { itemToRename = item },
+                                onMove = { itemToMove = item },
+                                onDelete = { itemToDelete = item },
+                                onStar = { viewModel.toggleStar(item) },
+                                onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                onCopyPath = { viewModel.copyPath(item.name) },
+                                onDownload = { viewModel.downloadItem(item.name) }
+                            )
                         }
                     }
                 }
@@ -303,6 +376,168 @@ fun StorageItemRow(
         },
         modifier = Modifier.clickable { onClick() }
     )
+}
+
+@Composable
+fun StorageItemGrid(
+    item: StorageItem,
+    onClick: () -> Unit,
+    onRename: () -> Unit,
+    onMove: () -> Unit,
+    onDelete: () -> Unit,
+    onStar: () -> Unit,
+    onGetUrl: () -> Unit,
+    onCopyPath: () -> Unit,
+    onDownload: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = onStar,
+                    modifier = Modifier.align(Alignment.TopStart).size(24.dp)
+                ) {
+                    Icon(
+                        if (item.isStarred) Icons.Default.Star else Icons.Default.StarOutline,
+                        contentDescription = null,
+                        tint = if (item.isStarred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "Menu",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        if (item.isFolder) {
+                            DropdownMenuItem(
+                                text = { Text("Copy path") },
+                                onClick = { onCopyPath(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { onRename(); showMenu = false },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move") },
+                                onClick = { onMove(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.DriveFileMove,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Get URL") },
+                                onClick = { onGetUrl(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { onRename(); showMenu = false },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move") },
+                                onClick = { onMove(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.DriveFileMove,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Download") },
+                                onClick = { onDownload(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Download,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                onClick = { onDelete(); showMenu = false },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            val extension = item.name.substringAfterLast(".", "").lowercase()
+            val icon = when {
+                item.isFolder -> Icons.Default.Folder
+                isImage(extension) -> Icons.Default.Image
+                isVideo(extension) -> Icons.Default.VideoLibrary
+                isPdf(extension) -> Icons.Default.PictureAsPdf
+                else -> Icons.Default.InsertDriveFile
+            }
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp).padding(vertical = 8.dp)
+            )
+
+            Text(
+                text = item.name,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+
+            if (!item.isFolder) {
+                val sizeStr = item.size?.let { "${it / 1024} KB" } ?: ""
+                Text(
+                    text = sizeStr,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

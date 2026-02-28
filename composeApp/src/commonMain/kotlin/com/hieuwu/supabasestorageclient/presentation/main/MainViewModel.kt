@@ -14,6 +14,7 @@ import com.hieuwu.supabasestorageclient.util.FilePicker
 import com.hieuwu.supabasestorageclient.util.PermissionManager
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
+import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class MainUiState(
@@ -39,7 +41,8 @@ data class MainUiState(
     val lastUsedId: String? = null,
     val showCredentialSwitchConfirmation: Boolean = false,
     val selectedCredentialForSwitch: Credential? = null,
-    val isSettingUpCredential: Boolean = false
+    val isSettingUpCredential: Boolean = false,
+    val viewMode: ViewMode = ViewMode.LIST
 )
 
 class MainViewModel(
@@ -83,6 +86,7 @@ class MainViewModel(
         viewModelScope.launch {
             settingsRepository.getSettings().collect { settings ->
                 currentSettings = settings
+                _uiState.update { it.copy(viewMode = settings.viewMode) }
             }
         }
     }
@@ -263,6 +267,14 @@ class MainViewModel(
                 // If removing current one, clear client
                 supabaseClientManager.clearClient()
             }
+        }
+    }
+
+    fun toggleViewMode() {
+        val newViewMode = if (_uiState.value.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
+        viewModelScope.launch {
+            val settings = settingsRepository.getSettings().first()
+            settingsRepository.updateSettings(settings.copy(viewMode = newViewMode))
         }
     }
 }

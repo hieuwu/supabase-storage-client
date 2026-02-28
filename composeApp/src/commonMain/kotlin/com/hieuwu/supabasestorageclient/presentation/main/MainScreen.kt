@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
+import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
@@ -105,11 +106,23 @@ fun MainScreen(
                         }
                     },
                     actions = {
+                        val showViewSwitcher = currentRoute?.startsWith("buckets-tab") == true ||
+                                currentRoute?.startsWith("starred-tab") == true ||
+                                currentRoute?.startsWith("bucket") == true
+
+                        if (showViewSwitcher) {
+                            IconButton(onClick = { viewModel.toggleViewMode() }) {
+                                Icon(
+                                    if (uiState.viewMode == ViewMode.LIST) Icons.Default.GridView else Icons.AutoMirrored.Filled.List,
+                                    contentDescription = "Switch View"
+                                )
+                            }
+                        }
                         IconButton(onClick = {
                             val bucketId =
                                 if (currentRoute?.startsWith("bucket") == true && currentRoute != Screen.BucketsTab.route) {
                                     // Extract bucketId from route bucket/{bucketId}?path={path}
-                                     navBackStackEntry?.savedStateHandle?.get<String>("bucketId") ?: ""
+                                    navBackStackEntry?.savedStateHandle?.get<String>("bucketId") ?: ""
                                 } else null
                             rootNavController.navigate(Screen.Search.createRoute(bucketId))
                         }) {

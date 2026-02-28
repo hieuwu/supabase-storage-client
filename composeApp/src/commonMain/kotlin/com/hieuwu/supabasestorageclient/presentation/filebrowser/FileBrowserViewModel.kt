@@ -15,17 +15,17 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketCon
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class BucketUiState(
     val items: List<StorageItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val viewMode: ViewMode = ViewMode.LIST
 )
 
 class FileBrowserViewModel(
@@ -40,6 +40,7 @@ class FileBrowserViewModel(
     private val downloadManager: DownloadManager,
     private val directoryPicker: DirectoryPicker,
     private val starredRepository: StarredRepository,
+    private val settingsRepository: SettingsRepository,
     private val contextSelectionManager: ContextSelectionManager,
     private val logger: Logger
 ) : ViewModel() {
@@ -56,17 +57,24 @@ class FileBrowserViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = getBucketContentsUseCase(bucketId, path.orEmpty())
-            starredRepository.getStarredItems().collect { stars ->
+            val starredItems = starredRepository.getStarredItems()
+            val userSettings = settingsRepository.getSettings()
+
+            combine(starredItems, userSettings) { stars, settings ->
+                Pair(stars, settings.viewMode)
+            }.collect { (stars, viewMode) ->
                 result.onSuccess { items ->
-                    val starredPaths = stars.filter { it.bucketId == bucketId }.map { it.path ?: "" }.toSet()
+                    val starredPaths =
+                        stars.filter { it.bucketId == bucketId }.map { it.path ?: "" }.toSet()
                     val updatedItems = items.map { item ->
                         val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
                         item.copy(isStarred = starredPaths.contains(fullPath))
                     }
-                    _uiState.value = _uiState.value.copy(items = updatedItems, isLoading = false)
+                    _uiState.value =
+                        _uiState.value.copy(items = updatedItems, isLoading = false, viewMode = viewMode)
                 }.onFailure { error ->
                     logger.e(error) { "Failed to load contents for bucket $bucketId at path $path" }
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = error.message, viewMode = viewMode)
                 }
             }
         }
@@ -198,4 +206,5 @@ class FileBrowserViewModel(
             }
         }
     }
-}
+
+    }

@@ -9,11 +9,14 @@ import com.hieuwu.supabasestorageclient.feature.usecase.storage.EmptyBucketUseCa
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteBucketUseCase
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
+import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.RefreshBucketsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 data class BucketsUiState(
@@ -23,7 +26,8 @@ data class BucketsUiState(
     val successMessage: String? = null,
     val showEmptyConfirmation: Boolean = false,
     val showDeleteConfirmation: Boolean = false,
-    val selectedBucket: Bucket? = null
+    val selectedBucket: Bucket? = null,
+    val viewMode: ViewMode = ViewMode.LIST
 )
 
 class BucketsViewModel(
@@ -32,6 +36,7 @@ class BucketsViewModel(
     private val emptyBucketUseCase: EmptyBucketUseCase,
     private val deleteBucketUseCase: DeleteBucketUseCase,
     private val starredRepository: StarredRepository,
+    private val settingsRepository: SettingsRepository,
     private val contextSelectionManager: ContextSelectionManager,
     private val logger: Logger
 ) : ViewModel() {
@@ -49,19 +54,28 @@ class BucketsViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = getBucketsUseCase()
             val starredItems = starredRepository.getStarredItems()
+            val userSettings = settingsRepository.getSettings()
 
-            // Note: In a real app we'd combine these with Flow.combine or similar
-            // For now let's collect the latest starred items when we load buckets
-            starredItems.collect { stars ->
+            combine(starredItems, userSettings) { stars, settings ->
+                Pair(stars, settings.viewMode)
+            }.collect { (stars, viewMode) ->
                 result.onSuccess { buckets ->
                     val starredIds = stars.filter { it.isBucket }.map { it.itemId }.toSet()
                     val updatedBuckets =
                         buckets.map { it.copy(isStarred = starredIds.contains(it.id)) }
                     _uiState.value =
-                        _uiState.value.copy(buckets = updatedBuckets, isLoading = false)
+                        _uiState.value.copy(
+                            buckets = updatedBuckets,
+                            isLoading = false,
+                            viewMode = viewMode
+                        )
                 }.onFailure { error ->
                     logger.e(error) { "Failed to load buckets" }
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message,
+                        viewMode = viewMode
+                    )
                 }
             }
         }
