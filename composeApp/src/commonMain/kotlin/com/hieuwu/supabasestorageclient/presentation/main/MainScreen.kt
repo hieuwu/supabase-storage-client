@@ -414,46 +414,65 @@ fun MainScreen(
                         onCheckedChange = { viewModel.onNewBucketPublicToggle(it) }
                     )
                 }
-                OutlinedTextField(
-                    value = uiState.newBucketFileSizeLimit,
-                    onValueChange = { viewModel.onNewBucketFileSizeLimitChange(it) },
-                    label = { Text("File Size Limit") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                var unitExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = unitExpanded,
-                    onExpandedChange = { unitExpanded = !unitExpanded },
+                
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = uiState.newBucketFileSizeUnit.name.lowercase()
-                            .replaceFirstChar { it.uppercase() },
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Unit") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    Text("Size Limit")
+                    Spacer(Modifier.weight(1f))
+                    Switch(
+                        checked = uiState.isNewBucketSizeLimitEnabled,
+                        onCheckedChange = { viewModel.onNewBucketSizeLimitToggle(it) }
                     )
-                    ExposedDropdownMenu(
-                        expanded = unitExpanded,
-                        onDismissRequest = { unitExpanded = false }
-                    ) {
-                        SizeUnit.entries.forEach { unit ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        unit.name.lowercase().replaceFirstChar { it.uppercase() })
-                                },
-                                onClick = {
-                                    viewModel.onNewBucketFileSizeUnitChange(unit)
-                                    unitExpanded = false
-                                }
+                }
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = uiState.isNewBucketSizeLimitEnabled
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        OutlinedTextField(
+                            value = uiState.newBucketFileSizeLimit,
+                            onValueChange = { viewModel.onNewBucketFileSizeLimitChange(it) },
+                            label = { Text("File Size Limit") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        var unitExpanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = unitExpanded,
+                            onExpandedChange = { unitExpanded = !unitExpanded },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.newBucketFileSizeUnit.name.lowercase()
+                                    .replaceFirstChar { it.uppercase() },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Unit") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.menuAnchor().fillMaxWidth()
                             )
+                            ExposedDropdownMenu(
+                                expanded = unitExpanded,
+                                onDismissRequest = { unitExpanded = false }
+                            ) {
+                                SizeUnit.entries.forEach { unit ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                unit.name.lowercase().replaceFirstChar { it.uppercase() })
+                                        },
+                                        onClick = {
+                                            viewModel.onNewBucketFileSizeUnitChange(unit)
+                                            unitExpanded = false
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

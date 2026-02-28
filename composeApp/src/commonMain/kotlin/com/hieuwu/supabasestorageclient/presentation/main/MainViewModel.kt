@@ -31,6 +31,7 @@ data class MainUiState(
     val isCreateBucketDialogVisible: Boolean = false,
     val newBucketId: String = "",
     val isNewBucketPublic: Boolean = true,
+    val isNewBucketSizeLimitEnabled: Boolean = false,
     val newBucketFileSizeLimit: String = "",
     val newBucketFileSizeUnit: SizeUnit = SizeUnit.MEGABYTES,
     val error: String? = null,
@@ -107,6 +108,7 @@ class MainViewModel(
         _uiState.update { 
             it.copy(
                 isCreateBucketDialogVisible = true,
+                isNewBucketSizeLimitEnabled = false,
                 newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
                 newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES
             )
@@ -119,6 +121,7 @@ class MainViewModel(
                 isCreateBucketDialogVisible = false,
                 newBucketId = "",
                 isNewBucketPublic = true,
+                isNewBucketSizeLimitEnabled = false,
                 newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
                 newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES
             )
@@ -133,6 +136,20 @@ class MainViewModel(
         _uiState.update { it.copy(isNewBucketPublic = isPublic) }
     }
 
+    fun onNewBucketSizeLimitToggle(enabled: Boolean) {
+        _uiState.update { 
+            it.copy(
+                isNewBucketSizeLimitEnabled = enabled,
+                newBucketFileSizeLimit = if (enabled && it.newBucketFileSizeLimit.isEmpty()) 
+                    currentSettings?.fileSizeLimit?.toString() ?: "" 
+                else it.newBucketFileSizeLimit,
+                newBucketFileSizeUnit = if (enabled) 
+                    currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES 
+                else it.newBucketFileSizeUnit
+            )
+        }
+    }
+
     fun onNewBucketFileSizeLimitChange(limit: String) {
         _uiState.update { it.copy(newBucketFileSizeLimit = limit) }
     }
@@ -145,9 +162,10 @@ class MainViewModel(
         val id = _uiState.value.newBucketId
         if (id.isBlank()) return
 
-        val fileSizeLimit = _uiState.value.newBucketFileSizeLimit.toLongOrNull()
+        val isSizeLimitEnabled = _uiState.value.isNewBucketSizeLimitEnabled
+        val fileSizeLimit = if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeLimit.toLongOrNull() else null
         val isPublic = _uiState.value.isNewBucketPublic
-        val unit = _uiState.value.newBucketFileSizeUnit
+        val unit = if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeUnit else null
 
         viewModelScope.launch {
             createBucketUseCase(id, isPublic, fileSizeLimit, unit).fold(
@@ -157,6 +175,7 @@ class MainViewModel(
                             isCreateBucketDialogVisible = false,
                             newBucketId = "",
                             isNewBucketPublic = true,
+                            isNewBucketSizeLimitEnabled = false,
                             newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
                             newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES,
                             successMessage = "Bucket created"
