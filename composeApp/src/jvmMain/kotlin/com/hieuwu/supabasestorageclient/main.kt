@@ -3,11 +3,16 @@ package com.hieuwu.supabasestorageclient
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "SupabaseStorageClient",
-    ) {
-        App()
+import com.hieuwu.supabasestorageclient.di.initKoin
+
+fun main() {
+    initKoin()
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "SupabaseStorageClient",
+        ) {
+            App()
+        }
     }
 }

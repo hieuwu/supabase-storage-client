@@ -1,7 +1,8 @@
 package com.hieuwu.supabasestorageclient.util
 
 import kotlinx.browser.document
-import kotlinx.coroutines.CompletableDeferred
+import org.khronos.webgl.Int8Array
+import org.khronos.webgl.get
 import org.w3c.dom.HTMLInputElement
 import org.w3c.files.FileReader
 import org.w3c.files.get
@@ -25,6 +26,13 @@ actual fun getDirectoryPicker(): DirectoryPicker = JsDirectoryPicker()
 
 class JsFileOpener : FileOpener {
     override fun openFile(path: String) {}
+    override fun openDirectory(path: String) {}
+}
+
+actual fun getFileOpener(): FileOpener = JsFileOpener()
+
+class JsPermissionManager : PermissionManager {
+    override suspend fun requestStoragePermission(): Boolean = true
 }
 
 actual fun getPermissionManager(): PermissionManager = JsPermissionManager()
@@ -42,15 +50,13 @@ class JsFilePicker : FilePicker {
                 reader.onload = { event ->
                     val result = reader.result
                     val bytes = if (result is Int8Array) {
-                        val array = Int8Array(result.buffer)
+                        val array = result
                         ByteArray(array.length) { i -> array[i] }
                     } else {
                         // For Browsers, result is often an ArrayBuffer when using readAsArrayBuffer
                         // We'll use a simpler approach if possible or assume Uint8Array
                         ByteArray(0)
                     }
-                    // In a real Koin JS environment, we'd handle the buffer to ByteArray conversion properly
-                    // For now, let's provide the structural JS API usage.
                     continuation.resume(SelectedFile(file.name, bytes))
                 }
                 reader.readAsArrayBuffer(file)
