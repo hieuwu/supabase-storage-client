@@ -53,6 +53,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -125,59 +133,73 @@ fun BucketScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    if (uiState.viewMode == ViewMode.LIST) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(uiState.items) { item ->
-                                StorageItemRow(
-                                    item = item,
-                                    onClick = {
-                                        if (item.isFolder) {
-                                            val nextPath =
-                                                if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                            onNavigateToFolder(nextPath)
-                                        } else {
-                                            onNavigateToFile(bucketId, item.name, path)
-                                        }
-                                    },
-                                    onRename = { itemToRename = item },
-                                    onMove = { itemToMove = item },
-                                    onDelete = { itemToDelete = item },
-                                    onStar = { viewModel.toggleStar(item) },
-                                    onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                    onCopyPath = { viewModel.copyPath(item.name) },
-                                    onDownload = { viewModel.downloadItem(item.name) }
-                                )
-                                HorizontalDivider()
-                            }
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(120.dp),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.items) { item ->
-                                StorageItemGrid(
-                                    item = item,
-                                    onClick = {
-                                        if (item.isFolder) {
-                                            val nextPath =
-                                                if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                            onNavigateToFolder(nextPath)
-                                        } else {
-                                            onNavigateToFile(bucketId, item.name, path)
-                                        }
-                                    },
-                                    onRename = { itemToRename = item },
-                                    onMove = { itemToMove = item },
-                                    onDelete = { itemToDelete = item },
-                                    onStar = { viewModel.toggleStar(item) },
-                                    onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                    onCopyPath = { viewModel.copyPath(item.name) },
-                                    onDownload = { viewModel.downloadItem(item.name) }
-                                )
+                    SharedTransitionLayout {
+                        AnimatedContent(
+                            targetState = uiState.viewMode,
+                            transitionSpec = {
+                                fadeIn().togetherWith(fadeOut())
+                            },
+                            label = "ViewModeTransition"
+                        ) { targetViewMode ->
+                            if (targetViewMode == ViewMode.LIST) {
+                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    items(uiState.items) { item ->
+                                        StorageItemRow(
+                                            item = item,
+                                            sharedTransitionScope = this@SharedTransitionLayout,
+                                            animatedVisibilityScope = this@AnimatedContent,
+                                            onClick = {
+                                                if (item.isFolder) {
+                                                    val nextPath =
+                                                        if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                                    onNavigateToFolder(nextPath)
+                                                } else {
+                                                    onNavigateToFile(bucketId, item.name, path)
+                                                }
+                                            },
+                                            onRename = { itemToRename = item },
+                                            onMove = { itemToMove = item },
+                                            onDelete = { itemToDelete = item },
+                                            onStar = { viewModel.toggleStar(item) },
+                                            onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                            onCopyPath = { viewModel.copyPath(item.name) },
+                                            onDownload = { viewModel.downloadItem(item.name) }
+                                        )
+                                        HorizontalDivider()
+                                    }
+                                }
+                            } else {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Adaptive(120.dp),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(uiState.items) { item ->
+                                        StorageItemGrid(
+                                            item = item,
+                                            sharedTransitionScope = this@SharedTransitionLayout,
+                                            animatedVisibilityScope = this@AnimatedContent,
+                                            onClick = {
+                                                if (item.isFolder) {
+                                                    val nextPath =
+                                                        if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                                    onNavigateToFolder(nextPath)
+                                                } else {
+                                                    onNavigateToFile(bucketId, item.name, path)
+                                                }
+                                            },
+                                            onRename = { itemToRename = item },
+                                            onMove = { itemToMove = item },
+                                            onDelete = { itemToDelete = item },
+                                            onStar = { viewModel.toggleStar(item) },
+                                            onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                            onCopyPath = { viewModel.copyPath(item.name) },
+                                            onDownload = { viewModel.downloadItem(item.name) }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -289,9 +311,12 @@ fun Breadcrumbs(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun StorageItemRow(
     item: StorageItem,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
     onRename: () -> Unit,
     onMove: () -> Unit,
@@ -304,7 +329,17 @@ fun StorageItemRow(
     var showMenu by remember { mutableStateOf(false) }
 
     ListItem(
-        headlineContent = { Text(item.name) },
+        headlineContent = {
+            with(sharedTransitionScope) {
+                Text(
+                    text = item.name,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "text-${item.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
+        },
         supportingContent = {
             if (!item.isFolder) {
                 val sizeStr = item.size?.let { formatSize(it) } ?: ""
@@ -321,11 +356,17 @@ fun StorageItemRow(
                 isPdf(extension) -> Icons.Default.PictureAsPdf
                 else -> Icons.Default.InsertDriveFile
             }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            with(sharedTransitionScope) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "icon-${item.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -405,9 +446,12 @@ fun StorageItemRow(
     )
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun StorageItemGrid(
     item: StorageItem,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
     onRename: () -> Unit,
     onMove: () -> Unit,
@@ -540,20 +584,34 @@ fun StorageItemGrid(
                 else -> Icons.Default.InsertDriveFile
             }
 
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(48.dp).padding(vertical = 8.dp)
-            )
+            with(sharedTransitionScope) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (item.isFolder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(vertical = 8.dp)
+                        .sharedElement(
+                            rememberSharedContentState(key = "icon-${item.name}"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                )
+            }
 
-            Text(
-                text = item.name,
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
+            with(sharedTransitionScope) {
+                Text(
+                    text = item.name,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.sharedElement(
+                        rememberSharedContentState(key = "text-${item.name}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                )
+            }
 
             if (!item.isFolder) {
                 val sizeStr = item.size?.let { "${it / 1024} KB" } ?: ""
