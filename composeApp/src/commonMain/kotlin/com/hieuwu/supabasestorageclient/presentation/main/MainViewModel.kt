@@ -206,7 +206,7 @@ class MainViewModel(
                     _uiState.update { it.copy(isNewFolderDialogVisible = false, newFolderName = "", successMessage = "Folder created") }
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(error = error.message) }
+                    _uiState.update { it.copy(isNewFolderDialogVisible = false, newFolderName = "", error = error.message) }
                 }
             )
         }

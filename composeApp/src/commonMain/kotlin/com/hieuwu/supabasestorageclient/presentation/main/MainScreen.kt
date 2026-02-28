@@ -154,45 +154,55 @@ fun MainScreen(
                     }
 
                     currentRoute?.startsWith("bucket") == true -> {
-                        var expanded by remember { mutableStateOf(false) }
-                        Box {
-                            FloatingActionButton(
-                                onClick = { expanded = true },
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
+                        var showActions by remember { mutableStateOf(false) }
+                        FloatingActionButton(
+                            onClick = { showActions = true },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add")
+                        }
+
+                        if (showActions) {
+                            ModalBottomSheet(
+                                onDismissRequest = { showActions = false },
+                                sheetState = rememberModalBottomSheetState()
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "Add")
-                            }
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("New Folder") },
-                                    onClick = {
-                                        expanded = false
-                                        viewModel.onNewFolderClick()
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.CreateNewFolder,
-                                            contentDescription = null
-                                        )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                        .padding(bottom = 32.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Text(
+                                        "Actions",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Button(
+                                        onClick = {
+                                            showActions = false
+                                            viewModel.onNewFolderClick()
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.CreateNewFolder, contentDescription = null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("New Folder")
                                     }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Upload File") },
-                                    onClick = {
-                                        expanded = false
-                                        viewModel.onUploadFileClick()
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.UploadFile,
-                                            contentDescription = null
-                                        )
+                                    Button(
+                                        onClick = {
+                                            showActions = false
+                                            viewModel.onUploadFileClick()
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.UploadFile, contentDescription = null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Upload File")
                                     }
-                                )
+                                }
                             }
                         }
                     }
