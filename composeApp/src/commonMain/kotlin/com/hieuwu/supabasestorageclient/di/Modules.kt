@@ -20,6 +20,8 @@ import com.hieuwu.supabasestorageclient.data.repository.DownloadRepositoryImpl
 import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.data.repository.StarredRepositoryImpl
+import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
+import com.hieuwu.supabasestorageclient.data.repository.UploadRepositoryImpl
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
@@ -69,7 +71,8 @@ val coreModule = module {
     single<DownloadRepository> { DownloadRepositoryImpl(get()) }
     single<StarredRepository> { StarredRepositoryImpl(get(), get()) }
     single { DownloadManager(get(), get(), get(), get(), get()) }
-    single { UploadManager(get(), get()) }
+    single<UploadRepository> { UploadRepositoryImpl(get()) }
+    single { UploadManager(get(), get(), get(), get()) }
     single { ContextSelectionManager() }
 }
 

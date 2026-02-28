@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
+import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.format
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -28,25 +29,11 @@ fun DownloadsScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (downloads.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Download,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "No downloads yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-            }
+            EmptyState(
+                icon = Icons.Default.Download,
+                title = "No Downloads Yet",
+                subtitle = "Your downloaded files will appear here."
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),

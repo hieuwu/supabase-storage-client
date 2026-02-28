@@ -115,3 +115,29 @@ SELECT * FROM starred_entity WHERE credential_id = ? ORDER BY starred_at DESC;
 
 isItemStarred:
 SELECT COUNT(*) FROM starred_entity WHERE credential_id = ? AND item_id = ?;
+
+CREATE TABLE upload_item_entity (
+    id TEXT NOT NULL,
+    credential_id TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    bucket_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    total_size INTEGER NOT NULL,
+    uploaded_size INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    uploaded_time TEXT,
+    PRIMARY KEY (id, credential_id)
+);
+
+insertUploadItem:
+INSERT OR REPLACE INTO upload_item_entity(id, credential_id, file_name, bucket_id, path, total_size, uploaded_size, status, uploaded_time)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getUploadItems:
+SELECT * FROM upload_item_entity WHERE credential_id = ?;
+
+deleteUploadItem:
+DELETE FROM upload_item_entity WHERE id = ? AND credential_id = ?;
+
+deleteAllUploadItems:
+DELETE FROM upload_item_entity WHERE credential_id = ?;

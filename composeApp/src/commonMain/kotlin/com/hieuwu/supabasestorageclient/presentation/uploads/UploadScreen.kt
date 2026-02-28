@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
+import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.format
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -28,25 +29,11 @@ fun UploadScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (uploads.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Upload,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "No uploads yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-            }
+            EmptyState(
+                icon = Icons.Default.Upload,
+                title = "No Uploads Yet",
+                subtitle = "Your file uploads will appear here."
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
