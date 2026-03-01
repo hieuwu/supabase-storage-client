@@ -50,6 +50,7 @@ kotlin {
             implementation(libs.androidx.security.crypto)
             implementation(libs.ktor.client.android)   // or latest stable 3.x version
             implementation(libs.sqldelight.android)
+            implementation(libs.androidx.core.splashscreen)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

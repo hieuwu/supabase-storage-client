@@ -28,6 +28,8 @@ navigationCompose = "2.9.2"
 coil = "3.0.4"
 kermit = "2.0.4"
 sqldelight = "2.2.1"
+core-splashscreen = "1.0.1"
+
 
 
 [libraries]
@@ -76,7 +78,9 @@ coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.re
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 # SQLDelight
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+
 sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-sqlite = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 sqldelight-web-worker = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
