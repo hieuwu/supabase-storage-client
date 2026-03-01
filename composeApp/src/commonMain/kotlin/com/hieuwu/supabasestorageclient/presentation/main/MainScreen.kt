@@ -19,9 +19,9 @@ import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsScreen
 import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsScreen
@@ -226,7 +226,7 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ),
                         onClick = {
                             navController.navigate(Screen.BucketsTab.route) {
@@ -243,7 +243,7 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ),
                         onClick = {
                             navController.navigate(Screen.StarredTab.route) {
@@ -260,7 +260,7 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ),
                         onClick = {
                             navController.navigate(Screen.DownloadsTab.route) {
@@ -277,7 +277,7 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ),
                         onClick = {
                             navController.navigate(Screen.UploadsTab.route) {
@@ -294,7 +294,7 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ),
                         onClick = {
                             navController.navigate(Screen.SettingsTab.route) {
@@ -310,7 +310,12 @@ fun MainScreen(
             Box(modifier = Modifier.padding(padding)) {
                 NavHost(
                     navController = navController,
-                    startDestination = Screen.BucketsTab.route
+                    startDestination = Screen.BucketsTab.route,
+                    enterTransition = { fadeIn(animationSpec = tween(300)) },
+                    exitTransition = { fadeOut(animationSpec = tween(300)) },
+                    popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+                    popExitTransition = { fadeOut(animationSpec = tween(300)) },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                 ) {
                     composable(Screen.BucketsTab.route) {
                         BucketsScreen(

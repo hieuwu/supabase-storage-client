@@ -20,9 +20,8 @@ import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen
 import com.hieuwu.supabasestorageclient.presentation.main.MainScreen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.search.SearchScreen
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -59,7 +58,11 @@ fun NavGraph(
     SharedTransitionLayout {
         NavHost(
             navController = navController,
-            startDestination = startDestination
+            startDestination = startDestination,
+            enterTransition = { fadeIn(animationSpec = tween(400)) },
+            exitTransition = { fadeOut(animationSpec = tween(400)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(400)) },
+            popExitTransition = { fadeOut(animationSpec = tween(400)) }
         ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(onComplete = onOnboardingComplete)
