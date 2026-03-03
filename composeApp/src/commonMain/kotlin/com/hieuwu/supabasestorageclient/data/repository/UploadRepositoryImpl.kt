@@ -29,7 +29,8 @@ class UploadRepositoryImpl(
                         totalSize = entity.total_size,
                         uploadedSize = entity.uploaded_size,
                         status = UploadStatus.valueOf(entity.status),
-                        uploadedTime = entity.uploaded_time?.let { Instant.parse(it) }
+                        uploadedTime = entity.uploaded_time?.let { Instant.parse(it) },
+                        to = entity.to_path ?: ""
                     )
                 }
             }
@@ -45,7 +46,8 @@ class UploadRepositoryImpl(
             total_size = item.totalSize,
             uploaded_size = item.uploadedSize,
             status = item.status.name,
-            uploaded_time = item.uploadedTime?.toString()
+            uploaded_time = item.uploadedTime?.toString(),
+            to_path = item.to
         )
     }
 

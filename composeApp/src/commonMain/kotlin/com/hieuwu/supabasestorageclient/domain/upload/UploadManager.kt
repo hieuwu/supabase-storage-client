@@ -54,7 +54,8 @@ class UploadManager(
             fileName = fileName,
             bucketId = bucketId,
             path = path,
-            totalSize = data.size.toLong()
+            totalSize = data.size.toLong(),
+            to = "$bucketId/$path"
         )
 
         updateAndPersistItem(item)

@@ -7,6 +7,7 @@ data class DownloadItem(
     val fileName: String,
     val bucketId: String,
     val path: String,
+    val from: String,
     val totalSize: Long,
     val downloadedSize: Long = 0,
     val status: DownloadStatus = DownloadStatus.Downloading,

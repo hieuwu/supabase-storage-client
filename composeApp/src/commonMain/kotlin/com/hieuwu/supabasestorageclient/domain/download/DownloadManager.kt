@@ -64,6 +64,7 @@ class DownloadManager(
             fileName = fileName,
             bucketId = bucketId,
             path = path,
+            from = "$bucketId/$path",
             totalSize = 0,
             destinationPath = destinationPath
         )

@@ -18,6 +18,7 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.format
+import com.hieuwu.supabasestorageclient.util.formatDate
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -113,10 +114,30 @@ fun DownloadItemRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = formatStatus(item),
+                        text = "from: ${item.from}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = formatStatus(item),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        if (item.status == DownloadStatus.Completed && item.downloadedTime != null) {
+                            Text(
+                                text = formatDate(item.downloadedTime),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
                 }
                 
                 Row {

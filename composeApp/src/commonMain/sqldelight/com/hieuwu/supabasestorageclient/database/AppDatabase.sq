@@ -31,6 +31,7 @@ CREATE TABLE download_item_entity (
     file_name TEXT NOT NULL,
     bucket_id TEXT NOT NULL,
     path TEXT NOT NULL,
+    from_path TEXT NOT NULL,
     total_size INTEGER NOT NULL,
     downloaded_size INTEGER NOT NULL,
     status TEXT NOT NULL,
@@ -75,8 +76,8 @@ DELETE FROM storage_item_entity WHERE credential_id = ?;
 
 -- Download Item Operations
 insertDownloadItem:
-INSERT OR REPLACE INTO download_item_entity(id, credential_id, file_name, bucket_id, path, total_size, downloaded_size, status, downloaded_time, destination_path)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO download_item_entity(id, credential_id, file_name, bucket_id, path, from_path, total_size, downloaded_size, status, downloaded_time, destination_path)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getDownloadItems:
 SELECT * FROM download_item_entity WHERE credential_id = ?;
@@ -126,12 +127,13 @@ CREATE TABLE upload_item_entity (
     uploaded_size INTEGER NOT NULL,
     status TEXT NOT NULL,
     uploaded_time TEXT,
+    to_path TEXT,
     PRIMARY KEY (id, credential_id)
 );
 
 insertUploadItem:
-INSERT OR REPLACE INTO upload_item_entity(id, credential_id, file_name, bucket_id, path, total_size, uploaded_size, status, uploaded_time)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO upload_item_entity(id, credential_id, file_name, bucket_id, path, total_size, uploaded_size, status, uploaded_time, to_path)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getUploadItems:
 SELECT * FROM upload_item_entity WHERE credential_id = ?;

@@ -19,6 +19,8 @@ import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.format
+import com.hieuwu.supabasestorageclient.util.formatDate
+import com.hieuwu.supabasestorageclient.util.formatDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -79,6 +81,13 @@ fun UploadItemRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
+                        text = "To: ${item.to}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
                         text = formatStatus(item),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
@@ -127,7 +136,7 @@ private fun formatStatus(item: UploadItem): String {
     return when (item.status) {
         UploadStatus.Uploading -> "Uploading..."
         UploadStatus.Paused -> "Paused"
-        UploadStatus.Completed -> "Completed"
+        UploadStatus.Completed -> "Completed ${if (item.uploadedTime != null) "at ${formatDateTime(item.uploadedTime)}" else ""}"
         UploadStatus.Error -> "Error"
         UploadStatus.Cancelled -> "Cancelled"
     }

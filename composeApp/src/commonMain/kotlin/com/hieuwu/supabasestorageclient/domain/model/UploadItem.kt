@@ -10,7 +10,8 @@ data class UploadItem(
     val totalSize: Long,
     val uploadedSize: Long = 0,
     val status: UploadStatus = UploadStatus.Uploading,
-    val uploadedTime: Instant? = null
+    val uploadedTime: Instant? = null,
+    val to: String
 ) {
     val progress: Float
         get() = if (totalSize > 0) uploadedSize.toFloat() / totalSize else 0f
