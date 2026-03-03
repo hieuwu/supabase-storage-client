@@ -60,14 +60,7 @@ actual fun getPermissionManager(): PermissionManager = IosPermissionManager()
 
 class IosFilePicker : FilePicker {
     override suspend fun pickFile(): SelectedFile? {
-        // In a real iOS KMP app, you'd need to coordinate with the UI to present 
-        // a UIDocumentPickerViewController. This often requires a more complex bridge.
-        // For this implementation, I'll provide the structural code even if it's tricky 
-        // to execute perfectly without a full UI context.
-        
-        // This is a simplified "real" implementation for iOS
-        // In practice, you'd use a delegate to get the result.
-        return null // Placeholder for complex iOS UI interaction
+        return IosFilePickerProvider.handler.pickFile()
     }
 }
 
