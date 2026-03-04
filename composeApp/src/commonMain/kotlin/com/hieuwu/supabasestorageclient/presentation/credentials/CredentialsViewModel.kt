@@ -8,6 +8,7 @@ import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import io.github.jan.supabase.storage.storage
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -21,13 +22,17 @@ data class CredentialsUiState(
     val showDeleteConfirmation: Boolean = false,
     val credentialToDelete: Credential? = null,
     val showEditSheet: Boolean = false,
-    val credentialToEdit: Credential? = null
+    val credentialToEdit: Credential? = null,
+    val showPaywall: Boolean = false,
+    val isPro: Boolean = false,
+    val showAddSheet: Boolean = false
 )
 
 class CredentialsViewModel(
     private val credentialRepository: CredentialRepository,
     private val supabaseClientManager: SupabaseClientManager,
     private val clearCacheUseCase: com.hieuwu.supabasestorageclient.feature.usecase.storage.ClearCacheUseCase,
+    private val purchaseRepository: PurchaseRepository,
     private val logger: co.touchlab.kermit.Logger
 ) : ViewModel() {
 
@@ -44,7 +49,7 @@ class CredentialsViewModel(
             credentialRepository.getCredentials()
                 .collect { credentials ->
                     val lastUsedId = credentialRepository.getLastUsedId()
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             credentials = credentials,
                             lastUsedId = lastUsedId,
@@ -52,6 +57,10 @@ class CredentialsViewModel(
                         )
                     }
                 }
+
+            purchaseRepository.isPro.collect { isPro ->
+                _uiState.update { it.copy(isPro = isPro) }
+            }
         }
     }
 
@@ -104,6 +113,13 @@ class CredentialsViewModel(
     fun addCredential(name: String, url: String, key: String) {
         viewModelScope.launch {
             try {
+                val isPro = purchaseRepository.isPro.value
+                val currentCount = _uiState.value.credentials.size
+                if (!isPro && currentCount >= 2) {
+                    _uiState.update { it.copy(showPaywall = true) }
+                    return@launch
+                }
+
                 val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
                 val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
                 val newCredential = Credential(
@@ -117,6 +133,23 @@ class CredentialsViewModel(
                 _uiState.update { it.copy(error = "Failed to add credential: ${e.message}") }
             }
         }
+    }
+
+    fun dismissPaywall() {
+        _uiState.update { it.copy(showPaywall = false) }
+    }
+
+    fun onAddClick() {
+        val uiState = _uiState.value
+        if (uiState.isPro || uiState.credentials.size < 2) {
+            _uiState.update { it.copy(showAddSheet = true) }
+        } else {
+            purchaseRepository.triggerPaywall()
+        }
+    }
+
+    fun hideAddSheet() {
+        _uiState.update { it.copy(showAddSheet = false) }
     }
 
     fun updateCredential(id: String, name: String, url: String, key: String) {

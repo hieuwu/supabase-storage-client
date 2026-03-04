@@ -62,7 +62,6 @@ fun CredentialsScreen(
     onAddCredentialRequested: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showAddSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -77,7 +76,7 @@ fun CredentialsScreen(
         floatingActionButton = {
             if (uiState.credentials.isNotEmpty()) {
                 FloatingActionButton(
-                    onClick = { showAddSheet = true },
+                    onClick = { viewModel.onAddClick() },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
@@ -93,7 +92,7 @@ fun CredentialsScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             if (uiState.credentials.isEmpty() && !uiState.isLoading) {
-                EmptyCredentialsState(onAddClick = { showAddSheet = true })
+                EmptyCredentialsState(onAddClick = { viewModel.onAddClick() })
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -152,19 +151,19 @@ fun CredentialsScreen(
         }
     }
 
-    if (showAddSheet) {
+    if (uiState.showAddSheet) {
         val sheetState = rememberModalBottomSheetState()
         ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false },
+            onDismissRequest = { viewModel.hideAddSheet() },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surface,
         ) {
             AddCredentialSheet(
                 onAdd = { name, url, key ->
                     viewModel.addCredential(name, url, key)
-                    showAddSheet = false
+                    viewModel.hideAddSheet()
                 },
-                onCancel = { showAddSheet = false }
+                onCancel = { viewModel.hideAddSheet() }
             )
         }
     }

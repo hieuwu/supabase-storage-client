@@ -31,16 +31,16 @@ kotlin {
     
     jvm()
     
-    js {
-        browser()
-        binaries.executable()
-    }
+//    js {
+//        browser()
+//        binaries.executable()
+//    }
     
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        browser()
+//        binaries.executable()
+//    }
     
     sourceSets {
         androidMain.dependencies {
@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.ktor.client.android)   // or latest stable 3.x version
             implementation(libs.sqldelight.android)
             implementation(libs.androidx.core.splashscreen)
+
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -84,6 +85,10 @@ kotlin {
             implementation(libs.coil.network.ktor)
             implementation(libs.kermit)
             implementation(libs.sqldelight.coroutines)
+
+
+            implementation(libs.revenuecat.purchases)
+            implementation(libs.revenuecat.purchases.ui)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -148,5 +153,32 @@ sqldelight {
         create("AppDatabase") {
             packageName.set("com.hieuwu.supabasestorageclient.database")
         }
+    }
+}
+afterEvaluate {
+    configurations.matching {
+        it.name.contains("jvm", ignoreCase = true) ||
+                it.name.contains("macos", ignoreCase = true) ||
+                it.name.contains("tvos", ignoreCase = true) ||
+                it.name.contains("watchos", ignoreCase = true) ||
+                it.name.contains("js", ignoreCase = true)
+    }.configureEach {
+        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-core")
+        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-either")
+        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-result")
+        exclude(group = "com.revenuecat.purchases", module = "purchases-kmp-ui")
+    }
+
+    configurations.matching {
+        it.name.contains("tvos", ignoreCase = true) ||
+                it.name.contains("watchos", ignoreCase = true)
+    }.configureEach {
+        exclude(group = "org.jetbrains.compose.ui", module = "ui")
+    }
+
+    // Exclude Amazon Appstore SDK globally - we only use Google Play
+    configurations.configureEach {
+        exclude(group = "com.revenuecat.purchases", module = "purchases-store-amazon")
+        exclude(group = "com.amazon.device", module = "amazon-appstore-sdk")
     }
 }

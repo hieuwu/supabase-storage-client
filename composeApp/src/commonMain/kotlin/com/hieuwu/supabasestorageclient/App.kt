@@ -16,6 +16,11 @@ import org.koin.compose.viewmodel.koinViewModel
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
 import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.presentation.theme.SupaBucktTheme
+import com.revenuecat.purchases.kmp.ui.revenuecatui.Paywall
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 
 @Composable
 fun App() {
@@ -28,6 +33,16 @@ fun App() {
         
         val supabaseClientManager: SupabaseClientManager = koinInject()
         val supabaseClient by supabaseClientManager.client.collectAsStateWithLifecycle()
+
+        val purchaseRepository: PurchaseRepository = koinInject()
+        var showGlobalPaywall by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            purchaseRepository.initialize()
+            purchaseRepository.showPaywallEvent.collect {
+                showGlobalPaywall = true
+            }
+        }
 
         val navController = rememberNavController()
 
@@ -67,5 +82,13 @@ fun App() {
                 supabaseClientManager.clearClient()
             }
         )
+
+        if (showGlobalPaywall) {
+            Paywall(
+                options = PaywallOptions(
+                    dismissRequest = { showGlobalPaywall = false }
+                )
+            )
+        }
     }
 }

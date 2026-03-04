@@ -4,6 +4,8 @@ import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
 import com.hieuwu.supabasestorageclient.util.PermissionManager
 import io.github.jan.supabase.storage.UploadStatus as SupabaseUploadStatus
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -22,7 +25,9 @@ class UploadManager(
     private val storageRepository: StorageRepository,
     private val permissionManager: PermissionManager,
     private val uploadRepository: UploadRepository,
-    private val credentialRepository: CredentialRepository
+    private val credentialRepository: CredentialRepository,
+    private val purchaseRepository: PurchaseRepository,
+    private val settingsRepository: SettingsRepository
 ) {
     private val _uploads = MutableStateFlow<List<UploadItem>>(emptyList())
     val uploads: StateFlow<List<UploadItem>> = _uploads.asStateFlow()
@@ -88,6 +93,15 @@ class UploadManager(
                         }
 
                         else -> {}
+                    }
+                }
+
+                // Check if this is the first operation
+                scope.launch {
+                    val settings = settingsRepository.getSettings().firstOrNull()
+                    if (settings != null && !settings.isFirstOperationCompleted) {
+                        settingsRepository.updateSettings(settings.copy(isFirstOperationCompleted = true))
+                        purchaseRepository.triggerPaywall()
                     }
                 }
             } catch (e: Exception) {

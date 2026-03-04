@@ -4,6 +4,8 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import com.hieuwu.supabasestorageclient.util.FileWriter
 import com.hieuwu.supabasestorageclient.util.PermissionManager
@@ -27,7 +29,9 @@ class DownloadManager(
     private val fileWriter: FileWriter,
     private val permissionManager: PermissionManager,
     private val downloadRepository: DownloadRepository,
-    private val credentialRepository: CredentialRepository
+    private val credentialRepository: CredentialRepository,
+    private val purchaseRepository: PurchaseRepository,
+    private val settingsRepository: SettingsRepository
 ) {
     private val _downloads = MutableStateFlow<List<DownloadItem>>(emptyList())
     val downloads: StateFlow<List<DownloadItem>> = _downloads.asStateFlow()
@@ -140,6 +144,15 @@ class DownloadManager(
                 } else {
                     val currentItem = _downloads.value.find { it.id == id }
                     currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(it) }
+                }
+
+                // Check if this is the first operation
+                scope.launch {
+                    val settings = settingsRepository.getSettings().firstOrNull()
+                    if (settings != null && !settings.isFirstOperationCompleted) {
+                        settingsRepository.updateSettings(settings.copy(isFirstOperationCompleted = true))
+                        purchaseRepository.triggerPaywall()
+                    }
                 }
 
             } catch (e: Exception) {

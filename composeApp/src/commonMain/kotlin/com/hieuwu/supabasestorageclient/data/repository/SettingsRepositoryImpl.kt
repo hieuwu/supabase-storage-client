@@ -20,6 +20,7 @@ class SettingsRepositoryImpl(
         private const val KEY_FILE_SIZE_UNIT = "file_size_unit"
         private const val KEY_VIEW_MODE = "view_mode"
         private const val KEY_THEME = "theme"
+        private const val KEY_FIRST_OPERATION_COMPLETED = "first_operation_completed"
 
         private const val DEFAULT_FILE_SIZE_LIMIT = 10L
         private val DEFAULT_FILE_SIZE_UNIT = SizeUnit.MEGABYTES
@@ -36,6 +37,7 @@ class SettingsRepositoryImpl(
         settings[KEY_FILE_SIZE_UNIT] = userSettings.fileSizeUnit.name
         settings[KEY_VIEW_MODE] = userSettings.viewMode.name
         settings[KEY_THEME] = userSettings.theme.name
+        settings[KEY_FIRST_OPERATION_COMPLETED] = userSettings.isFirstOperationCompleted
         _settingsFlow.value = userSettings
     }
 
@@ -57,11 +59,14 @@ class SettingsRepositoryImpl(
             DEFAULT_THEME
         }
 
+        val isFirstOperationCompleted = settings.getBoolean(KEY_FIRST_OPERATION_COMPLETED, false)
+
         return UserSettings(
             fileSizeLimit = fileSizeLimit,
             fileSizeUnit = fileSizeUnit,
             viewMode = viewMode,
-            theme = theme
+            theme = theme,
+            isFirstOperationCompleted = isFirstOperationCompleted
         )
     }
 }

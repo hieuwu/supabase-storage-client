@@ -4,5 +4,6 @@ data class UserSettings(
     val fileSizeLimit: Long,
     val fileSizeUnit: SizeUnit,
     val viewMode: ViewMode,
-    val theme: AppTheme
+    val theme: AppTheme,
+    val isFirstOperationCompleted: Boolean = false
 )

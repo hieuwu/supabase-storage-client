@@ -22,6 +22,8 @@ import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.data.repository.StarredRepositoryImpl
 import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
 import com.hieuwu.supabasestorageclient.data.repository.UploadRepositoryImpl
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.data.repository.PurchaseRepositoryImpl
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
@@ -60,6 +62,7 @@ val coreModule = module {
     single { SupabaseClientManager() }
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
+    single<PurchaseRepository> { PurchaseRepositoryImpl() }
     single { com.hieuwu.supabasestorageclient.database.AppDatabase(get<com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory>().createDriver()) }
     single<StorageRepository> { StorageRepositoryImpl(get(), get(), get(), get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(get()) }
@@ -70,15 +73,15 @@ val coreModule = module {
     single { getPermissionManager() }
     single<DownloadRepository> { DownloadRepositoryImpl(get()) }
     single<StarredRepository> { StarredRepositoryImpl(get(), get()) }
-    single { DownloadManager(get(), get(), get(), get(), get()) }
+    single { DownloadManager(get(), get(), get(), get(), get(), get(), get()) }
     single<UploadRepository> { UploadRepositoryImpl(get()) }
-    single { UploadManager(get(), get(), get(), get()) }
+    single { UploadManager(get(), get(), get(), get(), get(), get()) }
     single { ContextSelectionManager() }
 }
 
 val featureModule = module {
     viewModel { OnboardingViewModel(get()) }
-    viewModel { CredentialsViewModel(get(), get(), get(), get()) }
+    viewModel { CredentialsViewModel(get(), get(), get(), get(), get()) }
 
     // Storage UseCases
     singleOf(::GetBucketsUseCase)

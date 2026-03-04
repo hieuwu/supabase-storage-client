@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		650B41822F5479A000DC08ED /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 650B41812F5479A000DC08ED /* Launch Screen.storyboard */; };
+		65B08C2A2F587A9B00D749F8 /* PurchasesHybridCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */; };
+		65B08C2C2F587A9B00D749F8 /* PurchasesHybridCommonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +48,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65B08C2C2F587A9B00D749F8 /* PurchasesHybridCommonUI in Frameworks */,
+				65B08C2A2F587A9B00D749F8 /* PurchasesHybridCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,6 +95,8 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
+				65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */,
+				65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */,
 			);
 			productName = iosApp;
 			productReference = 38C9C68559EA6AA6C3C8327A /* Supabuckt.app */;
@@ -120,6 +126,9 @@
 			);
 			mainGroup = 04D2DE5EFFD4FEF2193C6005;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BE32DC1DE790D1C29F0C0FD5 /* Products */;
 			projectDirPath = "";
@@ -385,6 +394,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-hybrid-common";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 17.42.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
+			productName = PurchasesHybridCommon;
+		};
+		65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
+			productName = PurchasesHybridCommonUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9B5D59B373854B1D729D47D3 /* Project object */;
 }
