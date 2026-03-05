@@ -108,12 +108,21 @@ kotlin {
 android {
     namespace = "com.hieuwu.supabasestorageclient"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    
+    signingConfigs {
+        create("release") {
+            storeFile = System.getenv("ANDROID_KEYSTORE_FILE")?.let { file(it) }
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        }
+    }
 
     defaultConfig {
         applicationId = "com.hieuwu.supabasestorageclient"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
     }
     packaging {
@@ -123,7 +132,13 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
