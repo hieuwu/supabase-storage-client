@@ -11,7 +11,11 @@ fun initKoin(appDeclaration: KoinAppDeclaration = {}) = startKoin {
     appDeclaration()
     modules(
         platformModule(),
-        coreModule,
-        featureModule
+        supabaseModule,
+        databaseModule,
+        repositoryModule,
+        useCaseModule,
+        viewModelModule,
+        utilityModule
     )
 }

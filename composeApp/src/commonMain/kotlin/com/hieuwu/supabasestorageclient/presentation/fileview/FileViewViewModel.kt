@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.DeleteFileUseCase
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetFileMetadataUseCase
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetPublicUrlUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.DeleteFileUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetFileMetadataUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import co.touchlab.kermit.Logger

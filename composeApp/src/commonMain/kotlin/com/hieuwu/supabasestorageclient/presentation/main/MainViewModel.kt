@@ -7,9 +7,9 @@ import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateBucketUseCase
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.CreateFolderUseCase
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.UploadFileUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.CreateBucketUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.CreateFolderUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.UploadFileUseCase
 import com.hieuwu.supabasestorageclient.util.FilePicker
 import com.hieuwu.supabasestorageclient.util.PermissionManager
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository

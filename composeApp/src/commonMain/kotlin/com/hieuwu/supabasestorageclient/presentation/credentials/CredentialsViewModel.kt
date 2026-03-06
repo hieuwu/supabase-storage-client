@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import io.github.jan.supabase.storage.storage
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.ClearCacheUseCase
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -31,7 +32,7 @@ data class CredentialsUiState(
 class CredentialsViewModel(
     private val credentialRepository: CredentialRepository,
     private val supabaseClientManager: SupabaseClientManager,
-    private val clearCacheUseCase: com.hieuwu.supabasestorageclient.feature.usecase.storage.ClearCacheUseCase,
+    private val clearCacheUseCase: ClearCacheUseCase,
     private val purchaseRepository: PurchaseRepository,
     private val logger: co.touchlab.kermit.Logger
 ) : ViewModel() {

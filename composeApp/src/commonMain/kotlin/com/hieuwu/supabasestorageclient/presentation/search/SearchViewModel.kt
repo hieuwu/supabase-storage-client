@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketContentsUseCase
-import com.hieuwu.supabasestorageclient.feature.usecase.storage.GetBucketsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetBucketContentsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetBucketsUseCase
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository

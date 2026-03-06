@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.feature.usecase.storage
+package com.hieuwu.supabasestorageclient.domain.usecase
 
 import com.hieuwu.supabasestorageclient.domain.upload.UploadManager
 
