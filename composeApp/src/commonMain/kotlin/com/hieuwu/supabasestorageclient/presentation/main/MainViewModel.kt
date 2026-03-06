@@ -168,7 +168,13 @@ class MainViewModel(
         val unit = if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeUnit else null
 
         viewModelScope.launch {
-            createBucketUseCase(id, isPublic, fileSizeLimit, unit).fold(
+            val params = CreateBucketUseCase.Params(
+                id = id,
+                public = isPublic,
+                fileSizeLimit = fileSizeLimit,
+                unit = unit
+            )
+            createBucketUseCase(params).fold(
                 onSuccess = {
                     _uiState.update {
                         it.copy(
@@ -201,7 +207,8 @@ class MainViewModel(
 
         viewModelScope.launch {
             val fullPath = if (context.path.isEmpty()) folderName else "${context.path}/$folderName"
-            createFolderUseCase(context.bucketId, fullPath).fold(
+            val params = CreateFolderUseCase.Params(bucketId = context.bucketId, path = fullPath)
+            createFolderUseCase(params).fold(
                 onSuccess = {
                     _uiState.update { it.copy(isNewFolderDialogVisible = false, newFolderName = "", successMessage = "Folder created") }
                 },
@@ -228,7 +235,13 @@ class MainViewModel(
             val selectedFile = filePicker.pickFile()
             if (selectedFile != null) {
                 val fullPath = if (context.path.isEmpty()) selectedFile.name else "${context.path}/${selectedFile.name}"
-                uploadFileUseCase(context.bucketId, fullPath, selectedFile.name, selectedFile.data)
+                val params = UploadFileUseCase.Params(
+                    bucketId = context.bucketId,
+                    path = fullPath,
+                    fileName = selectedFile.name,
+                    data = selectedFile.data
+                )
+                uploadFileUseCase(params)
                 _uiState.update { it.copy(successMessage = "Upload started", isUploading = true) }
                 _navigateToUploads.emit(Unit)
             }

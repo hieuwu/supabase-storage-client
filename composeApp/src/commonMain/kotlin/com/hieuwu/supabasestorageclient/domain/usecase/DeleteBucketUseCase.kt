@@ -2,12 +2,6 @@ package com.hieuwu.supabasestorageclient.domain.usecase
 
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 
-class DeleteBucketUseCase(
-    private val storageRepository: StorageRepository
-) {
-    suspend operator fun invoke(bucketId: String): Result<Unit> {
-        return runCatching {
-            storageRepository.deleteBucket(bucketId)
-        }
-    }
+fun interface DeleteBucketUseCase {
+    suspend operator fun invoke(bucketId: String): Result<Unit>
 }

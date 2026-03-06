@@ -2,8 +2,13 @@ package com.hieuwu.supabasestorageclient.domain.usecase
 
 import com.hieuwu.supabasestorageclient.domain.upload.UploadManager
 
-class UploadFileUseCase(private val uploadManager: UploadManager) {
-    operator fun invoke(bucketId: String, path: String, fileName: String, data: ByteArray) {
-        uploadManager.upload(bucketId, path, fileName, data)
-    }
+fun interface UploadFileUseCase {
+    data class Params(
+        val bucketId: String,
+        val path: String,
+        val fileName: String,
+        val data: ByteArray
+    )
+
+    operator fun invoke(params: Params)
 }

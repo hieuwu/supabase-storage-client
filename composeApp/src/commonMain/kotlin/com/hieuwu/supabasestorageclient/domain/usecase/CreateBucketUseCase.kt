@@ -3,10 +3,13 @@ package com.hieuwu.supabasestorageclient.domain.usecase
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 
-class CreateBucketUseCase(
-    private val storageRepository: StorageRepository
-) {
-    suspend operator fun invoke(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?) = runCatching {
-        storageRepository.createBucket(id, public, fileSizeLimit, unit)
-    }
+fun interface CreateBucketUseCase {
+    data class Params(
+        val id: String,
+        val public: Boolean,
+        val fileSizeLimit: Long?,
+        val unit: SizeUnit?
+    )
+
+    suspend operator fun invoke(params: Params): Result<Unit>
 }

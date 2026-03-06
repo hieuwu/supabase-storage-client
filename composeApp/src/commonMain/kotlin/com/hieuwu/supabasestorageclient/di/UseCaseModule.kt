@@ -15,23 +15,38 @@ import com.hieuwu.supabasestorageclient.domain.usecase.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketContentsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.UploadFileUseCase
-import org.koin.core.module.dsl.singleOf
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.ClearCacheUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.CreateBucketUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.CreateFolderUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.DeleteBucketUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.DeleteFileUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.DownloadFileUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.EmptyBucketUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.GetBucketContentsUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.GetBucketsUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.GetFileMetadataUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.GetPublicUrlUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.MoveFileUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.RefreshBucketContentsUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.RefreshBucketsUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.UploadFileUseCaseImpl
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val useCaseModule = module {
-    singleOf(::GetBucketsUseCase)
-    singleOf(::GetBucketContentsUseCase)
-    singleOf(::GetPublicUrlUseCase)
-    singleOf(::DownloadFileUseCase)
-    singleOf(::DeleteFileUseCase)
-    singleOf(::GetFileMetadataUseCase)
-    singleOf(::MoveFileUseCase)
-    singleOf(::CreateFolderUseCase)
-    singleOf(::UploadFileUseCase)
-    singleOf(::EmptyBucketUseCase)
-    singleOf(::CreateBucketUseCase)
-    singleOf(::DeleteBucketUseCase)
-    singleOf(::ClearCacheUseCase)
-    singleOf(::RefreshBucketsUseCase)
-    singleOf(::RefreshBucketContentsUseCase)
+    factory { GetBucketsUseCaseImpl(get()) } bind GetBucketsUseCase::class
+    factory { GetBucketContentsUseCaseImpl(get()) } bind GetBucketContentsUseCase::class
+    factory { GetPublicUrlUseCaseImpl(get()) } bind GetPublicUrlUseCase::class
+    factory { DownloadFileUseCaseImpl(get()) } bind DownloadFileUseCase::class
+    factory { DeleteFileUseCaseImpl(get()) } bind DeleteFileUseCase::class
+    factory { GetFileMetadataUseCaseImpl(get()) } bind GetFileMetadataUseCase::class
+    factory { MoveFileUseCaseImpl(get()) } bind MoveFileUseCase::class
+    factory { CreateFolderUseCaseImpl(get()) } bind CreateFolderUseCase::class
+    factory { UploadFileUseCaseImpl(get()) } bind UploadFileUseCase::class
+    factory { EmptyBucketUseCaseImpl(get()) } bind EmptyBucketUseCase::class
+    factory { CreateBucketUseCaseImpl(get()) } bind CreateBucketUseCase::class
+    factory { DeleteBucketUseCaseImpl(get()) } bind DeleteBucketUseCase::class
+    factory { ClearCacheUseCaseImpl(get()) } bind ClearCacheUseCase::class
+    factory { RefreshBucketsUseCaseImpl(get()) } bind RefreshBucketsUseCase::class
+    factory { RefreshBucketContentsUseCaseImpl(get()) } bind RefreshBucketContentsUseCase::class
 }

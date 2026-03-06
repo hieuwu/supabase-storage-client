@@ -105,7 +105,8 @@ class SearchViewModel(
                     }
                 } else {
                     // Search for files and folders in the specific bucket
-                    val items = getBucketContentsUseCase(bucketId, "").getOrNull() ?: emptyList()
+                    val params = GetBucketContentsUseCase.Params(bucketId = bucketId, path = "")
+                    val items = getBucketContentsUseCase(params).getOrNull() ?: emptyList()
                     val filtered = items.filter { it.name.contains(query, ignoreCase = true) }
                         .map { SearchResult(it, bucketId) }
                     _uiState.update {

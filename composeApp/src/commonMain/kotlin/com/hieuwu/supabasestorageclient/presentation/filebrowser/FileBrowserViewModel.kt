@@ -56,7 +56,8 @@ class FileBrowserViewModel(
     fun loadContents() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val result = getBucketContentsUseCase(bucketId, path.orEmpty())
+            val params = GetBucketContentsUseCase.Params(bucketId = bucketId, path = path.orEmpty())
+            val result = getBucketContentsUseCase(params)
             val starredItems = starredRepository.getStarredItems()
             val userSettings = settingsRepository.getSettings()
 
@@ -98,7 +99,8 @@ class FileBrowserViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val oldFullPath = if (path.isNullOrEmpty()) oldName else "$path/$oldName"
             val newFullPath = if (path.isNullOrEmpty()) newName else "$path/$newName"
-            moveFileUseCase(bucketId, oldFullPath, newFullPath).fold(
+            val params = MoveFileUseCase.Params(bucketId = bucketId, fromPath = oldFullPath, toPath = newFullPath)
+            moveFileUseCase(params).fold(
                 onSuccess = {
                     _uiState.update { it.copy(successMessage = "Renamed successfully", isLoading = false) }
                     loadContents()
@@ -115,7 +117,8 @@ class FileBrowserViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val oldFullPath = if (path.isNullOrEmpty()) oldName else "$path/$oldName"
             val newFullPath = if (newPath.isEmpty()) oldName else "$newPath/$oldName"
-            moveFileUseCase(bucketId, oldFullPath, newFullPath).fold(
+            val params = MoveFileUseCase.Params(bucketId = bucketId, fromPath = oldFullPath, toPath = newFullPath)
+            moveFileUseCase(params).fold(
                 onSuccess = {
                     _uiState.update { it.copy(successMessage = "Moved successfully", isLoading = false) }
                     loadContents()
@@ -131,7 +134,8 @@ class FileBrowserViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
-            deleteFileUseCase(bucketId, fullPath).fold(
+            val params = DeleteFileUseCase.Params(bucketId = bucketId, path = fullPath)
+            deleteFileUseCase(params).fold(
                 onSuccess = {
                     _uiState.update { it.copy(successMessage = "Deleted successfully", isLoading = false) }
                     loadContents()
@@ -146,7 +150,8 @@ class FileBrowserViewModel(
     fun getPublicUrl(name: String) {
         viewModelScope.launch {
             val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
-            getPublicUrlUseCase(bucketId, fullPath).fold(
+            val params = GetPublicUrlUseCase.Params(bucketId = bucketId, path = fullPath)
+            getPublicUrlUseCase(params).fold(
                 onSuccess = { url ->
                     clipboardManager.copyText(url)
                     _uiState.update { it.copy(successMessage = "URL copied to clipboard") }

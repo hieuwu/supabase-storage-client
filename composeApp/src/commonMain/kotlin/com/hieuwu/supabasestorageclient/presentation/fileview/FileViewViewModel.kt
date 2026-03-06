@@ -53,7 +53,8 @@ class FileViewViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
             
-            getPublicUrlUseCase(bucketId, fullPath).fold(
+            val publicUrlParams = GetPublicUrlUseCase.Params(bucketId = bucketId, path = fullPath)
+            getPublicUrlUseCase(publicUrlParams).fold(
                 onSuccess = { url ->
                     _uiState.update { it.copy(publicUrl = url) }
                 },
@@ -63,7 +64,8 @@ class FileViewViewModel(
                 }
             )
 
-            getFileMetadataUseCase(bucketId, fullPath).fold(
+            val metadataParams = GetFileMetadataUseCase.Params(bucketId = bucketId, path = fullPath)
+            getFileMetadataUseCase(metadataParams).fold(
                 onSuccess = { metadata ->
                     _uiState.update { it.copy(metadata = metadata, isLoading = false) }
                 },
@@ -97,7 +99,8 @@ class FileViewViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
-            deleteFileUseCase(bucketId, fullPath).fold(
+            val params = DeleteFileUseCase.Params(bucketId = bucketId, path = fullPath)
+            deleteFileUseCase(params).fold(
                 onSuccess = {
                     _uiState.update { it.copy(
                         isDeleted = true,

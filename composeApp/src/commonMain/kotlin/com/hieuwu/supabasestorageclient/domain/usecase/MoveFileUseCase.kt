@@ -2,12 +2,7 @@ package com.hieuwu.supabasestorageclient.domain.usecase
 
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 
-class MoveFileUseCase(
-    private val storageRepository: StorageRepository
-) {
-    suspend operator fun invoke(bucketId: String, fromPath: String, toPath: String): Result<Unit> {
-        return runCatching {
-            storageRepository.moveFile(bucketId, fromPath, toPath)
-        }
-    }
+fun interface MoveFileUseCase {
+    data class Params(val bucketId: String, val fromPath: String, val toPath: String)
+    suspend operator fun invoke(params: Params): Result<Unit>
 }

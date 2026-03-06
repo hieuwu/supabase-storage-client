@@ -2,12 +2,7 @@ package com.hieuwu.supabasestorageclient.domain.usecase
 
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 
-class DeleteFileUseCase(
-    private val storageRepository: StorageRepository
-) {
-    suspend operator fun invoke(bucketId: String, path: String): Result<Unit> {
-        return runCatching {
-            storageRepository.deleteFile(bucketId, path)
-        }
-    }
+fun interface DeleteFileUseCase {
+    data class Params(val bucketId: String, val path: String)
+    suspend operator fun invoke(params: Params): Result<Unit>
 }

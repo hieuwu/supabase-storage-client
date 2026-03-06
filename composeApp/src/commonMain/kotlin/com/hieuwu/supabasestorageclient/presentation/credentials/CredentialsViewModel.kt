@@ -84,13 +84,13 @@ class CredentialsViewModel(
                 // Clear cache for the current credential before switching
                 val currentId = credentialRepository.getLastUsedId()
                 if (currentId != null) {
-                    clearCacheUseCase(currentId)
+                    clearCacheUseCase(ClearCacheUseCase.Params(currentId))
                 }
 
                 credentialRepository.setLastUsedId(credential.id)
                 
                 // Clear cache for the new credential to ensure a fresh state
-                clearCacheUseCase(credential.id)
+                clearCacheUseCase(ClearCacheUseCase.Params(credential.id))
                 
                 val newClient = supabaseClientManager.createClient(credential)
 
