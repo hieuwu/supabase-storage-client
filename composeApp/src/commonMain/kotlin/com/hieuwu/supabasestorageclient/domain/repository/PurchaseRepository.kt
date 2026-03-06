@@ -1,5 +1,8 @@
 package com.hieuwu.supabasestorageclient.domain.repository
 
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import com.revenuecat.purchases.kmp.models.Offering
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -28,4 +31,9 @@ interface PurchaseRepository {
      * Check current entitlement status from RevenueCat.
      */
     suspend fun checkEntitlements()
+
+    /**
+     * Fetch the current offering from RevenueCat.
+     */
+    fun fetchOffering(): Flow<ApiResponse<Offering>>
 }

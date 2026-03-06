@@ -21,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
+import com.revenuecat.purchases.kmp.models.Offering
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 
 @Composable
 fun App() {
@@ -36,11 +38,23 @@ fun App() {
 
         val purchaseRepository: PurchaseRepository = koinInject()
         var showGlobalPaywall by remember { mutableStateOf(false) }
+        var currentOffering by remember { mutableStateOf<Offering?>(null) }
 
         LaunchedEffect(Unit) {
             purchaseRepository.initialize()
             purchaseRepository.showPaywallEvent.collect {
-                showGlobalPaywall = true
+                purchaseRepository.fetchOffering().collect { response ->
+                    when (response) {
+                        is ApiResponse.Success -> {
+                            currentOffering = response.data
+                            showGlobalPaywall = true
+                        }
+                        is ApiResponse.Error -> {
+                            showGlobalPaywall = true
+                        }
+                        is ApiResponse.Loading -> {}
+                    }
+                }
             }
         }
 
@@ -83,12 +97,15 @@ fun App() {
             }
         )
 
+        val options = remember(showGlobalPaywall, currentOffering) {
+            PaywallOptions(dismissRequest = { showGlobalPaywall = false }) {
+                offering = currentOffering
+                shouldDisplayDismissButton = true
+            }
+        }
+
         if (showGlobalPaywall) {
-            Paywall(
-                options = PaywallOptions(
-                    dismissRequest = { showGlobalPaywall = false }
-                )
-            )
+            Paywall(options = options)
         }
     }
 }

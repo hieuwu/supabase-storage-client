@@ -1,18 +1,24 @@
 package com.hieuwu.supabasestorageclient.data.repository
 
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
+import com.revenuecat.purchases.kmp.PurchasesException
 import com.revenuecat.purchases.kmp.ktx.awaitCustomerInfo
+import com.revenuecat.purchases.kmp.ktx.awaitOfferings
 import com.revenuecat.purchases.kmp.models.EntitlementInfo
+import com.revenuecat.purchases.kmp.models.Offering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 class PurchaseRepositoryImpl : PurchaseRepository {
@@ -52,6 +58,23 @@ class PurchaseRepositoryImpl : PurchaseRepository {
         } catch (e: Exception) {
             // Handle error or log
             _isPro.value = false
+        }
+    }
+
+    override fun fetchOffering(): Flow<ApiResponse<Offering>> = flow {
+        emit(ApiResponse.Loading)
+        try {
+            val offerings = Purchases.sharedInstance.awaitOfferings()
+            val currentOffering = offerings.current
+            if (currentOffering != null) {
+                emit(ApiResponse.Success(currentOffering))
+            } else {
+                emit(ApiResponse.Error(Exception("No current offering found")))
+            }
+        } catch (e: PurchasesException) {
+            emit(ApiResponse.Error(e))
+        } catch (e: Exception) {
+            emit(ApiResponse.Error(e))
         }
     }
 }
