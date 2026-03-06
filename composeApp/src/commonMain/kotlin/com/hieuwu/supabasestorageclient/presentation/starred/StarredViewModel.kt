@@ -2,21 +2,10 @@ package com.hieuwu.supabasestorageclient.presentation.starred
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hieuwu.supabasestorageclient.domain.model.StarredItem
-import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-
-data class StarredUiState(
-    val items: List<StarredItem> = emptyList(),
-    val isLoading: Boolean = false,
-    val successMessage: String? = null,
-    val error: String? = null,
-    val showClearAllConfirmation: Boolean = false,
-    val viewMode: ViewMode = ViewMode.LIST
-)
 
 class StarredViewModel(
     private val starredRepository: StarredRepository,

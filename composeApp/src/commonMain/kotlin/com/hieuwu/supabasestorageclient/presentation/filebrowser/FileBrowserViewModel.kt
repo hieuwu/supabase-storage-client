@@ -15,18 +15,9 @@ import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketContentsUseC
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
-import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-
-data class BucketUiState(
-    val items: List<StorageItem> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val successMessage: String? = null,
-    val viewMode: ViewMode = ViewMode.LIST
-)
 
 class FileBrowserViewModel(
     private val bucketId: String,

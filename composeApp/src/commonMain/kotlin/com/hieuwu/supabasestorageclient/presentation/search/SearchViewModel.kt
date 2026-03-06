@@ -13,24 +13,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
 
-enum class SearchType {
-    BUCKET, FOLDER, FILE
-}
-
-data class SearchResult(
-    val item: StorageItem,
-    val bucketId: String
-)
-
-data class SearchUiState(
-    val query: String = "",
-    val searchType: SearchType = SearchType.BUCKET,
-    val isLoading: Boolean = false,
-    val buckets: List<Bucket> = emptyList(),
-    val storageItems: List<SearchResult> = emptyList(),
-    val error: String? = null
-)
-
 class SearchViewModel(
     private val bucketId: String?,
     private val getBucketsUseCase: GetBucketsUseCase,

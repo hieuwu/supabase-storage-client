@@ -3,7 +3,6 @@ package com.hieuwu.supabasestorageclient.presentation.fileview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
-import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.usecase.DeleteFileUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.GetFileMetadataUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
@@ -15,18 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-data class FileViewUiState(
-    val bucketId: String = "",
-    val fileName: String = "",
-    val path: String? = null,
-    val publicUrl: String? = null,
-    val metadata: StorageItem? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val isDeleted: Boolean = false,
-    val successMessage: String? = null
-)
 
 class FileViewViewModel(
     private val bucketId: String,

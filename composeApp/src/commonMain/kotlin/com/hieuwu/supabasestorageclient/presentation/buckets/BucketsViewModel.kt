@@ -9,7 +9,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.EmptyBucketUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.DeleteBucketUseCase
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
-import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
@@ -18,17 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-
-data class BucketsUiState(
-    val buckets: List<Bucket> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val successMessage: String? = null,
-    val showEmptyConfirmation: Boolean = false,
-    val showDeleteConfirmation: Boolean = false,
-    val selectedBucket: Bucket? = null,
-    val viewMode: ViewMode = ViewMode.LIST
-)
 
 class BucketsViewModel(
     private val getBucketsUseCase: GetBucketsUseCase,

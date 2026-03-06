@@ -13,22 +13,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.ClearCacheUseCase
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-data class CredentialsUiState(
-    val credentials: List<Credential> = emptyList(),
-    val lastUsedId: String? = null,
-    val showCredentialsId: Set<String> = emptySet(),
-    val isLoading: Boolean = false,
-    val isSettingUp: Boolean = false,
-    val error: String? = null,
-    val showDeleteConfirmation: Boolean = false,
-    val credentialToDelete: Credential? = null,
-    val showEditSheet: Boolean = false,
-    val credentialToEdit: Credential? = null,
-    val showPaywall: Boolean = false,
-    val isPro: Boolean = false,
-    val showAddSheet: Boolean = false
-)
-
 class CredentialsViewModel(
     private val credentialRepository: CredentialRepository,
     private val supabaseClientManager: SupabaseClientManager,

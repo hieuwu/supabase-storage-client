@@ -25,27 +25,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-data class MainUiState(
-    val isNewFolderDialogVisible: Boolean = false,
-    val newFolderName: String = "",
-    val isCreateBucketDialogVisible: Boolean = false,
-    val newBucketId: String = "",
-    val isNewBucketPublic: Boolean = true,
-    val isNewBucketSizeLimitEnabled: Boolean = false,
-    val newBucketFileSizeLimit: String = "",
-    val newBucketFileSizeUnit: SizeUnit = SizeUnit.MEGABYTES,
-    val error: String? = null,
-    val successMessage: String? = null,
-    val isUploading: Boolean = false,
-    val isCredentialsSheetVisible: Boolean = false,
-    val credentials: List<Credential> = emptyList(),
-    val lastUsedId: String? = null,
-    val showCredentialSwitchConfirmation: Boolean = false,
-    val selectedCredentialForSwitch: Credential? = null,
-    val isSettingUpCredential: Boolean = false,
-    val viewMode: ViewMode = ViewMode.LIST
-)
-
 class MainViewModel(
     private val contextSelectionManager: ContextSelectionManager,
     private val createFolderUseCase: CreateFolderUseCase,
