@@ -1,6 +1,6 @@
 package com.hieuwu.supabasestorageclient.data.repository
 
-import com.hieuwu.supabasestorageclient.SupabaseClientManager
+import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem

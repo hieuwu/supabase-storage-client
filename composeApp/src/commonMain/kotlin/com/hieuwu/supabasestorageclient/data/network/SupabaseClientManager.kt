@@ -1,11 +1,11 @@
-package com.hieuwu.supabasestorageclient
+package com.hieuwu.supabasestorageclient.data.network
 
 import com.hieuwu.supabasestorageclient.domain.model.Credential
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
-import io.github.jan.supabase.auth.Auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

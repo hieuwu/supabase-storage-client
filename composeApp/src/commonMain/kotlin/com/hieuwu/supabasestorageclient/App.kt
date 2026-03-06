@@ -19,6 +19,7 @@ import com.revenuecat.purchases.kmp.ui.revenuecatui.Paywall
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 
 @Composable

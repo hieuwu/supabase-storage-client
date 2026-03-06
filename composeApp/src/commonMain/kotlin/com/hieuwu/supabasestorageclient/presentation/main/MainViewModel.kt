@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
-import com.hieuwu.supabasestorageclient.SupabaseClientManager
+import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.domain.usecase.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.CreateFolderUseCase

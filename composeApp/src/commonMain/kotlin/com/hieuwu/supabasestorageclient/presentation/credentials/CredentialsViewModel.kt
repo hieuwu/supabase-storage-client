@@ -2,7 +2,7 @@ package com.hieuwu.supabasestorageclient.presentation.credentials
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hieuwu.supabasestorageclient.SupabaseClientManager
+import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import kotlinx.coroutines.flow.*
