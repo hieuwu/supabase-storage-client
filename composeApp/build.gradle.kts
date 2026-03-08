@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.sqldelight)
+//    alias(libs.plugins.kotlin.cocoapods)
 }
 
 kotlin {
@@ -18,30 +19,33 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
-            isStatic = false
+            isStatic = true
+            linkerOpts("-lsqlite3")
         }
+
     }
-    
+
+
     jvm()
-    
+
 //    js {
 //        browser()
 //        binaries.executable()
 //    }
-    
+
 //    @OptIn(ExperimentalWasmDsl::class)
 //    wasmJs {
 //        browser()
 //        binaries.executable()
 //    }
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -103,12 +107,28 @@ kotlin {
             implementation(libs.sqldelight.native)
         }
     }
+
+//    cocoapods {
+//        noPodspec()
+//        summary = "Some description for the Shared Module"
+//        homepage = "Link to the Shared Module homepage"
+//        version = "1.0"
+//        ios.deploymentTarget = "18.2"
+//        pod("PurchasesHybridCommon") {
+//            version = "17.42.0"
+//            extraOpts += listOf("-compiler-option", "-fmodules")
+//        }
+//        pod("PurchasesHybridCommonUI") {
+//            version = "17.42.0"
+//            extraOpts += listOf("-compiler-option", "-fmodules")
+//        }
+//    }
 }
 
 android {
     namespace = "com.hieuwu.supabasestorageclient"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    
+
     signingConfigs {
         create("release") {
             storeFile = System.getenv("ANDROID_KEYSTORE_FILE")?.let { file(it) }

@@ -10,11 +10,15 @@
 		650B41822F5479A000DC08ED /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 650B41812F5479A000DC08ED /* Launch Screen.storyboard */; };
 		65B08C2A2F587A9B00D749F8 /* PurchasesHybridCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */; };
 		65B08C2C2F587A9B00D749F8 /* PurchasesHybridCommonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */; };
+		D3B01A1B28368F1F00123456 /* ComposeApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D3B01A1A28368F1F00123456 /* ComposeApp.framework */; };
+		D3B01A1D28368F1F00123456 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D3B01A1C28368F1F00123456 /* libsqlite3.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		38C9C68559EA6AA6C3C8327A /* Supabuckt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Supabuckt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		650B41812F5479A000DC08ED /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		D3B01A1A28368F1F00123456 /* ComposeApp.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = ComposeApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D3B01A1C28368F1F00123456 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -48,6 +52,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D3B01A1D28368F1F00123456 /* libsqlite3.tbd in Frameworks */,
+				D3B01A1B28368F1F00123456 /* ComposeApp.framework in Frameworks */,
 				65B08C2C2F587A9B00D749F8 /* PurchasesHybridCommonUI in Frameworks */,
 				65B08C2A2F587A9B00D749F8 /* PurchasesHybridCommon in Frameworks */,
 			);
@@ -60,6 +66,8 @@
 			isa = PBXGroup;
 			children = (
 				650B41812F5479A000DC08ED /* Launch Screen.storyboard */,
+				D3B01A1A28368F1F00123456 /* ComposeApp.framework */,
+				D3B01A1C28368F1F00123456 /* libsqlite3.tbd */,
 				6D625E0197A891EE15A290C2 /* Configuration */,
 				98635AA6072FE9E990CF8412 /* iosApp */,
 				BE32DC1DE790D1C29F0C0FD5 /* Products */,
@@ -400,8 +408,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RevenueCat/purchases-hybrid-common";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 17.42.0;
+				kind = exactVersion;
+				version = 17.42.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

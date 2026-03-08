@@ -105,7 +105,10 @@ fun App() {
         }
 
         if (showGlobalPaywall) {
-            Paywall(options = options)
+            com.hieuwu.supabasestorageclient.presentation.paywall.PaywallScreen(
+                offering = currentOffering,
+                onDismiss = { showGlobalPaywall = false }
+            )
         }
     }
 }
