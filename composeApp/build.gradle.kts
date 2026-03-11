@@ -1,3 +1,4 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -10,6 +11,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.buildkonfig)
 //    alias(libs.plugins.kotlin.cocoapods)
 }
 
@@ -187,6 +189,27 @@ sqldelight {
     databases {
         create("AppDatabase") {
             packageName.set("com.hieuwu.supabasestorageclient.database")
+        }
+    }
+}
+
+val revenueCatApiKeyAndroid: String = project.findProperty("revenuecat.api.key.android")?.toString() ?: ""
+val revenueCatApiKeyIos: String = project.findProperty("revenuecat.api.key.ios")?.toString() ?: ""
+
+buildkonfig {
+    packageName = "com.hieuwu.supabasestorageclient"
+    objectName = "BuildKonfig"
+
+    defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "REVENUECAT_API_KEY", "")
+    }
+
+    targetConfigs {
+        create("android") {
+            buildConfigField(FieldSpec.Type.STRING, "REVENUECAT_API_KEY", revenueCatApiKeyAndroid)
+        }
+        create("ios") {
+            buildConfigField(FieldSpec.Type.STRING, "REVENUECAT_API_KEY", revenueCatApiKeyIos)
         }
     }
 }

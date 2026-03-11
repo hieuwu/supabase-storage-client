@@ -30,6 +30,8 @@ kermit = "2.0.4"
 sqldelight = "2.2.1"
 core-splashscreen = "1.0.1"
 revenuecat = "2.7.0+17.41.0"
+buildkonfig = "0.15.1"
+
 
 
 
@@ -104,3 +106,5 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 kotlin-cocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
+buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+

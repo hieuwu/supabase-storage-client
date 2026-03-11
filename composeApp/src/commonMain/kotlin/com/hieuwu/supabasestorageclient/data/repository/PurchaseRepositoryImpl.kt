@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.data.repository
 
+import com.hieuwu.supabasestorageclient.BuildKonfig
+
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import com.revenuecat.purchases.kmp.Purchases
@@ -37,11 +39,8 @@ class PurchaseRepositoryImpl : PurchaseRepository {
     }
 
     override fun initialize() {
-        // Placeholder API keys - user needs to replace these
-        val apiKey = "" // Set your API key here or via platform specific config
+        val apiKey = BuildKonfig.REVENUECAT_API_KEY
         
-        // Note: For KMP, you might want to pass these from platform modules
-        // but for now we initialize with a placeholder if not empty
         if (apiKey.isNotEmpty()) {
             Purchases.configure(PurchasesConfiguration(apiKey))
             scope.launch {
