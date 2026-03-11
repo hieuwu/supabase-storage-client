@@ -23,6 +23,7 @@ import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 import com.revenuecat.purchases.kmp.models.Offering
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import com.hieuwu.supabasestorageclient.presentation.paywall.PaywallScreen
 
 @Composable
 fun App() {
@@ -46,13 +47,17 @@ fun App() {
                 purchaseRepository.fetchOffering().collect { response ->
                     when (response) {
                         is ApiResponse.Success -> {
+                            println("RevenueCat: Successfully fetched offering: ${response.data.identifier}")
                             currentOffering = response.data
                             showGlobalPaywall = true
                         }
                         is ApiResponse.Error -> {
+                            println("RevenueCat: Failed to fetch offering: ${response.exception?.message}")
                             showGlobalPaywall = true
                         }
-                        is ApiResponse.Loading -> {}
+                        is ApiResponse.Loading -> {
+                            println("RevenueCat: Fetching offering...")
+                        }
                     }
                 }
             }
@@ -97,15 +102,9 @@ fun App() {
             }
         )
 
-        val options = remember(showGlobalPaywall, currentOffering) {
-            PaywallOptions(dismissRequest = { showGlobalPaywall = false }) {
-                offering = currentOffering
-                shouldDisplayDismissButton = true
-            }
-        }
 
         if (showGlobalPaywall) {
-            com.hieuwu.supabasestorageclient.presentation.paywall.PaywallScreen(
+            PaywallScreen(
                 offering = currentOffering,
                 onDismiss = { showGlobalPaywall = false }
             )
