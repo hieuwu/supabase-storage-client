@@ -13,7 +13,6 @@ data class CredentialsUiState(
     val credentialToDelete: Credential? = null,
     val showEditSheet: Boolean = false,
     val credentialToEdit: Credential? = null,
-    val showPaywall: Boolean = false,
     val isPro: Boolean = false,
     val showAddSheet: Boolean = false
 )

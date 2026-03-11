@@ -4,6 +4,7 @@ import com.hieuwu.supabasestorageclient.BuildKonfig
 
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
 import com.revenuecat.purchases.kmp.PurchasesException
@@ -42,6 +43,7 @@ class PurchaseRepositoryImpl : PurchaseRepository {
         val apiKey = BuildKonfig.REVENUECAT_API_KEY
         
         if (apiKey.isNotEmpty()) {
+            Purchases.logLevel = LogLevel.DEBUG
             Purchases.configure(PurchasesConfiguration(apiKey))
             scope.launch {
                 checkEntitlements()

@@ -1,4 +1,5 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec
+import java.util.Properties
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -193,8 +194,14 @@ sqldelight {
     }
 }
 
-val revenueCatApiKeyAndroid: String = project.findProperty("revenuecat.api.key.android")?.toString() ?: ""
-val revenueCatApiKeyIos: String = project.findProperty("revenuecat.api.key.ios")?.toString() ?: ""
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+val revenueCatApiKeyAndroid: String = localProperties.getProperty("revenuecat.api.key.android") ?: ""
+val revenueCatApiKeyIos: String = localProperties.getProperty("revenuecat.api.key.ios") ?: ""
 
 buildkonfig {
     packageName = "com.hieuwu.supabasestorageclient"

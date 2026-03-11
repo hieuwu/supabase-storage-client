@@ -101,7 +101,7 @@ class CredentialsViewModel(
                 val isPro = purchaseRepository.isPro.value
                 val currentCount = _uiState.value.credentials.size
                 if (!isPro && currentCount >= 2) {
-                    _uiState.update { it.copy(showPaywall = true) }
+                    purchaseRepository.triggerPaywall()
                     return@launch
                 }
 
@@ -118,10 +118,6 @@ class CredentialsViewModel(
                 _uiState.update { it.copy(error = "Failed to add credential: ${e.message}") }
             }
         }
-    }
-
-    fun dismissPaywall() {
-        _uiState.update { it.copy(showPaywall = false) }
     }
 
     fun onAddClick() {
