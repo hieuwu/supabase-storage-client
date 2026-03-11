@@ -40,14 +40,9 @@ class PurchaseRepositoryImpl : PurchaseRepository {
     }
 
     override fun initialize() {
-        val apiKey = BuildKonfig.REVENUECAT_API_KEY
-        
-        if (apiKey.isNotEmpty()) {
-            Purchases.logLevel = LogLevel.DEBUG
-            Purchases.configure(PurchasesConfiguration(apiKey))
-            scope.launch {
-                checkEntitlements()
-            }
+        // Configuration is now handled in SupabaseApplication.kt and iOSApp.swift
+        scope.launch {
+            checkEntitlements()
         }
     }
 
