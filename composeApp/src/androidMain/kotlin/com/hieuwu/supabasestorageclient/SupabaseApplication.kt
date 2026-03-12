@@ -5,6 +5,8 @@ import com.hieuwu.supabasestorageclient.di.initKoin
 import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.manualFileKitCoreInitialization
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 
@@ -15,6 +17,7 @@ class SupabaseApplication : Application() {
             androidContext(this@SupabaseApplication)
             androidLogger()
         }
+        FileKit.manualFileKitCoreInitialization(this)
 
         // Initialize RevenueCat
         Purchases.logLevel = LogLevel.DEBUG
