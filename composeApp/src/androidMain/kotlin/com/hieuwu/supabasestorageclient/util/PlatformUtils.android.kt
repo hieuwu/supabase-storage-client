@@ -66,6 +66,21 @@ class AndroidFileOpener : FileOpener {
         get() = KoinPlatformTools.defaultContext().get().get<Context>()
 
     override fun openFile(path: String) {
+        if (path.startsWith("content://")) {
+            val uri = Uri.parse(path)
+            val intent = Intent(Intent.ACTION_VIEW)
+            val mimeType = context.contentResolver.getType(uri) ?: "*/*"
+            intent.setDataAndType(uri, mimeType)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return
+        }
+
         val file = File(path)
         if (file.exists()) {
             val intent = Intent(Intent.ACTION_VIEW)
@@ -83,6 +98,19 @@ class AndroidFileOpener : FileOpener {
     }
 
     override fun openDirectory(path: String) {
+        if (path.startsWith("content://")) {
+            // For content URIs, it's hard to open the specific directory tree without DocumentsContract.
+            // A good fallback is to just open the system Downloads folder.
+            try {
+                val intent = Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return
+        }
+
         val file = File(path)
         val directory = if (file.isDirectory) file else file.parentFile
         if (directory != null && directory.exists()) {
@@ -98,7 +126,21 @@ class AndroidFileOpener : FileOpener {
             try {
                 context.startActivity(intent)
             } catch (e: Exception) {
-                // Fallback: Just open the generic files app or downloads
+                try {
+                    val fallbackIntent = Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)
+                    fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(fallbackIntent)
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                }
+            }
+        } else {
+            try {
+                val fallbackIntent = Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)
+                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(fallbackIntent)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
             }
         }
     }

@@ -2,9 +2,7 @@ package com.hieuwu.supabasestorageclient.util
 
 import platform.Foundation.*
 import platform.UIKit.*
-import platform.UniformTypeIdentifiers.*
 import kotlinx.cinterop.*
-import platform.posix.*
 
 class IosFileWriter : FileWriter {
     @OptIn(ExperimentalForeignApi::class)
@@ -40,13 +38,34 @@ actual fun getDirectoryPicker(): DirectoryPicker = IosDirectoryPicker()
 
 class IosFileOpener : FileOpener {
     override fun openFile(path: String) {
-        // On iOS, opening files in a file explorer requires UIDocumentInteractionController
-        // This is a placeholder; a full implementation would require a UIViewController reference
+        val url = NSURL.fileURLWithPath(path)
+        UIApplication.sharedApplication.openURL(url, emptyMap<Any?, Any?>(), null)
     }
 
+    @OptIn(ExperimentalForeignApi::class)
     override fun openDirectory(path: String) {
-        // iOS doesn't have a direct "open directory" intent like desktop, 
-        // but you can point to the Files app if integrated.
+        val isDir = memScoped {
+            val isDirectory = alloc<BooleanVar>()
+            NSFileManager.defaultManager.fileExistsAtPath(path, isDirectory.ptr)
+            isDirectory.value
+        }
+        
+        val dirPath = if (isDir) path else (path.substringBeforeLast("/") + "/")
+        val url = NSURL.fileURLWithPath(dirPath, isDirectory = true)
+        
+        // Use shareddocuments:// schema to try and open the Files app specifically
+        // If that fails, fallback to file:// which might just open the file directly 
+        // depending on iOS versions
+        val stringUrl = url.absoluteString ?: ""
+        if (stringUrl.startsWith("file://")) {
+            val sharedDocsUrl = NSURL.URLWithString(stringUrl.replaceFirst("file://", "shareddocuments://"))
+            if (sharedDocsUrl != null && UIApplication.sharedApplication.canOpenURL(sharedDocsUrl)) {
+                UIApplication.sharedApplication.openURL(sharedDocsUrl, emptyMap<Any?, Any?>(), null)
+                return
+            }
+        }
+        
+        UIApplication.sharedApplication.openURL(url, emptyMap<Any?, Any?>(), null)
     }
 }
 
