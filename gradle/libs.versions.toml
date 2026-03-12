@@ -31,8 +31,7 @@ sqldelight = "2.2.1"
 core-splashscreen = "1.0.1"
 revenuecat = "2.7.0+17.41.0"
 buildkonfig = "0.15.1"
-
-
+filekit = "0.13.0"
 
 
 [libraries]
@@ -95,6 +94,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = { strictly = "0.6.1" } }
 revenuecat-purchases = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "revenuecat" }
 revenuecat-purchases-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "revenuecat" }
+filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
+filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

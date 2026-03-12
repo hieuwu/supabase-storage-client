@@ -96,6 +96,10 @@ kotlin {
 
             implementation(libs.revenuecat.purchases)
             implementation(libs.revenuecat.purchases.ui)
+            
+            // FileKit
+            implementation(libs.filekit.core)
+            implementation(libs.filekit.dialogs.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
