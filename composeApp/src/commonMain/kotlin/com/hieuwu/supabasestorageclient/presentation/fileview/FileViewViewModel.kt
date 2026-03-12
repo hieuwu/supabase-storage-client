@@ -9,6 +9,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
 import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import co.touchlab.kermit.Logger
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,21 +66,27 @@ class FileViewViewModel(
     }
 
     fun downloadFile() {
+        val item = _uiState.value.metadata
+        if (item != null) {
+            _uiState.update { it.copy(itemToDownload = item) }
+        }
+    }
+
+    fun startDownload(platformFile: PlatformFile) {
         viewModelScope.launch {
-            val destDir = directoryPicker.pickDirectory()
-            if (destDir == null) {
-                // User cancelled the picker
-                return@launch
-            }
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
             downloadManager.download(
                 bucketId = bucketId,
                 path = fullPath,
                 fileName = fileName,
-                destinationPath = destDir
+                platformFile = platformFile
             )
             _uiState.update { it.copy(successMessage = "Download started") }
         }
+    }
+
+    fun clearItemToDownload() {
+        _uiState.update { it.copy(itemToDownload = null) }
     }
 
     fun deleteFile() {

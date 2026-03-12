@@ -102,7 +102,7 @@ fun DownloadItemRow(
                 Icon(
                     imageVector = getFileIcon(item.fileName),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(40.dp).clickable { onOpenDirectory() },
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(16.dp))

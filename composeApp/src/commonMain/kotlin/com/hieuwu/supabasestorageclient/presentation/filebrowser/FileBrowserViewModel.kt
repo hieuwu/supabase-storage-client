@@ -16,6 +16,7 @@ import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -161,15 +162,24 @@ class FileBrowserViewModel(
     }
 
     fun downloadItem(name: String) {
+        val item = _uiState.value.items.find { it.name == name }
+        if (item != null) {
+            _uiState.update { it.copy(itemToDownload = item) }
+        }
+    }
+
+    fun clearItemToDownload() {
+        _uiState.update { it.copy(itemToDownload = null) }
+    }
+
+    fun startDownload(name: String, platformFile: PlatformFile) {
         viewModelScope.launch {
-            val destDir = directoryPicker.pickDirectory()
-            if (destDir == null) return@launch
             val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
             downloadManager.download(
                 bucketId = bucketId,
                 path = fullPath,
                 fileName = name,
-                destinationPath = destDir
+                platformFile = platformFile
             )
             _uiState.update { it.copy(successMessage = "Download started") }
         }

@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatSize
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -83,6 +85,29 @@ fun FileViewScreen(
         uiState.successMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
+        }
+    }
+
+    val launcher = rememberFileSaverLauncher(FileKitDialogSettings.createDefault()) { platformFile ->
+        if (platformFile != null) {
+            viewModel.startDownload(platformFile)
+        }
+        viewModel.clearItemToDownload()
+    }
+
+    LaunchedEffect(uiState.itemToDownload) {
+        uiState.itemToDownload?.let { item ->
+            val extension = item.name.substringAfterLast(".", "")
+            val nameWithoutExtension = if (extension.isNotEmpty()) {
+                item.name.substringBeforeLast(".")
+            } else {
+                item.name
+            }
+            
+            launcher.launch(
+                suggestedName = nameWithoutExtension,
+                extension = extension
+            )
         }
     }
 

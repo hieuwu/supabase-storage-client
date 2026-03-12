@@ -66,10 +66,14 @@ class DownloadsViewModel(
     }
 
     private fun getFullPath(item: DownloadItem): String {
-        return if (item.destinationPath.endsWith("/")) {
-            item.destinationPath + item.fileName
+        val dest = item.destinationPath
+        if (dest.endsWith(item.fileName)) {
+            return dest
+        }
+        return if (dest.endsWith("/")) {
+            dest + item.fileName
         } else {
-            "${item.destinationPath}/${item.fileName}"
+            "$dest/${item.fileName}"
         }
     }
 }

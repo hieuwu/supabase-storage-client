@@ -70,14 +70,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatSize
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -108,6 +112,31 @@ fun BucketScreen(
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
             viewModel.clearMessages()
+        }
+    }
+
+    val launcher = rememberFileSaverLauncher(FileKitDialogSettings.createDefault()) { platformFile ->
+        if (platformFile != null) {
+            uiState.itemToDownload?.let { item ->
+                 viewModel.startDownload(item.name, platformFile)
+            }
+        }
+        viewModel.clearItemToDownload()
+    }
+
+    LaunchedEffect(uiState.itemToDownload) {
+        uiState.itemToDownload?.let { item ->
+            val extension = item.name.substringAfterLast(".", "")
+            val nameWithoutExtension = if (extension.isNotEmpty()) {
+                item.name.substringBeforeLast(".")
+            } else {
+                item.name
+            }
+            
+            launcher.launch(
+                extension = extension,
+                suggestedName = nameWithoutExtension,
+            )
         }
     }
 
@@ -605,7 +634,7 @@ fun StorageItemGrid(
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.sharedElement(
                         rememberSharedContentState(key = "text-${item.name}"),
                         animatedVisibilityScope = animatedVisibilityScope
@@ -640,7 +669,7 @@ fun RenameDialog(
         mutableStateOf(
             TextFieldValue(
                 text = initialText,
-                selection = androidx.compose.ui.text.TextRange(0, selectionEnd)
+                selection = TextRange(0, selectionEnd)
             )
         )
     }
