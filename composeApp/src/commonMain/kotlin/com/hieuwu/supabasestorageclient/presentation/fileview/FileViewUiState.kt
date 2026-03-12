@@ -11,5 +11,6 @@ data class FileViewUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isDeleted: Boolean = false,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val itemToDownload: StorageItem? = null
 )

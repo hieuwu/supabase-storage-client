@@ -8,5 +8,6 @@ data class BucketUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
-    val viewMode: ViewMode = ViewMode.LIST
+    val viewMode: ViewMode = ViewMode.LIST,
+    val itemToDownload: StorageItem? = null
 )
