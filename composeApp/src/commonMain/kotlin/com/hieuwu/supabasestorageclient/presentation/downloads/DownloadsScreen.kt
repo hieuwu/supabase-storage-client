@@ -31,6 +31,7 @@ fun DownloadsScreen(
 ) {
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val itemToDelete by viewModel.showDeleteConfirmationDialog
+    val itemToCancel by viewModel.showCancelConfirmationDialog
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (downloads.isEmpty()) {
@@ -48,9 +49,7 @@ fun DownloadsScreen(
                 items(downloads, key = { it.id }) { item ->
                     DownloadItemRow(
                         item = item,
-                        onPause = { viewModel.pauseDownload(item.id) },
-                        onResume = { viewModel.resumeDownload(item.id) },
-                        onCancel = { viewModel.cancelDownload(item.id) },
+                        onCancel = { viewModel.confirmCancel(item) },
                         onDelete = { viewModel.confirmDelete(item) },
                         onOpenFile = { viewModel.openFile(item) },
                         onOpenDirectory = { viewModel.openDirectory(item) }
@@ -80,14 +79,34 @@ fun DownloadsScreen(
                 }
             )
         }
+
+        itemToCancel?.let { item ->
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissCancelConfirmation() },
+                title = { Text("Cancel Download") },
+                text = { Text("Are you sure you want to cancel downloading '${item.fileName}'?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.cancelConfirmed(item.id) }
+                    ) {
+                        Text("Yes, cancel it")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.dismissCancelConfirmation() }
+                    ) {
+                        Text("No")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun DownloadItemRow(
     item: DownloadItem,
-    onPause: () -> Unit,
-    onResume: () -> Unit,
     onCancel: () -> Unit,
     onDelete: () -> Unit,
     onOpenFile: () -> Unit,
@@ -163,12 +182,8 @@ fun DownloadItemRow(
                 
                 Row {
                     if (item.status == DownloadStatus.Downloading) {
-                        IconButton(onClick = onPause) {
-                            Icon(Icons.Default.Pause, contentDescription = "Pause")
-                        }
-                    } else if (item.status == DownloadStatus.Paused) {
-                        IconButton(onClick = onResume) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Resume")
+                        IconButton(onClick = onCancel) {
+                            Icon(Icons.Default.Close, contentDescription = "Cancel")
                         }
                     }
                     
@@ -186,7 +201,7 @@ fun DownloadItemRow(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            if (item.status == DownloadStatus.Downloading || item.status == DownloadStatus.Paused) {
+                            if (item.status == DownloadStatus.Downloading) {
                                 DropdownMenuItem(
                                     text = { Text("Cancel") },
                                     onClick = {
@@ -209,7 +224,7 @@ fun DownloadItemRow(
                 }
             }
             
-            if (item.status == DownloadStatus.Downloading || item.status == DownloadStatus.Paused) {
+            if (item.status == DownloadStatus.Downloading) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { item.progress },

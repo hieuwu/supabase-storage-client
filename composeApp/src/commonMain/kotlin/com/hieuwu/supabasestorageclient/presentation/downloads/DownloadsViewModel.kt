@@ -24,16 +24,20 @@ class DownloadsViewModel(
     private val _showDeleteConfirmationDialog = mutableStateOf<DownloadItem?>(null)
     val showDeleteConfirmationDialog: State<DownloadItem?> = _showDeleteConfirmationDialog
 
-    fun pauseDownload(id: String) {
-        downloadManager.pause(id)
+    private val _showCancelConfirmationDialog = mutableStateOf<DownloadItem?>(null)
+    val showCancelConfirmationDialog: State<DownloadItem?> = _showCancelConfirmationDialog
+
+    fun confirmCancel(item: DownloadItem) {
+        _showCancelConfirmationDialog.value = item
     }
 
-    fun resumeDownload(id: String) {
-        downloadManager.resume(id)
+    fun dismissCancelConfirmation() {
+        _showCancelConfirmationDialog.value = null
     }
 
-    fun cancelDownload(id: String) {
+    fun cancelConfirmed(id: String) {
         downloadManager.cancel(id)
+        dismissCancelConfirmation()
     }
 
     fun confirmDelete(item: DownloadItem) {
