@@ -1,11 +1,13 @@
 package com.hieuwu.supabasestorageclient.domain.model
 
+import kotlinx.datetime.Instant
+
 data class StarredItem(
-    val itemId: String,
-    val itemName: String,
+    val id: String,
+    val fileName: String,
     val bucketId: String,
     val path: String?,
     val isFolder: Boolean,
     val isBucket: Boolean,
-    val starredAt: Long
+    val starredAt: Instant
 )

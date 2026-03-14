@@ -25,9 +25,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
+import com.hieuwu.supabasestorageclient.util.formatDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,7 +97,11 @@ fun StarredScreen(
                     label = "StarredViewModeTransition"
                 ) { targetViewMode ->
                     if (targetViewMode == ViewMode.LIST) {
-                        LazyColumn(modifier = Modifier.weight(1f)) {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                             items(uiState.items) { item ->
                                 StarredItemRow(
                                     item = item,
@@ -110,14 +116,13 @@ fun StarredScreen(
                                             )
                                             else -> onNavigateToFile(
                                                 item.bucketId,
-                                                item.itemName,
+                                                item.fileName,
                                                 item.path?.substringBeforeLast("/", "")
                                             )
                                         }
                                     },
-                                    onUnstar = { viewModel.unstarItem(item.itemId) }
+                                    onUnstar = { viewModel.unstarItem(item.id) }
                                 )
-                                HorizontalDivider()
                             }
                         }
                     } else {
@@ -142,12 +147,12 @@ fun StarredScreen(
                                             )
                                             else -> onNavigateToFile(
                                                 item.bucketId,
-                                                item.itemName,
+                                                item.fileName,
                                                 item.path?.substringBeforeLast("/", "")
                                             )
                                         }
                                     },
-                                    onUnstar = { viewModel.unstarItem(item.itemId) }
+                                    onUnstar = { viewModel.unstarItem(item.id) }
                                 )
                             }
                         }
@@ -189,59 +194,101 @@ fun StarredItemRow(
     onClick: () -> Unit,
     onUnstar: () -> Unit
 ) {
-    ListItem(
-        headlineContent = {
-            with(sharedTransitionScope) {
-                Text(
-                    item.itemName,
-                    modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "text-${item.itemName}"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                )
-            }
-        },
-        supportingContent = {
-            val typeStr = when {
-                item.isBucket -> "Bucket"
-                item.isFolder -> "Folder"
-                else -> "File"
-            }
-            Text("$typeStr • ${item.bucketId}${if (item.path != null) "/${item.path}" else ""}")
-        },
-        leadingContent = {
-            val icon = when {
-                item.isBucket -> Icons.Default.Storage
-                item.isFolder -> Icons.Default.Folder
-                else -> Icons.Default.InsertDriveFile
-            }
-            with(sharedTransitionScope) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (item.isFolder || item.isBucket) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "icon-${item.itemName}"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                )
-            }
-        },
-        trailingContent = {
-            Row {
-                IconButton(onClick = onUnstar) {
-                    Icon(Icons.Default.Star, contentDescription = "Unstar", tint = MaterialTheme.colorScheme.primary)
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val icon = when {
+                    item.isBucket -> Icons.Default.Storage
+                    item.isFolder -> Icons.Default.Folder
+                    else -> getFileIcon(item.fileName)
                 }
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.align(Alignment.CenterVertically).padding(end = 8.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
+
+                with(sharedTransitionScope) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .sharedElement(
+                                rememberSharedContentState(key = "icon-${item.fileName}"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    with(sharedTransitionScope) {
+                        Text(
+                            text = item.fileName,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.sharedElement(
+                                rememberSharedContentState(key = "text-${item.fileName}"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        )
+                    }
+                    Text(
+                        text = androidx.compose.ui.text.buildAnnotatedString {
+                            withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("Bucket: ")
+                            }
+                            append(item.bucketId)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    if (item.path != null) {
+                        Text(
+                            text = androidx.compose.ui.text.buildAnnotatedString {
+                                withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("Path: ")
+                                }
+                                append(item.path)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                    Text(
+                        text = "Starred at ${formatDateTime(item.starredAt)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+
+                IconButton(onClick = onUnstar) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "Unstar",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-        },
-        modifier = Modifier.clickable { onClick() }
-    )
+        }
+    }
+}
+
+private fun getFileIcon(fileName: String): androidx.compose.ui.graphics.vector.ImageVector {
+    val extension = fileName.substringAfterLast('.', "").lowercase()
+    return when (extension) {
+        "pdf" -> Icons.Default.Description
+        "jpg", "jpeg", "png", "gif" -> Icons.Default.Image
+        "mp4", "mov", "avi" -> Icons.Default.Movie
+        "mp3", "wav" -> Icons.Default.MusicNote
+        else -> Icons.Default.InsertDriveFile
+    }
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -294,7 +341,7 @@ fun StarredItemGrid(
                         .size(48.dp)
                         .padding(vertical = 8.dp)
                         .sharedElement(
-                            rememberSharedContentState(key = "icon-${item.itemName}"),
+                            rememberSharedContentState(key = "icon-${item.fileName}"),
                             animatedVisibilityScope = animatedVisibilityScope
                         )
                 )
@@ -302,13 +349,13 @@ fun StarredItemGrid(
 
             with(sharedTransitionScope) {
                 Text(
-                    text = item.itemName,
+                    text = item.fileName,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.sharedElement(
-                        rememberSharedContentState(key = "text-${item.itemName}"),
+                        rememberSharedContentState(key = "text-${item.fileName}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 )

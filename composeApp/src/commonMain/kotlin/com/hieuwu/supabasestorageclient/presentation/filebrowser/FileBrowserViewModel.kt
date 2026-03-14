@@ -280,13 +280,13 @@ class FileBrowserViewModel(
             } else {
                 starredRepository.starItem(
                     StarredItem(
-                        itemId = itemId,
-                        itemName = item.name,
+                        id = itemId,
+                        fileName = item.name,
                         bucketId = bucketId,
                         path = fullPath,
                         isFolder = item.isFolder,
                         isBucket = false,
-                        starredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                        starredAt = kotlinx.datetime.Clock.System.now()
                     )
                 )
                 _uiState.update { it.copy(successMessage = "Starred successfully") }

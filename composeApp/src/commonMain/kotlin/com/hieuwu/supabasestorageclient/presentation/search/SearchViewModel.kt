@@ -30,7 +30,7 @@ class SearchViewModel(
         _uiState,
         starredRepository.getStarredItems()
     ) { state, starredItems ->
-        val starredIds = starredItems.map { it.itemId }.toSet()
+        val starredIds = starredItems.map { it.id }.toSet()
         state.copy(
             buckets = state.buckets.map { it.copy(isStarred = starredIds.contains(it.id)) },
             storageItems = state.storageItems.map { result ->
@@ -114,13 +114,13 @@ class SearchViewModel(
             } else {
                 starredRepository.starItem(
                     StarredItem(
-                        itemId = bucket.id,
-                        itemName = bucket.name,
+                        id = bucket.id,
+                        fileName = bucket.name,
                         bucketId = bucket.id,
                         path = null,
                         isFolder = false,
                         isBucket = true,
-                        starredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                        starredAt = kotlinx.datetime.Clock.System.now()
                     )
                 )
             }
@@ -135,13 +135,13 @@ class SearchViewModel(
             } else {
                 starredRepository.starItem(
                     StarredItem(
-                        itemId = itemId,
-                        itemName = item.name,
+                        id = itemId,
+                        fileName = item.name,
                         bucketId = bucketId,
                         path = item.name, // This might be wrong for nested files, but Search currently only searches root?
                         isFolder = item.isFolder,
                         isBucket = false,
-                        starredAt = Clock.System.now().toEpochMilliseconds()
+                        starredAt = Clock.System.now()
                     )
                 )
             }

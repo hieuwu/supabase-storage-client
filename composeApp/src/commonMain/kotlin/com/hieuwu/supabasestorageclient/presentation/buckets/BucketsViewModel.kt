@@ -48,7 +48,7 @@ class BucketsViewModel(
                 Pair(stars, settings.viewMode)
             }.collect { (stars, viewMode) ->
                 result.onSuccess { buckets ->
-                    val starredIds = stars.filter { it.isBucket }.map { it.itemId }.toSet()
+                    val starredIds = stars.filter { it.isBucket }.map { it.id }.toSet()
                     val updatedBuckets =
                         buckets.map { it.copy(isStarred = starredIds.contains(it.id)) }
                     _uiState.value =
@@ -158,13 +158,13 @@ class BucketsViewModel(
             } else {
                 starredRepository.starItem(
                     StarredItem(
-                        itemId = bucket.id,
-                        itemName = bucket.name,
+                        id = bucket.id,
+                        fileName = bucket.name,
                         bucketId = bucket.id,
                         path = null,
                         isFolder = false,
                         isBucket = true,
-                        starredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                        starredAt = kotlinx.datetime.Clock.System.now()
                     )
                 )
                 _uiState.value = _uiState.value.copy(successMessage = "Starred successfully")

@@ -33,9 +33,9 @@ class StarredViewModel(
         }
     }
 
-    fun unstarItem(itemId: String) {
+    fun unstarItem(id: String) {
         viewModelScope.launch {
-            starredRepository.unstarItem(itemId)
+            starredRepository.unstarItem(id)
             _uiState.update { it.copy(successMessage = "Unstarred successfully") }
         }
     }

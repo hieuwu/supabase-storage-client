@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.Instant
 
 class StarredRepositoryImpl(
     private val appDatabase: AppDatabase,
@@ -29,13 +30,13 @@ class StarredRepositoryImpl(
                 .map { entities ->
                     entities.map { entity ->
                         StarredItem(
-                            itemId = entity.item_id,
-                            itemName = entity.item_name,
+                            id = entity.item_id,
+                            fileName = entity.item_name,
                             bucketId = entity.bucket_id,
                             path = entity.path,
                             isFolder = entity.is_folder == 1L,
                             isBucket = entity.is_bucket == 1L,
-                            starredAt = entity.starred_at
+                            starredAt = Instant.fromEpochMilliseconds(entity.starred_at)
                         )
                     }
                 }
@@ -46,24 +47,24 @@ class StarredRepositoryImpl(
         val credentialId = credentialRepository.getLastUsedId() ?: return
         appDatabase.appDatabaseQueries.insertStarredItem(
             credential_id = credentialId,
-            item_id = item.itemId,
-            item_name = item.itemName,
+            item_id = item.id,
+            item_name = item.fileName,
             bucket_id = item.bucketId,
             path = item.path,
             is_folder = if (item.isFolder) 1L else 0L,
             is_bucket = if (item.isBucket) 1L else 0L,
-            starred_at = item.starredAt
+            starred_at = item.starredAt.toEpochMilliseconds()
         )
     }
 
-    override suspend fun unstarItem(itemId: String) {
+    override suspend fun unstarItem(id: String) {
         val credentialId = credentialRepository.getLastUsedId() ?: return
-        appDatabase.appDatabaseQueries.deleteStarredItem(credentialId, itemId)
+        appDatabase.appDatabaseQueries.deleteStarredItem(credentialId, id)
     }
 
-    override suspend fun isItemStarred(itemId: String): Boolean {
+    override suspend fun isItemStarred(id: String): Boolean {
         val credentialId = credentialRepository.getLastUsedId() ?: return false
-        return appDatabase.appDatabaseQueries.isItemStarred(credentialId, itemId).executeAsOne() > 0
+        return appDatabase.appDatabaseQueries.isItemStarred(credentialId, id).executeAsOne() > 0
     }
 
     override suspend fun clearAllStarredItems() {
