@@ -27,6 +27,17 @@ class DownloadsViewModel(
     private val _showCancelConfirmationDialog = mutableStateOf<DownloadItem?>(null)
     val showCancelConfirmationDialog: State<DownloadItem?> = _showCancelConfirmationDialog
 
+    private val _showFileInfoDialog = mutableStateOf<DownloadItem?>(null)
+    val showFileInfoDialog: State<DownloadItem?> = _showFileInfoDialog
+
+    fun showFileInfo(item: DownloadItem) {
+        _showFileInfoDialog.value = item
+    }
+
+    fun hideFileInfo() {
+        _showFileInfoDialog.value = null
+    }
+
     fun confirmCancel(item: DownloadItem) {
         _showCancelConfirmationDialog.value = item
     }

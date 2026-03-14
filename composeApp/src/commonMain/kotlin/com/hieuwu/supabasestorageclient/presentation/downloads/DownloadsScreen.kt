@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
+import com.hieuwu.supabasestorageclient.presentation.components.FileInfoDialog
 import com.hieuwu.supabasestorageclient.util.format
 import com.hieuwu.supabasestorageclient.util.formatDate
 import org.koin.compose.viewmodel.koinViewModel
@@ -32,6 +33,7 @@ fun DownloadsScreen(
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val itemToDelete by viewModel.showDeleteConfirmationDialog
     val itemToCancel by viewModel.showCancelConfirmationDialog
+    val itemToShowInfo by viewModel.showFileInfoDialog
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (downloads.isEmpty()) {
@@ -52,7 +54,8 @@ fun DownloadsScreen(
                         onCancel = { viewModel.confirmCancel(item) },
                         onDelete = { viewModel.confirmDelete(item) },
                         onOpenFile = { viewModel.openFile(item) },
-                        onOpenDirectory = { viewModel.openDirectory(item) }
+                        onOpenDirectory = { viewModel.openDirectory(item) },
+                        onShowInfo = { viewModel.showFileInfo(item) }
                     )
                 }
             }
@@ -101,6 +104,19 @@ fun DownloadsScreen(
                 }
             )
         }
+
+        itemToShowInfo?.let { item ->
+            FileInfoDialog(
+                fileName = item.fileName,
+                icon = getFileIcon(item.fileName),
+                status = formatStatus(item),
+                fromPath = item.from,
+                toPath = item.destinationPath,
+                size = formatSize(item.downloadedSize, item.totalSize),
+                date = item.downloadedTime?.let { formatDate(it) },
+                onDismissRequest = { viewModel.hideFileInfo() }
+            )
+        }
     }
 }
 
@@ -110,12 +126,13 @@ fun DownloadItemRow(
     onCancel: () -> Unit,
     onDelete: () -> Unit,
     onOpenFile: () -> Unit,
-    onOpenDirectory: () -> Unit
+    onOpenDirectory: () -> Unit,
+    onShowInfo: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onOpenFile() }
+        modifier = Modifier.fillMaxWidth().clickable { onShowInfo() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -188,6 +205,9 @@ fun DownloadItemRow(
                     }
                     
                     if (item.status == DownloadStatus.Completed) {
+                        IconButton(onClick = onOpenFile) {
+                            Icon(Icons.Default.FileOpen, contentDescription = "Open File")
+                        }
                         IconButton(onClick = onOpenDirectory) {
                             Icon(Icons.Default.Folder, contentDescription = "Open Directory")
                         }

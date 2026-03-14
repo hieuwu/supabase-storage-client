@@ -97,6 +97,15 @@ class UploadManager(
                     }
                 }
 
+                val currentItemAfter = _uploads.value.find { it.id == id }
+                if (currentItemAfter?.status == UploadStatus.Uploading) {
+                    currentItemAfter.copy(
+                        status = UploadStatus.Completed,
+                        uploadedTime = Clock.System.now(),
+                        uploadedSize = currentItemAfter.totalSize
+                    ).let { updateAndPersistItem(it) }
+                }
+
                 // Check if this is the first operation
                 scope.launch {
                     val settings = settingsRepository.getSettings().firstOrNull()

@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
+import com.hieuwu.supabasestorageclient.presentation.components.FileInfoDialog
 import com.hieuwu.supabasestorageclient.util.format
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatDateTime
@@ -32,6 +33,7 @@ fun UploadScreen(
     viewModel: UploadViewModel = koinViewModel()
 ) {
     val uploads by viewModel.uploads.collectAsStateWithLifecycle()
+    val itemToShowInfo by viewModel.showFileInfoDialog
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (uploads.isEmpty()) {
@@ -49,10 +51,24 @@ fun UploadScreen(
                 items(uploads, key = { it.id }) { item ->
                     UploadItemRow(
                         item = item,
-                        onCancel = { viewModel.cancelUpload(item.id) }
+                        onCancel = { viewModel.cancelUpload(item.id) },
+                        onShowInfo = { viewModel.showFileInfo(item) }
                     )
                 }
             }
+        }
+
+        itemToShowInfo?.let { item ->
+            FileInfoDialog(
+                fileName = item.fileName,
+                icon = getFileIcon(item.fileName),
+                status = formatStatus(item),
+                fromPath = item.from,
+                toPath = item.to,
+                size = formatSize(item.uploadedSize, item.totalSize),
+                date = item.uploadedTime?.let { formatDateTime(it) },
+                onDismissRequest = { viewModel.hideFileInfo() }
+            )
         }
     }
 }
@@ -60,10 +76,11 @@ fun UploadScreen(
 @Composable
 fun UploadItemRow(
     item: UploadItem,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onShowInfo: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable { onShowInfo() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
