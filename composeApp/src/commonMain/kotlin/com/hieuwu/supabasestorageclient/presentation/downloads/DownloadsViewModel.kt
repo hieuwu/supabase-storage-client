@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
-import com.hieuwu.supabasestorageclient.util.FileOpener
 import com.hieuwu.supabasestorageclient.util.FileWriter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +13,6 @@ import kotlinx.coroutines.flow.stateIn
 
 class DownloadsViewModel(
     private val downloadManager: DownloadManager,
-    private val fileOpener: FileOpener,
     private val fileWriter: FileWriter
 ) : ViewModel() {
 
@@ -62,33 +60,5 @@ class DownloadsViewModel(
     fun deleteDownload(id: String) {
         downloadManager.deleteDownload(id)
         dismissDeleteConfirmation()
-    }
-
-    fun openFile(item: DownloadItem) {
-        val fullPath = getFullPath(item)
-        if (fileWriter.exists(fullPath)) {
-            fileOpener.openFile(fullPath)
-        } else {
-            println("File does not exist: $fullPath")
-        }
-    }
-
-    fun openDirectory(item: DownloadItem) {
-        val fullPath = getFullPath(item)
-        // Note: openDirectory in our interface takes the path to the file/folder 
-        // and should handle finding the parent if needed, but we can be explicit.
-        fileOpener.openDirectory(fullPath)
-    }
-
-    private fun getFullPath(item: DownloadItem): String {
-        val dest = item.destinationPath
-        if (dest.endsWith(item.fileName)) {
-            return dest
-        }
-        return if (dest.endsWith("/")) {
-            dest + item.fileName
-        } else {
-            "$dest/${item.fileName}"
-        }
     }
 }

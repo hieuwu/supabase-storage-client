@@ -24,16 +24,6 @@ class JsDirectoryPicker : DirectoryPicker {
 
 actual fun getDirectoryPicker(): DirectoryPicker = JsDirectoryPicker()
 
-class JsFileOpener : FileOpener {
-    override fun openFile(path: String) {}
-    override fun openDirectory(path: String) {}
-}
-
-
-class JsPermissionManager : PermissionManager {
-    override suspend fun requestStoragePermission(): Boolean = true
-}
-
 actual fun getPermissionManager(): PermissionManager = JsPermissionManager()
 
 class JsFilePicker : FilePicker {

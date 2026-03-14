@@ -25,10 +25,6 @@ class WasmDirectoryPicker : DirectoryPicker {
 
 actual fun getDirectoryPicker(): DirectoryPicker = WasmDirectoryPicker()
 
-class WasmFileOpener : FileOpener {
-    override fun openFile(path: String) {}
-}
-
 actual fun getPermissionManager(): PermissionManager = WasmPermissionManager()
 
 class WasmFilePicker : FilePicker {
