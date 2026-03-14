@@ -11,6 +11,7 @@ data class UploadItem(
     val uploadedSize: Long = 0,
     val status: UploadStatus = UploadStatus.Uploading,
     val uploadedTime: Instant? = null,
+    val from: String,
     val to: String
 ) {
     val progress: Float

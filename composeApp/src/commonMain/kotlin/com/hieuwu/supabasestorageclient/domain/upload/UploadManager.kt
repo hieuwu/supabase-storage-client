@@ -60,6 +60,7 @@ class UploadManager(
             bucketId = bucketId,
             path = path,
             totalSize = data.size.toLong(),
+            from = fileName,
             to = "$bucketId/$path"
         )
 

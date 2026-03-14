@@ -128,13 +128,14 @@ CREATE TABLE upload_item_entity (
     uploaded_size INTEGER NOT NULL,
     status TEXT NOT NULL,
     uploaded_time TEXT,
+    from_path TEXT NOT NULL,
     to_path TEXT,
     PRIMARY KEY (id, credential_id)
 );
 
 insertUploadItem:
-INSERT OR REPLACE INTO upload_item_entity(id, credential_id, file_name, bucket_id, path, total_size, uploaded_size, status, uploaded_time, to_path)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO upload_item_entity(id, credential_id, file_name, bucket_id, path, total_size, uploaded_size, status, uploaded_time, from_path, to_path)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getUploadItems:
 SELECT * FROM upload_item_entity WHERE credential_id = ?;
