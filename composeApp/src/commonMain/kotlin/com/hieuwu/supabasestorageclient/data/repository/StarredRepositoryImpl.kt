@@ -9,6 +9,7 @@ import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 class StarredRepositoryImpl(
@@ -16,26 +17,29 @@ class StarredRepositoryImpl(
     private val credentialRepository: CredentialRepository
 ) : StarredRepository {
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun getStarredItems(): Flow<List<StarredItem>> {
-        val credentialId = credentialRepository.getLastUsedId() ?: return emptyFlow()
-
-        return appDatabase.appDatabaseQueries
-            .getStarredItems(credentialId)
-            .asFlow()
-            .mapToList(Dispatchers.Default)
-            .map { entities ->
-                entities.map { entity ->
-                    StarredItem(
-                        itemId = entity.item_id,
-                        itemName = entity.item_name,
-                        bucketId = entity.bucket_id,
-                        path = entity.path,
-                        isFolder = entity.is_folder == 1L,
-                        isBucket = entity.is_bucket == 1L,
-                        starredAt = entity.starred_at
-                    )
+        return credentialRepository.lastUsedId.flatMapLatest { credentialId ->
+            if (credentialId == null) return@flatMapLatest emptyFlow()
+            
+            appDatabase.appDatabaseQueries
+                .getStarredItems(credentialId)
+                .asFlow()
+                .mapToList(Dispatchers.Default)
+                .map { entities ->
+                    entities.map { entity ->
+                        StarredItem(
+                            itemId = entity.item_id,
+                            itemName = entity.item_name,
+                            bucketId = entity.bucket_id,
+                            path = entity.path,
+                            isFolder = entity.is_folder == 1L,
+                            isBucket = entity.is_bucket == 1L,
+                            starredAt = entity.starred_at
+                        )
+                    }
                 }
-            }
+        }
     }
 
     override suspend fun starItem(item: StarredItem) {

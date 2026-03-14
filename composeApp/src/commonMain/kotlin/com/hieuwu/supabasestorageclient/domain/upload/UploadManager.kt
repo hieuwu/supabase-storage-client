@@ -35,8 +35,7 @@ class UploadManager(
 
     init {
         scope.launch {
-            credentialRepository.getCredentials().collectLatest {
-                val lastUsedId = credentialRepository.getLastUsedId()
+            credentialRepository.lastUsedId.collectLatest { lastUsedId ->
                 if (lastUsedId != null) {
                     uploadRepository.getUploadItems(lastUsedId).collect { items ->
                         _uploads.value = items
@@ -49,6 +48,7 @@ class UploadManager(
     }
 
     fun upload(bucketId: String, path: String, fileName: String, data: ByteArray) {
+        val lastUsedId = credentialRepository.getLastUsedId() ?: return
         val id = "$bucketId:$path"
         if (_uploads.value.any { it.id == id && it.status == UploadStatus.Uploading }) return
 
@@ -62,7 +62,7 @@ class UploadManager(
             to = "$bucketId/$path"
         )
 
-        updateAndPersistItem(item)
+        updateAndPersistItem(lastUsedId, item)
 
         val job = scope.launch {
             try {
@@ -75,7 +75,7 @@ class UploadManager(
                                 uploadedSize = status.totalBytesSend,
                                 totalSize = status.contentLength,
                                 status = UploadStatus.Uploading
-                            )?.let { updateAndPersistItem(it) }
+                            )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
                         is SupabaseUploadStatus.Success -> {
                             val currentItem = _uploads.value.find { it.id == id }
@@ -83,7 +83,7 @@ class UploadManager(
                                 status = UploadStatus.Completed,
                                 uploadedTime = Clock.System.now(),
                                 uploadedSize = currentItem.totalSize
-                            )?.let { updateAndPersistItem(it) }
+                            )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
 
                         else -> {}
@@ -96,7 +96,7 @@ class UploadManager(
                         status = UploadStatus.Completed,
                         uploadedTime = Clock.System.now(),
                         uploadedSize = currentItemAfter.totalSize
-                    ).let { updateAndPersistItem(it) }
+                    ).let { updateAndPersistItem(lastUsedId, it) }
                 }
 
                 // Check if this is the first operation
@@ -109,23 +109,23 @@ class UploadManager(
                 }
             } catch (e: Exception) {
                 val currentItem = _uploads.value.find { it.id == id }
-                currentItem?.copy(status = UploadStatus.Error)?.let { updateAndPersistItem(it) }
+                currentItem?.copy(status = UploadStatus.Error)?.let { updateAndPersistItem(lastUsedId, it) }
             }
         }
         uploadJobs[id] = job
     }
 
-    private fun updateAndPersistItem(item: UploadItem) {
-        _uploads.update { list ->
-            val existing = list.indexOfFirst { it.id == item.id }
-            if (existing >= 0) list.toMutableList().also { it[existing] = item }
-            else list + item
+    private fun updateAndPersistItem(credentialId: String, item: UploadItem) {
+        val currentLastUsedId = credentialRepository.getLastUsedId()
+        if (credentialId == currentLastUsedId) {
+            _uploads.update { list ->
+                val existing = list.indexOfFirst { it.id == item.id }
+                if (existing >= 0) list.toMutableList().also { it[existing] = item }
+                else list + item
+            }
         }
         scope.launch {
-            val lastUsedId = credentialRepository.getLastUsedId()
-            if (lastUsedId != null) {
-                uploadRepository.insertUploadItem(lastUsedId, item)
-            }
+            uploadRepository.insertUploadItem(credentialId, item)
         }
     }
 

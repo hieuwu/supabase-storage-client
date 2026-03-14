@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -17,6 +18,8 @@ class CredentialRepositoryImpl(
 ) : CredentialRepository {
 
     private val _credentials = MutableStateFlow<List<Credential>>(emptyList())
+    private val _lastUsedId = MutableStateFlow<String?>(null)
+    override val lastUsedId: StateFlow<String?> = _lastUsedId.asStateFlow()
     
     companion object {
         private const val KEY_CREDENTIALS = "supabase_credentials"
@@ -29,6 +32,7 @@ class CredentialRepositoryImpl(
 
     private fun loadCredentials() {
         val json = settings.getString(KEY_CREDENTIALS, "[]")
+        _lastUsedId.value = settings.getStringOrNull(KEY_LAST_USED_ID)
         try {
             val list = Json.decodeFromString<List<Credential>>(json)
             _credentials.value = list
@@ -72,5 +76,6 @@ class CredentialRepositoryImpl(
 
     override fun setLastUsedId(id: String) {
         settings[KEY_LAST_USED_ID] = id
+        _lastUsedId.value = id
     }
 }

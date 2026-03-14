@@ -45,20 +45,18 @@ class DownloadManager(
     // Accumulate byte data across chunks
     private val byteBuffers = mutableMapOf<String, MutableList<ByteArray>>()
     private val buffersMutex = Mutex()
-    private val dbWriteChannel = Channel<DownloadItem>(Channel.UNLIMITED)
+    private val dbWriteChannel = Channel<DownloadWriteTask>(Channel.UNLIMITED)
+
+    private data class DownloadWriteTask(val credentialId: String, val item: DownloadItem)
 
     init {
         scope.launch {
-            dbWriteChannel.consumeEach { item ->
-                val lastUsedId = credentialRepository.getLastUsedId()
-                if (lastUsedId != null) {
-                    downloadRepository.insertDownloadItem(lastUsedId, item)
-                }
+            dbWriteChannel.consumeEach { task ->
+                downloadRepository.insertDownloadItem(task.credentialId, task.item)
             }
         }
         scope.launch {
-            credentialRepository.getCredentials().collectLatest {
-                val lastUsedId = credentialRepository.getLastUsedId()
+            credentialRepository.lastUsedId.collectLatest { lastUsedId ->
                 if (lastUsedId != null) {
                     downloadRepository.getDownloadItems(lastUsedId).collect { items ->
                         _downloads.value = items
@@ -71,6 +69,7 @@ class DownloadManager(
     }
 
     fun download(bucketId: String, path: String, fileName: String, platformFile: PlatformFile) {
+        val lastUsedId = credentialRepository.getLastUsedId() ?: return
         val id = "$bucketId:$path"
         // Don't start duplicate active downloads
         if (_downloads.value.any { it.id == id && it.status == DownloadStatus.Downloading }) return
@@ -86,7 +85,7 @@ class DownloadManager(
             sourcePath = path.substringBeforeLast("/", "")
         )
 
-        updateAndPersistItem(item)
+        updateAndPersistItem(lastUsedId, item)
 
         val job = scope.launch {
             try {
@@ -102,7 +101,7 @@ class DownloadManager(
                                 downloadedSize = status.totalBytesReceived,
                                 totalSize = status.contentLength,
                                 status = DownloadStatus.Downloading
-                            )?.let { updateAndPersistItem(it) }
+                            )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
                         is SupabaseDownloadStatus.ByteData -> {
                             buffersMutex.withLock {
@@ -113,7 +112,7 @@ class DownloadManager(
                                 byteBuffers[id]?.sumOf { chunk -> chunk.size.toLong() } ?: 0L
                             }
                             val currentItem = _downloads.value.find { it.id == id }
-                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(it) }
+                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(lastUsedId, it) }
                         }
                         SupabaseDownloadStatus.Success -> {
                         }
@@ -147,10 +146,10 @@ class DownloadManager(
                         status = DownloadStatus.Completed,
                         downloadedTime = Clock.System.now(),
                         downloadedSize = totalSizeBytes.toLong()
-                    )?.let { updateAndPersistItem(it) }
+                    )?.let { updateAndPersistItem(lastUsedId, it) }
                 } else {
                     val currentItem = _downloads.value.find { it.id == id }
-                    currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(it) }
+                    currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(lastUsedId, it) }
                 }
 
                 // Check if this is the first operation
@@ -167,13 +166,14 @@ class DownloadManager(
                     byteBuffers.remove(id)
                 }
                 val currentItem = _downloads.value.find { it.id == id }
-                currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
+                currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(lastUsedId, it) }
             }
         }
         downloadJobs[id] = job
     }
 
     fun downloadToDirectoryPath(bucketId: String, path: String, fileName: String, destinationDirectory: String) {
+        val lastUsedId = credentialRepository.getLastUsedId() ?: return
         val destinationPath = if (destinationDirectory.endsWith("/")) "$destinationDirectory$fileName" else "$destinationDirectory/$fileName"
         val id = "$bucketId:$path"
         // Don't start duplicate active downloads
@@ -190,7 +190,7 @@ class DownloadManager(
             sourcePath = path.substringBeforeLast("/", "")
         )
 
-        updateAndPersistItem(item)
+        updateAndPersistItem(lastUsedId, item)
 
         val job = scope.launch {
             try {
@@ -206,7 +206,7 @@ class DownloadManager(
                                 downloadedSize = status.totalBytesReceived,
                                 totalSize = status.contentLength,
                                 status = DownloadStatus.Downloading
-                            )?.let { updateAndPersistItem(it) }
+                            )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
                         is SupabaseDownloadStatus.ByteData -> {
                             buffersMutex.withLock {
@@ -217,7 +217,7 @@ class DownloadManager(
                                 byteBuffers[id]?.sumOf { chunk -> chunk.size.toLong() } ?: 0L
                             }
                             val currentItem = _downloads.value.find { it.id == id }
-                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(it) }
+                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(lastUsedId, it) }
                         }
                         SupabaseDownloadStatus.Success -> {
                         }
@@ -251,10 +251,10 @@ class DownloadManager(
                         status = DownloadStatus.Completed,
                         downloadedTime = Clock.System.now(),
                         downloadedSize = totalSizeBytes.toLong()
-                    )?.let { updateAndPersistItem(it) }
+                    )?.let { updateAndPersistItem(lastUsedId, it) }
                 } else {
                     val currentItem = _downloads.value.find { it.id == id }
-                    currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(it) }
+                    currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(lastUsedId, it) }
                 }
 
                 // Check if this is the first operation
@@ -271,22 +271,26 @@ class DownloadManager(
                     byteBuffers.remove(id)
                 }
                 val currentItem = _downloads.value.find { it.id == id }
-                currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
+                currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(lastUsedId, it) }
             }
         }
         downloadJobs[id] = job
     }
 
-    private fun updateAndPersistItem(item: DownloadItem) {
-        _downloads.update { list ->
-            val existing = list.indexOfFirst { it.id == item.id }
-            if (existing >= 0) list.toMutableList().also { it[existing] = item }
-            else list + item
+    private fun updateAndPersistItem(credentialId: String, item: DownloadItem) {
+        val currentLastUsedId = credentialRepository.getLastUsedId()
+        if (credentialId == currentLastUsedId) {
+            _downloads.update { list ->
+                val existing = list.indexOfFirst { it.id == item.id }
+                if (existing >= 0) list.toMutableList().also { it[existing] = item }
+                else list + item
+            }
         }
-        dbWriteChannel.trySend(item)
+        dbWriteChannel.trySend(DownloadWriteTask(credentialId, item))
     }
 
     fun pause(id: String) {
+        val lastUsedId = credentialRepository.getLastUsedId() ?: return
         downloadJobs[id]?.cancel()
         scope.launch {
             buffersMutex.withLock {
@@ -294,7 +298,7 @@ class DownloadManager(
             }
         }
         val currentItem = _downloads.value.find { it.id == id }
-        currentItem?.copy(status = DownloadStatus.Paused)?.let { updateAndPersistItem(it) }
+        currentItem?.copy(status = DownloadStatus.Paused)?.let { updateAndPersistItem(lastUsedId, it) }
     }
 
     fun resume(id: String) {
