@@ -7,7 +7,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.DeleteFileUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.GetFileMetadataUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.util.ClipboardManager
-import com.hieuwu.supabasestorageclient.util.DirectoryPicker
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 import co.touchlab.kermit.Logger
@@ -28,7 +27,6 @@ class FileViewViewModel(
     private val getFileMetadataUseCase: GetFileMetadataUseCase,
     private val clipboardManager: ClipboardManager,
     private val downloadManager: DownloadManager,
-    private val directoryPicker: DirectoryPicker,
     private val settingsRepository: SettingsRepository,
     private val logger: Logger
 ) : ViewModel() {
@@ -59,7 +57,14 @@ class FileViewViewModel(
             val metadataParams = GetFileMetadataUseCase.Params(bucketId = bucketId, path = fullPath)
             getFileMetadataUseCase(metadataParams).fold(
                 onSuccess = { metadata ->
-                    _uiState.update { it.copy(metadata = metadata, isLoading = false) }
+                    viewModelScope.launch {
+                        val settings = settingsRepository.getSettings().firstOrNull()
+                        _uiState.update { it.copy(
+                            metadata = metadata, 
+                            isLoading = false,
+                            defaultDownloadPath = settings?.defaultDownloadDirectory
+                        ) }
+                    }
                 },
                 onFailure = { error ->
                     logger.e(error) { "Failed to get metadata for $fullPath" }
@@ -81,7 +86,7 @@ class FileViewViewModel(
                         downloadManager.downloadToDirectoryPath(bucketId, fullPath, fileName, settings.defaultDownloadDirectory)
                         _uiState.update { it.copy(successMessage = "Download started") }
                     } else {
-                        _uiState.update { it.copy(itemToDownload = item) }
+                        _uiState.update { it.copy(itemToDownload = item, isSavingFile = true) }
                     }
                 }
                 AskDownloadPathConfig.ONCE_WHEN_APP_OPEN -> {
@@ -89,19 +94,60 @@ class FileViewViewModel(
                         downloadManager.downloadToDirectoryPath(bucketId, fullPath, fileName, settings.sessionDownloadDirectory)
                         _uiState.update { it.copy(successMessage = "Download started") }
                     } else {
-                        val pickedPath = directoryPicker.pickDirectory()
-                        if (pickedPath != null) {
-                            settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = pickedPath))
-                            downloadManager.downloadToDirectoryPath(bucketId, fullPath, fileName, pickedPath)
-                            _uiState.update { it.copy(successMessage = "Download started") }
-                        }
+                        _uiState.update { it.copy(
+                            showDownloadPathOptionDialog = true, 
+                            itemToDownload = item,
+                            defaultDownloadPath = settings.defaultDownloadDirectory
+                        ) }
                     }
                 }
                 AskDownloadPathConfig.ASK_EVERYTIME -> {
-                    _uiState.update { it.copy(itemToDownload = item) }
+                    _uiState.update { it.copy(itemToDownload = item, isSavingFile = true) }
                 }
             }
         }
+    }
+
+    fun onSelectDefaultPath() {
+        viewModelScope.launch {
+            val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
+            val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
+            
+            if (settings.defaultDownloadDirectory != null) {
+                settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = settings.defaultDownloadDirectory))
+                downloadManager.downloadToDirectoryPath(bucketId, fullPath, fileName, settings.defaultDownloadDirectory)
+                _uiState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
+            } else {
+                _uiState.update { it.copy(showDownloadPathOptionDialog = false, isPickingDirectory = true) }
+            }
+        }
+    }
+
+    fun onSelectCustomPath() {
+        _uiState.update { it.copy(showDownloadPathOptionDialog = false, isPickingDirectory = true) }
+    }
+
+    fun onCancelDownload() {
+        _uiState.update { it.copy(showDownloadPathOptionDialog = false, itemToDownload = null) }
+    }
+
+    fun onDirectoryPicked(pickedPath: String) {
+        viewModelScope.launch {
+            val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
+            val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
+            
+            settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = pickedPath))
+            downloadManager.downloadToDirectoryPath(bucketId, fullPath, fileName, pickedPath)
+            _uiState.update { it.copy(successMessage = "Download started", isPickingDirectory = false, itemToDownload = null) }
+        }
+    }
+
+    fun onDirectoryPickingCancelled() {
+        _uiState.update { it.copy(isPickingDirectory = false, itemToDownload = null) }
+    }
+    
+    fun onFileSaved() {
+        _uiState.update { it.copy(isSavingFile = false, itemToDownload = null) }
     }
 
     fun startDownload(platformFile: PlatformFile) {
@@ -113,12 +159,12 @@ class FileViewViewModel(
                 fileName = fileName,
                 platformFile = platformFile
             )
-            _uiState.update { it.copy(successMessage = "Download started") }
+            _uiState.update { it.copy(successMessage = "Download started", isSavingFile = false, itemToDownload = null) }
         }
     }
 
     fun clearItemToDownload() {
-        _uiState.update { it.copy(itemToDownload = null) }
+        _uiState.update { it.copy(itemToDownload = null, isSavingFile = false, showDownloadPathOptionDialog = false) }
     }
 
     fun deleteFile() {

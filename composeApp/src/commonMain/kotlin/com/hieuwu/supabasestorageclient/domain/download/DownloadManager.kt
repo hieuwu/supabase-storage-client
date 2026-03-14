@@ -8,7 +8,6 @@ import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import com.hieuwu.supabasestorageclient.util.FileWriter
-import com.hieuwu.supabasestorageclient.util.PermissionManager
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write
@@ -32,7 +31,6 @@ import kotlinx.datetime.Clock
 class DownloadManager(
     private val storageRepository: StorageRepository,
     private val fileWriter: FileWriter,
-    private val permissionManager: PermissionManager,
     private val downloadRepository: DownloadRepository,
     private val credentialRepository: CredentialRepository,
     private val purchaseRepository: PurchaseRepository,
@@ -94,12 +92,6 @@ class DownloadManager(
             try {
                 buffersMutex.withLock {
                     byteBuffers[id] = mutableListOf()
-                }
-
-                if (!permissionManager.requestStoragePermission()) {
-                    val currentItem = _downloads.value.find { it.id == id }
-                    currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
-                    return@launch
                 }
 
                 storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
@@ -204,12 +196,6 @@ class DownloadManager(
             try {
                 buffersMutex.withLock {
                     byteBuffers[id] = mutableListOf()
-                }
-
-                if (!permissionManager.requestStoragePermission()) {
-                    val currentItem = _downloads.value.find { it.id == id }
-                    currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
-                    return@launch
                 }
 
                 storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->

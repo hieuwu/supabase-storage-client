@@ -9,5 +9,9 @@ data class BucketUiState(
     val error: String? = null,
     val successMessage: String? = null,
     val viewMode: ViewMode = ViewMode.LIST,
-    val itemToDownload: StorageItem? = null
+    val itemToDownload: StorageItem? = null,
+    val isPickingDirectory: Boolean = false,
+    val isSavingFile: Boolean = false,
+    val showDownloadPathOptionDialog: Boolean = false,
+    val defaultDownloadPath: String? = null
 )

@@ -46,7 +46,9 @@ import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatSize
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
+import io.github.vinceglb.filekit.path
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -91,23 +93,40 @@ fun FileViewScreen(
     val launcher = rememberFileSaverLauncher(FileKitDialogSettings.createDefault()) { platformFile ->
         if (platformFile != null) {
             viewModel.startDownload(platformFile)
+        } else {
+            viewModel.onFileSaved()
         }
-        viewModel.clearItemToDownload()
     }
 
-    LaunchedEffect(uiState.itemToDownload) {
-        uiState.itemToDownload?.let { item ->
-            val extension = item.name.substringAfterLast(".", "")
-            val nameWithoutExtension = if (extension.isNotEmpty()) {
-                item.name.substringBeforeLast(".")
-            } else {
-                item.name
+    val directoryPickerLauncher = rememberDirectoryPickerLauncher { platformDirectory ->
+        if (platformDirectory != null) {
+            viewModel.onDirectoryPicked(platformDirectory.path)
+        } else {
+            viewModel.onDirectoryPickingCancelled()
+        }
+    }
+
+    LaunchedEffect(uiState.isPickingDirectory) {
+        if (uiState.isPickingDirectory) {
+            directoryPickerLauncher.launch()
+        }
+    }
+
+    LaunchedEffect(uiState.isSavingFile, uiState.itemToDownload) {
+        if (uiState.isSavingFile) {
+            uiState.itemToDownload?.let { item ->
+                val extension = item.name.substringAfterLast(".", "")
+                val nameWithoutExtension = if (extension.isNotEmpty()) {
+                    item.name.substringBeforeLast(".")
+                } else {
+                    item.name
+                }
+                
+                launcher.launch(
+                    suggestedName = nameWithoutExtension,
+                    extension = extension
+                )
             }
-            
-            launcher.launch(
-                suggestedName = nameWithoutExtension,
-                extension = extension
-            )
         }
     }
 
@@ -183,6 +202,15 @@ fun FileViewScreen(
                         Text("Cancel")
                     }
                 }
+            )
+        }
+
+        if (uiState.showDownloadPathOptionDialog) {
+            DownloadPathOptionDialog(
+                defaultPath = uiState.defaultDownloadPath,
+                onDismiss = { viewModel.onCancelDownload() },
+                onConfirmDefault = { viewModel.onSelectDefaultPath() },
+                onConfirmCustom = { viewModel.onSelectCustomPath() }
             )
         }
     }
@@ -316,3 +344,39 @@ fun ActionButton(
 private fun isImage(extension: String) = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
 private fun isVideo(extension: String) = extension in listOf("mp4", "mov", "avi", "mkv", "webm")
 private fun isPdf(extension: String) = extension == "pdf"
+
+@Composable
+fun DownloadPathOptionDialog(
+    defaultPath: String?,
+    onDismiss: () -> Unit,
+    onConfirmDefault: () -> Unit,
+    onConfirmCustom: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Download Folder") },
+        text = {
+            Column {
+                Text("How would you like to select the download folder for this session?")
+                if (defaultPath != null) {
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = "Current default: $defaultPath",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirmDefault, enabled = defaultPath != null) {
+                Text("Use Default")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onConfirmCustom) {
+                Text("Pick Folder")
+            }
+        }
+    )
+}

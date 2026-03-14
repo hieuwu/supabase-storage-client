@@ -12,5 +12,9 @@ data class FileViewUiState(
     val error: String? = null,
     val isDeleted: Boolean = false,
     val successMessage: String? = null,
-    val itemToDownload: StorageItem? = null
+    val itemToDownload: StorageItem? = null,
+    val isPickingDirectory: Boolean = false,
+    val isSavingFile: Boolean = false,
+    val showDownloadPathOptionDialog: Boolean = false,
+    val defaultDownloadPath: String? = null
 )
