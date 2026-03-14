@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import io.github.jan.supabase.storage.storage
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.usecase.ClearCacheUseCase
+import kotlinx.coroutines.delay
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -62,6 +63,7 @@ class CredentialsViewModel(
 
     fun selectCredential(credential: Credential) {
         viewModelScope.launch {
+
             logger.d { "Selecting credential: ${credential.name} (${credential.id})" }
             _uiState.update { it.copy(isSettingUp = true, error = null) }
             try {
@@ -77,6 +79,7 @@ class CredentialsViewModel(
                 clearCacheUseCase(ClearCacheUseCase.Params(credential.id))
                 
                 val newClient = supabaseClientManager.createClient(credential)
+                delay(5000)
 
                 logger.d { "Verifying new client connection..." }
                 newClient.storage.retrieveBuckets()
