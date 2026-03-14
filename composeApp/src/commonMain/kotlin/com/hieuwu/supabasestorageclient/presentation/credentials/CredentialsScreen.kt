@@ -263,17 +263,15 @@ private fun PremiumLoadingOverlay(message: String) {
                 .padding(32.dp)
         ) {
             Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .graphicsLayer {
-                        rotationZ = rotation
-                        scaleX = scale
-                        scaleY = scale
-                    },
+                modifier = Modifier.size(64.dp),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationZ = rotation
+                        },
                     strokeWidth = 6.dp,
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
@@ -282,7 +280,12 @@ private fun PremiumLoadingOverlay(message: String) {
                     imageVector = Icons.Default.Storage,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))
