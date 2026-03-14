@@ -12,7 +12,8 @@ data class DownloadItem(
     val downloadedSize: Long = 0,
     val status: DownloadStatus = DownloadStatus.Downloading,
     val downloadedTime: Instant? = null,
-    val destinationPath: String
+    val destinationPath: String,
+    val sourcePath: String
 ) {
     val progress: Float
         get() = if (totalSize > 0) downloadedSize.toFloat() / totalSize else 0f

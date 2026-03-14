@@ -19,9 +19,13 @@ class SupabaseApplication : Application() {
         }
         FileKit.manualFileKitCoreInitialization(this)
 
-        // Initialize RevenueCat
-        Purchases.logLevel = LogLevel.DEBUG
-        Purchases.configure(PurchasesConfiguration(BuildKonfig.REVENUECAT_API_KEY))
+        try {
+            // Initialize RevenueCat
+            Purchases.logLevel = LogLevel.DEBUG
+            Purchases.configure(PurchasesConfiguration(BuildKonfig.REVENUECAT_API_KEY))
 
+        } catch (e: Exception) {
+            print(e.message)
+        }
     }
 }

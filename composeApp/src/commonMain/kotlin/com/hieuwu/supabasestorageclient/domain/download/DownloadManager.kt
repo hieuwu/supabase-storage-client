@@ -84,7 +84,8 @@ class DownloadManager(
             path = path,
             from = "$bucketId/$path",
             totalSize = 0,
-            destinationPath = platformFile.path ?: "Unknown path"
+            destinationPath = platformFile.path ?: "Unknown path",
+            sourcePath = path.substringBeforeLast("/", "")
         )
 
         updateAndPersistItem(item)

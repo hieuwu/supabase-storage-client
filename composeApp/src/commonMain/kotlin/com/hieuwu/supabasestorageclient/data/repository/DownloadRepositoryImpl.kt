@@ -31,7 +31,8 @@ class DownloadRepositoryImpl(
                         downloadedSize = entity.downloaded_size,
                         status = DownloadStatus.valueOf(entity.status),
                         downloadedTime = entity.downloaded_time?.let { Instant.parse(it) },
-                        destinationPath = entity.destination_path
+                        destinationPath = entity.destination_path,
+                        sourcePath = entity.source_path
                     )
                 }
             }
@@ -49,7 +50,8 @@ class DownloadRepositoryImpl(
             downloaded_size = item.downloadedSize,
             status = item.status.name,
             downloaded_time = item.downloadedTime?.toString(),
-            destination_path = item.destinationPath
+            destination_path = item.destinationPath,
+            source_path = item.sourcePath
         )
     }
 
