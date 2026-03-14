@@ -4,6 +4,7 @@ import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
@@ -21,11 +22,14 @@ class SettingsRepositoryImpl(
         private const val KEY_VIEW_MODE = "view_mode"
         private const val KEY_THEME = "theme"
         private const val KEY_FIRST_OPERATION_COMPLETED = "first_operation_completed"
+        private const val KEY_ASK_DOWNLOAD_PATH_CONFIG = "ask_download_path_config"
+        private const val KEY_DEFAULT_DOWNLOAD_DIRECTORY = "default_download_directory"
 
         private const val DEFAULT_FILE_SIZE_LIMIT = 10L
         private val DEFAULT_FILE_SIZE_UNIT = SizeUnit.MEGABYTES
         private val DEFAULT_VIEW_MODE = ViewMode.LIST
         private val DEFAULT_THEME = AppTheme.SYSTEM
+        private val DEFAULT_ASK_DOWNLOAD_PATH_CONFIG = AskDownloadPathConfig.ASK_EVERYTIME
     }
 
     private val _settingsFlow = MutableStateFlow(readSettings())
@@ -38,6 +42,10 @@ class SettingsRepositoryImpl(
         settings[KEY_VIEW_MODE] = userSettings.viewMode.name
         settings[KEY_THEME] = userSettings.theme.name
         settings[KEY_FIRST_OPERATION_COMPLETED] = userSettings.isFirstOperationCompleted
+        settings[KEY_ASK_DOWNLOAD_PATH_CONFIG] = userSettings.askDownloadPathConfig.name
+        userSettings.defaultDownloadDirectory?.let {
+            settings[KEY_DEFAULT_DOWNLOAD_DIRECTORY] = it
+        } ?: settings.remove(KEY_DEFAULT_DOWNLOAD_DIRECTORY)
         _settingsFlow.value = userSettings
     }
 
@@ -61,12 +69,22 @@ class SettingsRepositoryImpl(
 
         val isFirstOperationCompleted = settings.getBoolean(KEY_FIRST_OPERATION_COMPLETED, false)
 
+        val askDownloadPathConfig = try {
+            AskDownloadPathConfig.valueOf(settings.getString(KEY_ASK_DOWNLOAD_PATH_CONFIG, DEFAULT_ASK_DOWNLOAD_PATH_CONFIG.name))
+        } catch (e: Exception) {
+            DEFAULT_ASK_DOWNLOAD_PATH_CONFIG
+        }
+        
+        val defaultDownloadDirectory = settings.getStringOrNull(KEY_DEFAULT_DOWNLOAD_DIRECTORY)
+
         return UserSettings(
             fileSizeLimit = fileSizeLimit,
             fileSizeUnit = fileSizeUnit,
             viewMode = viewMode,
             theme = theme,
-            isFirstOperationCompleted = isFirstOperationCompleted
+            isFirstOperationCompleted = isFirstOperationCompleted,
+            askDownloadPathConfig = askDownloadPathConfig,
+            defaultDownloadDirectory = defaultDownloadDirectory
         )
     }
 }

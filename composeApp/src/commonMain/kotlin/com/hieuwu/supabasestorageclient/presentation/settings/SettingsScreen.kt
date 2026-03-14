@@ -17,6 +17,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
+import com.hieuwu.supabasestorageclient.util.getDirectoryPicker
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +29,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
 
     if (settings == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -112,6 +116,81 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        item {
+            Text(
+                text = "Download Settings",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Column {
+                    SettingsRow(
+                        title = "Ask download path",
+                        subtitle = settings?.askDownloadPathConfig?.label ?: "",
+                        icon = Icons.Default.HelpOutline,
+                        onClick = { }
+                    ) {
+                        var expanded by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { expanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Change Ask Download Path")
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                AskDownloadPathConfig.entries.forEach { config ->
+                                    DropdownMenuItem(
+                                        text = { Text(config.label) },
+                                        onClick = {
+                                            viewModel.updateAskDownloadPathConfig(config)
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+
+                    SettingsRow(
+                        title = "Default download directory",
+                        subtitle = settings?.defaultDownloadDirectory ?: "Not set",
+                        icon = Icons.Default.Folder,
+                        onClick = { },
+                        trailingContent = {
+                            IconButton(onClick = {
+                                coroutineScope.launch {
+                                    val picker = getDirectoryPicker()
+                                    val path = picker.pickDirectory()
+                                    if (path != null) {
+                                        viewModel.updateDefaultDownloadDirectory(path)
+                                    }
+                                }
+                            }) {
+                                Icon(Icons.Default.FolderOpen, contentDescription = "Select Directory")
+                            }
+                        }
+                    )
                 }
             }
         }

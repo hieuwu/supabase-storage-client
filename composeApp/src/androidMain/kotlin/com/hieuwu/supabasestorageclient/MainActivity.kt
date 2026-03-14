@@ -15,6 +15,10 @@ class MainActivity : ComponentActivity() {
         FilePickerHandler.onResult(uri)
     }
 
+    private val getDirectory = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        com.hieuwu.supabasestorageclient.util.DirectoryPickerHandler.onResult(uri)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
@@ -22,6 +26,10 @@ class MainActivity : ComponentActivity() {
 
         FilePickerHandler.triggerPicker = {
             getFile.launch("*/*")
+        }
+
+        com.hieuwu.supabasestorageclient.util.DirectoryPickerHandler.triggerPicker = {
+            getDirectory.launch(null)
         }
 
         setContent {

@@ -25,12 +25,7 @@ actual fun getFileWriter(): FileWriter = IosFileWriter()
 
 class IosDirectoryPicker : DirectoryPicker {
     override suspend fun pickDirectory(): String? {
-        // Use Documents directory as the default download location
-        return NSSearchPathForDirectoriesInDomains(
-            NSDocumentDirectory,
-            NSUserDomainMask,
-            true
-        ).firstOrNull() as? String
+        return IosDirectoryPickerProvider.handler.pickDirectory()
     }
 }
 

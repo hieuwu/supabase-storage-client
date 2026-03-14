@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository
@@ -48,6 +49,20 @@ class SettingsViewModel(
         val current = settings.value ?: return
         viewModelScope.launch {
             settingsRepository.updateSettings(current.copy(theme = theme))
+        }
+    }
+
+    fun updateAskDownloadPathConfig(config: AskDownloadPathConfig) {
+        val current = settings.value ?: return
+        viewModelScope.launch {
+            settingsRepository.updateSettings(current.copy(askDownloadPathConfig = config))
+        }
+    }
+
+    fun updateDefaultDownloadDirectory(path: String?) {
+        val current = settings.value ?: return
+        viewModelScope.launch {
+            settingsRepository.updateSettings(current.copy(defaultDownloadDirectory = path))
         }
     }
 }
