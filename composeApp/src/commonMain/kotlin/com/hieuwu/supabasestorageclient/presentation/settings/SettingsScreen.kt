@@ -18,8 +18,8 @@ import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
-import com.hieuwu.supabasestorageclient.util.getDirectoryPicker
-import kotlinx.coroutines.launch
+import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
+import io.github.vinceglb.filekit.path
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +30,17 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
+
+    var pickingForSession by remember { mutableStateOf(false) }
+    val directoryPickerLauncher = rememberDirectoryPickerLauncher { platformDirectory ->
+        if (platformDirectory != null) {
+            if (pickingForSession) {
+                viewModel.updateSessionDownloadDirectory(platformDirectory.path)
+            } else {
+                viewModel.updateDefaultDownloadDirectory(platformDirectory.path)
+            }
+        }
+    }
 
     if (settings == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -191,17 +202,8 @@ fun SettingsScreen(
                         onClick = { },
                         trailingContent = {
                             IconButton(onClick = {
-                                coroutineScope.launch {
-                                    val picker = getDirectoryPicker()
-                                    val path = picker.pickDirectory()
-                                    if (path != null) {
-                                        if (isOnceWhenOpen) {
-                                            viewModel.updateSessionDownloadDirectory(path)
-                                        } else {
-                                            viewModel.updateDefaultDownloadDirectory(path)
-                                        }
-                                    }
-                                }
+                                pickingForSession = isOnceWhenOpen
+                                directoryPickerLauncher.launch()
                             }) {
                                 Icon(Icons.Default.FolderOpen, contentDescription = "Select Directory")
                             }

@@ -29,7 +29,6 @@ class JsFileOpener : FileOpener {
     override fun openDirectory(path: String) {}
 }
 
-actual fun getFileOpener(): FileOpener = JsFileOpener()
 
 class JsPermissionManager : PermissionManager {
     override suspend fun requestStoragePermission(): Boolean = true

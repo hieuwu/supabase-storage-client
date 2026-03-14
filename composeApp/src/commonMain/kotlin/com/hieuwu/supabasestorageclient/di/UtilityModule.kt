@@ -10,11 +10,7 @@ import org.koin.dsl.module
 val utilityModule = module {
     single { Logger.withTag("SupabaseStorageClient") }
     single { getFileWriter() }
-    single { getDirectoryPicker() }
-    single { getFilePicker() }
-    single { getFileOpener() }
-    single { getPermissionManager() }
-    single { DownloadManager(get(), get(), get(), get(), get(), get(), get()) }
-    single { UploadManager(get(), get(), get(), get(), get(), get()) }
+    single { DownloadManager(get(), get(), get(), get(), get(),  get()) }
+    single { UploadManager(get(), get(), get(), get(), get(),) }
     single { ContextSelectionManager() }
 }

@@ -21,43 +21,6 @@ class AndroidFileWriter : FileWriter {
 
 actual fun getFileWriter(): FileWriter = AndroidFileWriter()
 
-class AndroidDirectoryPicker : DirectoryPicker {
-    override suspend fun pickDirectory(): String? {
-        val uri = DirectoryPickerHandler.pickDirectory() ?: return null
-        return uri.toString()
-    }
-}
-
-actual fun getDirectoryPicker(): DirectoryPicker = AndroidDirectoryPicker()
-
-class AndroidFilePicker : FilePicker {
-    private val context: Context
-        get() = KoinPlatformTools.defaultContext().get().get<Context>()
-
-    override suspend fun pickFile(): SelectedFile? {
-        val uri = FilePickerHandler.pickFile() ?: return null
-        val fileName = getFileName(context, uri) ?: "unknown_file"
-        val data = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-        return SelectedFile(fileName, data)
-    }
-
-    private fun getFileName(context: Context, uri: Uri): String? {
-        if (uri.scheme == "content") {
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex != -1) {
-                        return cursor.getString(nameIndex)
-                    }
-                }
-            }
-        }
-        return uri.path?.substringAfterLast('/')
-    }
-}
-
-actual fun getFilePicker(): FilePicker = AndroidFilePicker()
-
 class AndroidFileOpener : FileOpener {
     private val context: Context
         get() = KoinPlatformTools.defaultContext().get().get<Context>()
@@ -142,16 +105,3 @@ class AndroidFileOpener : FileOpener {
         }
     }
 }
-
-actual fun getFileOpener(): FileOpener = AndroidFileOpener()
-
-class AndroidPermissionManager : PermissionManager {
-    override suspend fun requestStoragePermission(): Boolean {
-        // In a real app, this would request permissions via the Activity
-        // For Android 11+ (Scoped Storage), we often don't need MANAGE_EXTERNAL_STORAGE 
-        // if writing to app-specific or public Download folders via MediaStore/SAF.
-        return true
-    }
-}
-
-actual fun getPermissionManager(): PermissionManager = AndroidPermissionManager()

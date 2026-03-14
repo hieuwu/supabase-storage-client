@@ -7,7 +7,6 @@ import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
-import com.hieuwu.supabasestorageclient.util.PermissionManager
 import io.github.jan.supabase.storage.UploadStatus as SupabaseUploadStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +22,6 @@ import kotlinx.datetime.Clock
 
 class UploadManager(
     private val storageRepository: StorageRepository,
-    private val permissionManager: PermissionManager,
     private val uploadRepository: UploadRepository,
     private val credentialRepository: CredentialRepository,
     private val purchaseRepository: PurchaseRepository,
@@ -68,11 +66,6 @@ class UploadManager(
 
         val job = scope.launch {
             try {
-                if (!permissionManager.requestStoragePermission()) {
-                    val currentItem = _uploads.value.find { it.id == id }
-                    currentItem?.copy(status = UploadStatus.Error)?.let { updateAndPersistItem(it) }
-                    return@launch
-                }
 
                 storageRepository.uploadFileAsFlow(bucketId, path, data).collect { status ->
                     when (status) {

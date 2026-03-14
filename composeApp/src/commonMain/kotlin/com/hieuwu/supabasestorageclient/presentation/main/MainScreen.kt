@@ -111,6 +111,7 @@ import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
 import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -127,6 +128,12 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val filePickerLauncher = rememberFilePickerLauncher { platformFile ->
+        if (platformFile != null) {
+            viewModel.onUploadFileSelected(platformFile)
+        }
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -278,7 +285,7 @@ fun MainScreen(
                                     Button(
                                         onClick = {
                                             showActions = false
-                                            viewModel.onUploadFileClick()
+                                            filePickerLauncher.launch()
                                         },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {

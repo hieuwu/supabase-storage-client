@@ -10,11 +10,11 @@ import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.domain.usecase.CreateBucketUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.CreateFolderUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.UploadFileUseCase
-import com.hieuwu.supabasestorageclient.util.FilePicker
-import com.hieuwu.supabasestorageclient.util.PermissionManager
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -30,8 +30,6 @@ class MainViewModel(
     private val createFolderUseCase: CreateFolderUseCase,
     private val uploadFileUseCase: UploadFileUseCase,
     private val createBucketUseCase: CreateBucketUseCase,
-    private val filePicker: FilePicker,
-    private val permissionManager: PermissionManager,
     private val credentialRepository: CredentialRepository,
     private val settingsRepository: SettingsRepository,
     private val supabaseClientManager: SupabaseClientManager
@@ -198,32 +196,27 @@ class MainViewModel(
         }
     }
 
-    fun onUploadFileClick() {
+    fun onUploadFileSelected(platformFile: io.github.vinceglb.filekit.PlatformFile) {
         viewModelScope.launch {
-            if (!permissionManager.requestStoragePermission()) {
-                _uiState.update { it.copy(error = "Permission denied") }
-                return@launch
-            }
-
             val context = contextSelectionManager.currentContext.value
             if (context == null) {
                 _uiState.update { it.copy(error = "Please select a bucket first") }
                 return@launch
             }
 
-            val selectedFile = filePicker.pickFile()
-            if (selectedFile != null) {
-                val fullPath = if (context.path.isEmpty()) selectedFile.name else "${context.path}/${selectedFile.name}"
-                val params = UploadFileUseCase.Params(
-                    bucketId = context.bucketId,
-                    path = fullPath,
-                    fileName = selectedFile.name,
-                    data = selectedFile.data
-                )
-                uploadFileUseCase(params)
-                _uiState.update { it.copy(successMessage = "Upload started", isUploading = true) }
-                _navigateToUploads.emit(Unit)
-            }
+            val fileName = platformFile.name
+            val data = platformFile.readBytes()
+            val fullPath = if (context.path.isEmpty()) fileName else "${context.path}/$fileName"
+            
+            val params = UploadFileUseCase.Params(
+                bucketId = context.bucketId,
+                path = fullPath,
+                fileName = fileName,
+                data = data
+            )
+            uploadFileUseCase(params)
+            _uiState.update { it.copy(successMessage = "Upload started", isUploading = true) }
+            _navigateToUploads.emit(Unit)
         }
     }
 
