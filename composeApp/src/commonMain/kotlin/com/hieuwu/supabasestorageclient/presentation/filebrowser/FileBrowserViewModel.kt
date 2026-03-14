@@ -16,9 +16,10 @@ import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
-import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
+import io.github.vinceglb.filekit.PlatformFile
 
 class FileBrowserViewModel(
     private val bucketId: String,
@@ -162,9 +163,37 @@ class FileBrowserViewModel(
     }
 
     fun downloadItem(name: String) {
-        val item = _uiState.value.items.find { it.name == name }
-        if (item != null) {
-            _uiState.update { it.copy(itemToDownload = item) }
+        val item = _uiState.value.items.find { it.name == name } ?: return
+        viewModelScope.launch {
+            val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
+            val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
+
+            when (settings.askDownloadPathConfig) {
+                AskDownloadPathConfig.NEVER_ASK -> {
+                    if (settings.defaultDownloadDirectory != null) {
+                        downloadManager.downloadToDirectoryPath(bucketId, fullPath, name, settings.defaultDownloadDirectory)
+                        _uiState.update { it.copy(successMessage = "Download started") }
+                    } else {
+                        _uiState.update { it.copy(itemToDownload = item) }
+                    }
+                }
+                AskDownloadPathConfig.ONCE_WHEN_APP_OPEN -> {
+                    if (settings.sessionDownloadDirectory != null) {
+                        downloadManager.downloadToDirectoryPath(bucketId, fullPath, name, settings.sessionDownloadDirectory)
+                        _uiState.update { it.copy(successMessage = "Download started") }
+                    } else {
+                        val pickedPath = directoryPicker.pickDirectory()
+                        if (pickedPath != null) {
+                            settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = pickedPath))
+                            downloadManager.downloadToDirectoryPath(bucketId, fullPath, name, pickedPath)
+                            _uiState.update { it.copy(successMessage = "Download started") }
+                        }
+                    }
+                }
+                AskDownloadPathConfig.ASK_EVERYTIME -> {
+                    _uiState.update { it.copy(itemToDownload = item) }
+                }
+            }
         }
     }
 

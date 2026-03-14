@@ -34,6 +34,7 @@ val viewModelModule = module {
             clipboardManager = get(),
             downloadManager = get(),
             directoryPicker = get(),
+            settingsRepository = get(),
             logger = get()
         )
     }

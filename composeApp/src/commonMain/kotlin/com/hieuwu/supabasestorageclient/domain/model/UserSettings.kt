@@ -7,5 +7,6 @@ data class UserSettings(
     val theme: AppTheme,
     val isFirstOperationCompleted: Boolean = false,
     val askDownloadPathConfig: AskDownloadPathConfig = AskDownloadPathConfig.ASK_EVERYTIME,
-    val defaultDownloadDirectory: String? = null
+    val defaultDownloadDirectory: String? = null,
+    val sessionDownloadDirectory: String? = null
 )

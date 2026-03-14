@@ -181,6 +181,116 @@ class DownloadManager(
         downloadJobs[id] = job
     }
 
+    fun downloadToDirectoryPath(bucketId: String, path: String, fileName: String, destinationDirectory: String) {
+        val destinationPath = if (destinationDirectory.endsWith("/")) "$destinationDirectory$fileName" else "$destinationDirectory/$fileName"
+        val id = "$bucketId:$path"
+        // Don't start duplicate active downloads
+        if (_downloads.value.any { it.id == id && it.status == DownloadStatus.Downloading }) return
+
+        val item = DownloadItem(
+            id = id,
+            fileName = fileName,
+            bucketId = bucketId,
+            path = path,
+            from = "$bucketId/$path",
+            totalSize = 0,
+            destinationPath = destinationPath,
+            sourcePath = path.substringBeforeLast("/", "")
+        )
+
+        updateAndPersistItem(item)
+
+        val job = scope.launch {
+            try {
+                buffersMutex.withLock {
+                    byteBuffers[id] = mutableListOf()
+                }
+
+                if (!permissionManager.requestStoragePermission()) {
+                    val currentItem = _downloads.value.find { it.id == id }
+                    currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
+                    return@launch
+                }
+
+                storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
+                    when (status) {
+                        is SupabaseDownloadStatus.Progress -> {
+                            val currentItem = _downloads.value.find { it.id == id }
+                            currentItem?.copy(
+                                downloadedSize = status.totalBytesReceived,
+                                totalSize = status.contentLength,
+                                status = DownloadStatus.Downloading
+                            )?.let { updateAndPersistItem(it) }
+                        }
+                        is SupabaseDownloadStatus.ByteData -> {
+                            buffersMutex.withLock {
+                                byteBuffers[id]?.add(status.data)
+                            }
+                            // Update downloadedSize based on accumulated data
+                            val currentSize = buffersMutex.withLock {
+                                byteBuffers[id]?.sumOf { chunk -> chunk.size.toLong() } ?: 0L
+                            }
+                            val currentItem = _downloads.value.find { it.id == id }
+                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(it) }
+                        }
+                        SupabaseDownloadStatus.Success -> {
+                        }
+                    }
+                }
+
+                // Download flow completed normally - write the file
+                val buffers = buffersMutex.withLock {
+                    byteBuffers.remove(id) ?: mutableListOf()
+                }
+                
+                if (buffers.isNotEmpty()) {
+                    val totalSizeBytes = buffers.sumOf { it.size }
+                    val allBytes = ByteArray(totalSizeBytes)
+                    var offset = 0
+                    for (buffer in buffers) {
+                        buffer.copyInto(allBytes, offset)
+                        offset += buffer.size
+                    }
+
+                    // Write directly using FileWriter
+                    try {
+                        fileWriter.writeToFile(destinationPath, allBytes)
+                    } catch (e: Exception) {
+                        // Fallback or error logging
+                        e.printStackTrace()
+                    }
+
+                    val currentItem = _downloads.value.find { it.id == id }
+                    currentItem?.copy(
+                        status = DownloadStatus.Completed,
+                        downloadedTime = Clock.System.now(),
+                        downloadedSize = totalSizeBytes.toLong()
+                    )?.let { updateAndPersistItem(it) }
+                } else {
+                    val currentItem = _downloads.value.find { it.id == id }
+                    currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(it) }
+                }
+
+                // Check if this is the first operation
+                scope.launch {
+                    val settings = settingsRepository.getSettings().firstOrNull()
+                    if (settings != null && !settings.isFirstOperationCompleted) {
+                        settingsRepository.updateSettings(settings.copy(isFirstOperationCompleted = true))
+                        purchaseRepository.triggerPaywall()
+                    }
+                }
+
+            } catch (e: Exception) {
+                buffersMutex.withLock {
+                    byteBuffers.remove(id)
+                }
+                val currentItem = _downloads.value.find { it.id == id }
+                currentItem?.copy(status = DownloadStatus.Error)?.let { updateAndPersistItem(it) }
+            }
+        }
+        downloadJobs[id] = job
+    }
+
     private fun updateAndPersistItem(item: DownloadItem) {
         _downloads.update { list ->
             val existing = list.indexOfFirst { it.id == item.id }

@@ -24,12 +24,18 @@ class SettingsRepositoryImpl(
         private const val KEY_FIRST_OPERATION_COMPLETED = "first_operation_completed"
         private const val KEY_ASK_DOWNLOAD_PATH_CONFIG = "ask_download_path_config"
         private const val KEY_DEFAULT_DOWNLOAD_DIRECTORY = "default_download_directory"
+        private const val KEY_SESSION_DOWNLOAD_DIRECTORY = "session_download_directory"
 
         private const val DEFAULT_FILE_SIZE_LIMIT = 10L
         private val DEFAULT_FILE_SIZE_UNIT = SizeUnit.MEGABYTES
         private val DEFAULT_VIEW_MODE = ViewMode.LIST
         private val DEFAULT_THEME = AppTheme.SYSTEM
         private val DEFAULT_ASK_DOWNLOAD_PATH_CONFIG = AskDownloadPathConfig.ASK_EVERYTIME
+    }
+
+    init {
+        // Clear sessionDownloadDirectory on app launch
+        settings.remove(KEY_SESSION_DOWNLOAD_DIRECTORY)
     }
 
     private val _settingsFlow = MutableStateFlow(readSettings())
@@ -46,6 +52,9 @@ class SettingsRepositoryImpl(
         userSettings.defaultDownloadDirectory?.let {
             settings[KEY_DEFAULT_DOWNLOAD_DIRECTORY] = it
         } ?: settings.remove(KEY_DEFAULT_DOWNLOAD_DIRECTORY)
+        userSettings.sessionDownloadDirectory?.let {
+            settings[KEY_SESSION_DOWNLOAD_DIRECTORY] = it
+        } ?: settings.remove(KEY_SESSION_DOWNLOAD_DIRECTORY)
         _settingsFlow.value = userSettings
     }
 
@@ -76,6 +85,7 @@ class SettingsRepositoryImpl(
         }
         
         val defaultDownloadDirectory = settings.getStringOrNull(KEY_DEFAULT_DOWNLOAD_DIRECTORY)
+        val sessionDownloadDirectory = settings.getStringOrNull(KEY_SESSION_DOWNLOAD_DIRECTORY)
 
         return UserSettings(
             fileSizeLimit = fileSizeLimit,
@@ -84,7 +94,8 @@ class SettingsRepositoryImpl(
             theme = theme,
             isFirstOperationCompleted = isFirstOperationCompleted,
             askDownloadPathConfig = askDownloadPathConfig,
-            defaultDownloadDirectory = defaultDownloadDirectory
+            defaultDownloadDirectory = defaultDownloadDirectory,
+            sessionDownloadDirectory = sessionDownloadDirectory
         )
     }
 }

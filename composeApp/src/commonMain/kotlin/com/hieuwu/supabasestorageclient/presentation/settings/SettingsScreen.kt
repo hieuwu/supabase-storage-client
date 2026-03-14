@@ -172,10 +172,22 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
 
+                    val isOnceWhenOpen = settings?.askDownloadPathConfig == AskDownloadPathConfig.ONCE_WHEN_APP_OPEN
+                    val displayPath = if (isOnceWhenOpen) {
+                        settings?.sessionDownloadDirectory ?: settings?.defaultDownloadDirectory
+                    } else {
+                        settings?.defaultDownloadDirectory
+                    }
+
                     SettingsRow(
-                        title = "Default download directory",
-                        subtitle = settings?.defaultDownloadDirectory ?: "Not set",
-                        icon = Icons.Default.Folder,
+                        title = if (isOnceWhenOpen) "Session download directory" else "Default download directory",
+                        subtitle = buildString {
+                            append(displayPath ?: "Not set")
+                            if (isOnceWhenOpen) {
+                                append("\n(Will be reset next time you open the app)")
+                            }
+                        },
+                        icon = if (isOnceWhenOpen) Icons.Default.FolderSpecial else Icons.Default.Folder,
                         onClick = { },
                         trailingContent = {
                             IconButton(onClick = {
@@ -183,7 +195,11 @@ fun SettingsScreen(
                                     val picker = getDirectoryPicker()
                                     val path = picker.pickDirectory()
                                     if (path != null) {
-                                        viewModel.updateDefaultDownloadDirectory(path)
+                                        if (isOnceWhenOpen) {
+                                            viewModel.updateSessionDownloadDirectory(path)
+                                        } else {
+                                            viewModel.updateDefaultDownloadDirectory(path)
+                                        }
                                     }
                                 }
                             }) {

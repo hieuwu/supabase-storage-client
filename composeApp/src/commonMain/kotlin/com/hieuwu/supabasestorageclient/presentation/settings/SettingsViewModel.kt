@@ -65,4 +65,11 @@ class SettingsViewModel(
             settingsRepository.updateSettings(current.copy(defaultDownloadDirectory = path))
         }
     }
+
+    fun updateSessionDownloadDirectory(path: String?) {
+        val current = settings.value ?: return
+        viewModelScope.launch {
+            settingsRepository.updateSettings(current.copy(sessionDownloadDirectory = path))
+        }
+    }
 }
