@@ -1,5 +1,12 @@
 package com.hieuwu.supabasestorageclient.presentation.credentials
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +22,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -47,7 +54,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,11 +64,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.presentation.components.shimmerLoadingAnimation
 import com.hieuwu.supabasestorageclient.presentation.credentials.components.CredentialItem
 import org.koin.compose.viewmodel.koinViewModel
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.animation.core.*
-import androidx.compose.ui.graphics.graphicsLayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -211,14 +215,50 @@ fun CredentialsScreen(
 
 @Composable
 private fun CredentialItemSkeleton() {
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(140.dp)
             .clip(RoundedCornerShape(12.dp))
-            .shimmerLoadingAnimation()
-    )
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .shimmerLoadingAnimation()
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerLoadingAnimation()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerLoadingAnimation()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .shimmerLoadingAnimation()
+            )
+        }
+    }
 }
+
 
 @Composable
 private fun PremiumLoadingOverlay(message: String) {

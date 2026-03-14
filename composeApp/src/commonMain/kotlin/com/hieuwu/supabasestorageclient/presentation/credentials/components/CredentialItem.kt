@@ -11,12 +11,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.Credential
+import com.hieuwu.supabasestorageclient.presentation.components.CredentialAvatar
 
 @Composable
 fun CredentialItem(
@@ -81,6 +83,10 @@ fun CredentialItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                CredentialAvatar(name = credential.name)
+                
+                Spacer(modifier = Modifier.width(12.dp))
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = credential.name,
@@ -188,3 +194,5 @@ private fun CredentialField(label: String, value: String) {
         )
     }
 }
+
+

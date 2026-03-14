@@ -79,7 +79,6 @@ class CredentialsViewModel(
                 clearCacheUseCase(ClearCacheUseCase.Params(credential.id))
                 
                 val newClient = supabaseClientManager.createClient(credential)
-                delay(5000)
 
                 logger.d { "Verifying new client connection..." }
                 newClient.storage.retrieveBuckets()

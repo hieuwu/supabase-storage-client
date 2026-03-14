@@ -1,36 +1,116 @@
 package com.hieuwu.supabasestorageclient.presentation.main
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
-import androidx.navigation.compose.*
-import androidx.navigation.navArgument
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
 import com.hieuwu.supabasestorageclient.presentation.buckets.BucketsScreen
+import com.hieuwu.supabasestorageclient.presentation.components.CredentialAvatar
 import com.hieuwu.supabasestorageclient.presentation.downloads.DownloadsScreen
+import com.hieuwu.supabasestorageclient.presentation.filebrowser.BucketScreen
 import com.hieuwu.supabasestorageclient.presentation.fileview.FileViewScreen
 import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
 import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
-import com.hieuwu.supabasestorageclient.domain.model.Credential
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -613,15 +693,7 @@ fun MainScreen(
                         headlineContent = { Text(credential.name) },
                         supportingContent = { Text(credential.url) },
                         leadingContent = {
-                            if (isSelected) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            } else {
-                                Icon(Icons.Default.AccountCircle, contentDescription = null)
-                            }
+                            CredentialAvatar(name = credential.name)
                         },
                         trailingContent = {
                             var menuExpanded by remember { mutableStateOf(false) }
@@ -690,18 +762,85 @@ fun MainScreen(
     }
 
     if (uiState.isSettingUpCredential) {
-        AlertDialog(
-            onDismissRequest = {},
-            confirmButton = {},
-            title = { Text("Setting up") },
-            text = {
-                Box(
-                    Modifier.fillMaxWidth(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+        PremiumLoadingOverlay(message = "Setting up...")
+    }
+}
+
+@Composable
+private fun PremiumLoadingOverlay(message: String) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         )
+    )
+
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+            .blur(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Blur content
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                .padding(32.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(64.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationZ = rotation
+                        },
+                    strokeWidth = 6.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.Storage,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
