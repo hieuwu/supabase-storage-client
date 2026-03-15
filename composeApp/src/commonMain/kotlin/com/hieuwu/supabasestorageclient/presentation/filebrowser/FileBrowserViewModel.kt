@@ -53,8 +53,8 @@ class FileBrowserViewModel(
             val userSettings = settingsRepository.getSettings()
 
             combine(starredItems, userSettings) { stars, settings ->
-                Triple(stars, settings.viewMode, settings.defaultDownloadDirectory)
-            }.collect { (stars, viewMode, defaultPath) ->
+                Triple(stars, settings.viewMode, settings)
+            }.collect { (stars, viewMode, settings) ->
                 result.onSuccess { items ->
                     val starredPaths =
                         stars.filter { it.bucketId == bucketId }.map { it.path ?: "" }.toSet()
@@ -67,7 +67,8 @@ class FileBrowserViewModel(
                             items = updatedItems,
                             isLoading = false,
                             viewMode = viewMode,
-                            defaultDownloadPath = defaultPath
+                            defaultDownloadPath = settings.defaultDownloadDirectory,
+                            sessionDownloadPath = settings.sessionDownloadDirectory
                         )
                 }.onFailure { error ->
                     logger.e(error) { "Failed to load contents for bucket $bucketId at path $path" }
@@ -75,7 +76,8 @@ class FileBrowserViewModel(
                         isLoading = false,
                         error = error.message,
                         viewMode = viewMode,
-                        defaultDownloadPath = defaultPath
+                        defaultDownloadPath = settings.defaultDownloadDirectory,
+                        sessionDownloadPath = settings.sessionDownloadDirectory
                     )
                 }
             }
@@ -199,7 +201,12 @@ class FileBrowserViewModel(
                     }
                 }
                 AskDownloadPathConfig.ASK_EVERYTIME -> {
-                    _uiState.update { it.copy(itemToDownload = item, isSavingFile = true) }
+                    _uiState.update { it.copy(
+                        itemToDownload = item,
+                        showAskEverytimeDialog = true,
+                        defaultDownloadPath = settings.defaultDownloadDirectory,
+                        sessionDownloadPath = settings.sessionDownloadDirectory
+                    ) }
                 }
             }
         }
@@ -214,15 +221,29 @@ class FileBrowserViewModel(
             if (settings.defaultDownloadDirectory != null) {
                 settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = settings.defaultDownloadDirectory))
                 downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, settings.defaultDownloadDirectory)
-                _uiState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
+                _uiState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, showAskEverytimeDialog = false, itemToDownload = null) }
             } else {
-                _uiState.update { it.copy(showDownloadPathOptionDialog = false, isPickingDirectory = true) }
+                _uiState.update { it.copy(showDownloadPathOptionDialog = false, showAskEverytimeDialog = false, isPickingDirectory = true) }
             }
         }
     }
 
+    fun onConfirmDownload() {
+        val item = _uiState.value.itemToDownload ?: return
+        val currentDownloadPath = _uiState.value.sessionDownloadPath ?: _uiState.value.defaultDownloadPath ?: return
+        viewModelScope.launch {
+            val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+            downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, currentDownloadPath)
+            _uiState.update { it.copy(successMessage = "Download started", showAskEverytimeDialog = false, itemToDownload = null) }
+        }
+    }
+
+    fun onCancelAskEverytime() {
+        _uiState.update { it.copy(showAskEverytimeDialog = false, itemToDownload = null) }
+    }
+
     fun onSelectCustomPath() {
-        _uiState.update { it.copy(showDownloadPathOptionDialog = false, isPickingDirectory = true) }
+        _uiState.update { it.copy(showDownloadPathOptionDialog = false, showAskEverytimeDialog = false, isPickingDirectory = true) }
     }
 
     fun onCancelDownload() {
@@ -233,11 +254,20 @@ class FileBrowserViewModel(
         viewModelScope.launch {
             val item = _uiState.value.itemToDownload ?: return@launch
             val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
-            val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
             
             settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = pickedPath))
-            downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, pickedPath)
-            _uiState.update { it.copy(successMessage = "Download started", isPickingDirectory = false, itemToDownload = null) }
+            
+            if (_uiState.value.showAskEverytimeDialog) {
+                _uiState.update { it.copy(
+                    successMessage = "Updated the download directory, you can download now", 
+                    isPickingDirectory = false,
+                    sessionDownloadPath = pickedPath
+                ) }
+            } else {
+                val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, pickedPath)
+                _uiState.update { it.copy(successMessage = "Download started", isPickingDirectory = false, itemToDownload = null) }
+            }
         }
     }
 
@@ -250,7 +280,7 @@ class FileBrowserViewModel(
     }
 
     fun clearItemToDownload() {
-        _uiState.update { it.copy(itemToDownload = null, isSavingFile = false, showDownloadPathOptionDialog = false) }
+        _uiState.update { it.copy(itemToDownload = null, isSavingFile = false, showDownloadPathOptionDialog = false, showAskEverytimeDialog = false) }
     }
 
     fun startDownload(name: String, platformFile: PlatformFile) {

@@ -62,6 +62,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -105,28 +107,31 @@ fun BucketScreen(
     var itemToRename by remember { mutableStateOf<StorageItem?>(null) }
     var itemToMove by remember { mutableStateOf<StorageItem?>(null) }
     var itemToDelete by remember { mutableStateOf<StorageItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
     val launcher = rememberFileSaverLauncher(FileKitDialogSettings.createDefault()) { platformFile ->
-        if (platformFile != null) {
-            uiState.itemToDownload?.let { item ->
-                 viewModel.startDownload(item.name, platformFile)
+            if (platformFile != null) {
+                uiState.itemToDownload?.let { item ->
+                    viewModel.startDownload(item.name, platformFile)
+                }
+            } else {
+                viewModel.onFileSaved()
             }
-        } else {
-            viewModel.onFileSaved()
         }
-    }
 
     val directoryPickerLauncher = rememberDirectoryPickerLauncher { platformDirectory ->
         if (platformDirectory != null) {
@@ -151,7 +156,7 @@ fun BucketScreen(
                 } else {
                     item.name
                 }
-                
+
                 launcher.launch(
                     extension = extension,
                     suggestedName = nameWithoutExtension,
@@ -159,6 +164,7 @@ fun BucketScreen(
             }
         }
     }
+    var showMenu by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Breadcrumbs(
@@ -297,6 +303,19 @@ fun BucketScreen(
                 onConfirmCustom = { viewModel.onSelectCustomPath() }
             )
         }
+
+        if (uiState.showAskEverytimeDialog) {
+            AskEverytimeDownloadDialog(
+                downloadPath = uiState.sessionDownloadPath ?: uiState.defaultDownloadPath,
+                onDismiss = { viewModel.onCancelAskEverytime() },
+                onDownload = { viewModel.onConfirmDownload() },
+                onSelectFolder = { viewModel.onSelectCustomPath() }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+        )
     }
 }
 
@@ -345,14 +364,14 @@ fun Breadcrumbs(
             color = if (currentPath.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleMedium
         )
-        
+
         if (currentPath.isNotEmpty()) {
             val parts = currentPath.split("/")
             var accumulatedPath = ""
             parts.forEachIndexed { index, part ->
                 accumulatedPath = if (accumulatedPath.isEmpty()) part else "$accumulatedPath/$part"
                 val pathSnapshot = accumulatedPath
-                
+
                 Text(
                     text = " / ",
                     style = MaterialTheme.typography.titleMedium,
@@ -443,59 +462,89 @@ fun StorageItemRow(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
-                    if (item.isFolder) {
-                        DropdownMenuItem(
-                            text = { Text("Copy path") },
-                            onClick = { onCopyPath(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = { onRename(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Move") },
-                            onClick = { onMove(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.DriveFileMove,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text("Get URL") },
-                            onClick = { onGetUrl(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = { onRename(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Move") },
-                            onClick = { onMove(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.DriveFileMove,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Download") },
-                            onClick = { onDownload(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = { onDelete(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                        )
-                    }
+                        if (item.isFolder) {
+                            DropdownMenuItem(
+                                text = { Text("Copy path") },
+                                onClick = { onCopyPath(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { onRename(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move") },
+                                onClick = { onMove(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.DriveFileMove,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Get URL") },
+                                onClick = { onGetUrl(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { onRename(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move") },
+                                onClick = { onMove(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.DriveFileMove,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Download") },
+                                onClick = { onDownload(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Download,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                onClick = { onDelete(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -561,74 +610,89 @@ fun StorageItemGrid(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
-                    if (item.isFolder) {
-                        DropdownMenuItem(
-                            text = { Text("Copy path") },
-                            onClick = { onCopyPath(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = { onRename(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Move") },
-                            onClick = { onMove(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.DriveFileMove,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                    } else {
-                        DropdownMenuItem(
-                            text = { Text("Get URL") },
-                            onClick = { onGetUrl(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = { onRename(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Move") },
-                            onClick = { onMove(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.DriveFileMove,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Download") },
-                            onClick = { onDownload(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Download,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = { onDelete(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                        )
-                    }
+                        if (item.isFolder) {
+                            DropdownMenuItem(
+                                text = { Text("Copy path") },
+                                onClick = { onCopyPath(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { onRename(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move") },
+                                onClick = { onMove(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.DriveFileMove,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Get URL") },
+                                onClick = { onGetUrl(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { onRename(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move") },
+                                onClick = { onMove(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.DriveFileMove,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Download") },
+                                onClick = { onDownload(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Download,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                onClick = { onDelete(); showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -691,7 +755,7 @@ fun RenameDialog(
     onConfirm: (String) -> Unit
 ) {
     val nameWithoutExtension = item.name.substringBeforeLast(".")
-    
+
     var textFieldValue by remember {
         val initialText = item.name
         val selectionEnd = if (item.isFolder) initialText.length else nameWithoutExtension.length
@@ -794,7 +858,9 @@ fun MoveDialog(
     }
 }
 
-private fun isImage(extension: String) = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
+private fun isImage(extension: String) =
+    extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
+
 private fun isVideo(extension: String) = extension in listOf("mp4", "mov", "avi", "mkv", "webm")
 private fun isPdf(extension: String) = extension == "pdf"
 
@@ -829,6 +895,42 @@ fun DownloadPathOptionDialog(
         dismissButton = {
             TextButton(onClick = onConfirmCustom) {
                 Text("Pick Folder")
+            }
+        }
+    )
+}
+
+@Composable
+fun AskEverytimeDownloadDialog(
+    downloadPath: String?,
+    onDismiss: () -> Unit,
+    onDownload: () -> Unit,
+    onSelectFolder: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Download File") },
+        text = {
+            Column {
+                Text("Do you want to download this file to the current directory?")
+                if (downloadPath != null) {
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = "Path: $downloadPath",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDownload) {
+                Text("Download")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onSelectFolder) {
+                Text("Select Folder")
             }
         }
     )
