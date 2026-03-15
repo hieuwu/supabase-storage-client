@@ -284,7 +284,6 @@ fun MainScreen(
                                     }
                                     Button(
                                         onClick = {
-                                            showActions = false
                                             filePickerLauncher.launch()
                                         },
                                         modifier = Modifier.fillMaxWidth()

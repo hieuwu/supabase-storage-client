@@ -62,8 +62,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -107,18 +105,15 @@ fun BucketScreen(
     var itemToRename by remember { mutableStateOf<StorageItem?>(null) }
     var itemToMove by remember { mutableStateOf<StorageItem?>(null) }
     var itemToDelete by remember { mutableStateOf<StorageItem?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
@@ -303,19 +298,6 @@ fun BucketScreen(
                 onConfirmCustom = { viewModel.onSelectCustomPath() }
             )
         }
-
-        if (uiState.showAskEverytimeDialog) {
-            AskEverytimeDownloadDialog(
-                downloadPath = uiState.sessionDownloadPath ?: uiState.defaultDownloadPath,
-                onDismiss = { viewModel.onCancelAskEverytime() },
-                onDownload = { viewModel.onConfirmDownload() },
-                onSelectFolder = { viewModel.onSelectCustomPath() }
-            )
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-        )
     }
 }
 
@@ -888,49 +870,15 @@ fun DownloadPathOptionDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirmDefault, enabled = defaultPath != null) {
-                Text("Use Default")
+            if (defaultPath != null) {
+                TextButton(onClick = onConfirmDefault) {
+                    Text("Use Default")
+                }
             }
         },
         dismissButton = {
             TextButton(onClick = onConfirmCustom) {
                 Text("Pick Folder")
-            }
-        }
-    )
-}
-
-@Composable
-fun AskEverytimeDownloadDialog(
-    downloadPath: String?,
-    onDismiss: () -> Unit,
-    onDownload: () -> Unit,
-    onSelectFolder: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Download File") },
-        text = {
-            Column {
-                Text("Do you want to download this file to the current directory?")
-                if (downloadPath != null) {
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = "Path: $downloadPath",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDownload) {
-                Text("Download")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onSelectFolder) {
-                Text("Select Folder")
             }
         }
     )

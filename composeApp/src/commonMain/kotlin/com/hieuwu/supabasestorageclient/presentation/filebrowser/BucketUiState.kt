@@ -13,7 +13,5 @@ data class BucketUiState(
     val isPickingDirectory: Boolean = false,
     val isSavingFile: Boolean = false,
     val showDownloadPathOptionDialog: Boolean = false,
-    val showAskEverytimeDialog: Boolean = false,
-    val defaultDownloadPath: String? = null,
-    val sessionDownloadPath: String? = null
+    val defaultDownloadPath: String? = null
 )

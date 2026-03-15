@@ -369,8 +369,10 @@ fun DownloadPathOptionDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirmDefault, enabled = defaultPath != null) {
-                Text("Use Default")
+            if (defaultPath != null) {
+                TextButton(onClick = onConfirmDefault) {
+                    Text("Use Default")
+                }
             }
         },
         dismissButton = {

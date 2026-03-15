@@ -102,7 +102,11 @@ class FileViewViewModel(
                     }
                 }
                 AskDownloadPathConfig.ASK_EVERYTIME -> {
-                    _uiState.update { it.copy(itemToDownload = item, isSavingFile = true) }
+                    _uiState.update { it.copy(
+                        showDownloadPathOptionDialog = true,
+                        itemToDownload = item,
+                        defaultDownloadPath = settings.defaultDownloadDirectory
+                    ) }
                 }
             }
         }

@@ -152,14 +152,6 @@ class DownloadManager(
                     currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(lastUsedId, it) }
                 }
 
-                // Check if this is the first operation
-                scope.launch {
-                    val settings = settingsRepository.getSettings().firstOrNull()
-                    if (settings != null && !settings.isFirstOperationCompleted) {
-                        settingsRepository.updateSettings(settings.copy(isFirstOperationCompleted = true))
-                        purchaseRepository.triggerPaywall()
-                    }
-                }
 
             } catch (e: Exception) {
                 buffersMutex.withLock {
@@ -257,14 +249,6 @@ class DownloadManager(
                     currentItem?.copy(status = DownloadStatus.Completed)?.let { updateAndPersistItem(lastUsedId, it) }
                 }
 
-                // Check if this is the first operation
-                scope.launch {
-                    val settings = settingsRepository.getSettings().firstOrNull()
-                    if (settings != null && !settings.isFirstOperationCompleted) {
-                        settingsRepository.updateSettings(settings.copy(isFirstOperationCompleted = true))
-                        purchaseRepository.triggerPaywall()
-                    }
-                }
 
             } catch (e: Exception) {
                 buffersMutex.withLock {
