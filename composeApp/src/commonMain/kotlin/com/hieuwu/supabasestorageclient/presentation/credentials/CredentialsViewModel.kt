@@ -124,10 +124,14 @@ class CredentialsViewModel(
 
     fun onAddClick() {
         val uiState = _uiState.value
-        if (uiState.isPro || uiState.credentials.size < 2) {
-            _uiState.update { it.copy(showAddSheet = true) }
+        if (purchaseRepository.shouldEnablePurchase) {
+            if (uiState.isPro || uiState.credentials.size < 2) {
+                _uiState.update { it.copy(showAddSheet = true) }
+            } else {
+                purchaseRepository.triggerPaywall()
+            }
         } else {
-            purchaseRepository.triggerPaywall()
+            _uiState.update { it.copy(showAddSheet = true) }
         }
     }
 

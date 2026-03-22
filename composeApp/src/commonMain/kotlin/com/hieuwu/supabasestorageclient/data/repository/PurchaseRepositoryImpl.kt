@@ -28,12 +28,15 @@ class PurchaseRepositoryImpl : PurchaseRepository {
     private val _showPaywallEvent = MutableSharedFlow<Unit>()
     override val showPaywallEvent: SharedFlow<Unit> = _showPaywallEvent.asSharedFlow()
 
+    override val shouldEnablePurchase: Boolean = false
+
     private val _isPro = MutableStateFlow(false)
     override val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override fun triggerPaywall() {
+        if (!shouldEnablePurchase) return
         scope.launch {
             _showPaywallEvent.emit(Unit)
         }

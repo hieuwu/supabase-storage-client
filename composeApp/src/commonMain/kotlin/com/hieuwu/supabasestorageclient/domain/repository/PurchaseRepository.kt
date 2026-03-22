@@ -12,6 +12,8 @@ interface PurchaseRepository {
      */
     val showPaywallEvent: SharedFlow<Unit>
 
+    val shouldEnablePurchase: Boolean
+
     /**
      * Current entitlement status.
      */
