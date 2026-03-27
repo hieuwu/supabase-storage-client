@@ -43,7 +43,9 @@ class CredentialsViewModel(
                         )
                     }
                 }
+        }
 
+        viewModelScope.launch {
             purchaseRepository.isPro.collect { isPro ->
                 _uiState.update { it.copy(isPro = isPro) }
             }

@@ -54,9 +54,8 @@ class PurchaseRepositoryImpl(
 
     override suspend fun checkEntitlements() {
         try {
-            val customerInfo = Purchases.sharedInstance.awaitCustomerInfo()
-            val proEntitlement = customerInfo.entitlements["pro"]
-            _isPro.value = proEntitlement?.isActive == true
+            val proEntitlement = Purchases.sharedInstance.awaitCustomerInfo().activeSubscriptions.isNotEmpty()
+            _isPro.value = proEntitlement == true
         } catch (e: Exception) {
             logger.e(e) { "Error checking entitlements: ${e.message}" }
             _isPro.value = false

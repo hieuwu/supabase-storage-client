@@ -1,29 +1,34 @@
 package com.hieuwu.supabasestorageclient
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
+import com.hieuwu.supabasestorageclient.domain.model.AppTheme
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.presentation.navigation.NavGraph
 import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewModel
+import com.hieuwu.supabasestorageclient.presentation.paywall.PaywallScreen
+import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
+import com.hieuwu.supabasestorageclient.presentation.theme.SupaBucktTheme
+import com.revenuecat.purchases.kmp.models.Offering
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-
-import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
-import com.hieuwu.supabasestorageclient.domain.model.AppTheme
-import com.hieuwu.supabasestorageclient.presentation.theme.SupaBucktTheme
-import com.revenuecat.purchases.kmp.ui.revenuecatui.Paywall
-import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
-import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
-import com.revenuecat.purchases.kmp.models.Offering
-import com.hieuwu.supabasestorageclient.data.network.ApiResponse
-import com.hieuwu.supabasestorageclient.presentation.paywall.PaywallScreen
 
 @Composable
 fun App() {
@@ -40,6 +45,8 @@ fun App() {
         val purchaseRepository: PurchaseRepository = koinInject()
         var showGlobalPaywall by remember { mutableStateOf(false) }
         var currentOffering by remember { mutableStateOf<Offering?>(null) }
+        val snackbarHostState = remember { SnackbarHostState() }
+        val scope = rememberCoroutineScope()
 
         LaunchedEffect(Unit) {
             purchaseRepository.initialize()
@@ -91,22 +98,41 @@ fun App() {
             }
         }
 
-        NavGraph(
-            navController = navController,
-            startDestination = startDestination,
-            onOnboardingComplete = {
-                onboardingViewModel.completeOnboarding()
-            },
-            onLogout = {
-                supabaseClientManager.clearClient()
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavGraph(
+                navController = navController,
+                startDestination = startDestination,
+                onOnboardingComplete = {
+                    onboardingViewModel.completeOnboarding()
+                },
+                onLogout = {
+                    supabaseClientManager.clearClient()
+                }
+            )
+
+
+            if (showGlobalPaywall) {
+                PaywallScreen(
+                    offering = currentOffering,
+                    onDismiss = { showGlobalPaywall = false },
+                    onPurchaseCompleted = {
+                        scope.launch {
+                            purchaseRepository.checkEntitlements()
+                            snackbarHostState.showSnackbar("Purchase successful!")
+                        }
+                        showGlobalPaywall = false
+                    },
+                    onPurchaseError = { error ->
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Purchase failed: ${error.message}")
+                        }
+                    }
+                )
             }
-        )
 
-
-        if (showGlobalPaywall) {
-            PaywallScreen(
-                offering = currentOffering,
-                onDismiss = { showGlobalPaywall = false }
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
     }
