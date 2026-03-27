@@ -7,7 +7,7 @@ import org.koin.dsl.module
 val repositoryModule = module {
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
-    single<PurchaseRepository> { PurchaseRepositoryImpl() }
+    single<PurchaseRepository> { PurchaseRepositoryImpl(get()) }
     single<StorageRepository> { StorageRepositoryImpl(get(), get(), get(), get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(get()) }
     single<DownloadRepository> { DownloadRepositoryImpl(get()) }

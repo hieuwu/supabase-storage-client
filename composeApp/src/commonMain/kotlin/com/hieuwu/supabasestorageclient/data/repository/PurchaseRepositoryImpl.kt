@@ -23,12 +23,15 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import co.touchlab.kermit.Logger
 
-class PurchaseRepositoryImpl : PurchaseRepository {
+class PurchaseRepositoryImpl(
+    private val logger: Logger
+) : PurchaseRepository {
     private val _showPaywallEvent = MutableSharedFlow<Unit>()
     override val showPaywallEvent: SharedFlow<Unit> = _showPaywallEvent.asSharedFlow()
 
-    override val shouldEnablePurchase: Boolean = false
+    override val shouldEnablePurchase: Boolean = true
 
     private val _isPro = MutableStateFlow(false)
     override val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
@@ -55,7 +58,7 @@ class PurchaseRepositoryImpl : PurchaseRepository {
             val proEntitlement = customerInfo.entitlements["pro"]
             _isPro.value = proEntitlement?.isActive == true
         } catch (e: Exception) {
-            // Handle error or log
+            logger.e(e) { "Error checking entitlements: ${e.message}" }
             _isPro.value = false
         }
     }
@@ -68,11 +71,14 @@ class PurchaseRepositoryImpl : PurchaseRepository {
             if (currentOffering != null) {
                 emit(ApiResponse.Success(currentOffering))
             } else {
+                logger.e { "No current offering found" }
                 emit(ApiResponse.Error(Exception("No current offering found")))
             }
         } catch (e: PurchasesException) {
+            logger.e(e) { "RevenueCat error: ${e.message}" }
             emit(ApiResponse.Error(e))
         } catch (e: Exception) {
+            logger.e(e) { "General error fetching offering: ${e.message}" }
             emit(ApiResponse.Error(e))
         }
     }
