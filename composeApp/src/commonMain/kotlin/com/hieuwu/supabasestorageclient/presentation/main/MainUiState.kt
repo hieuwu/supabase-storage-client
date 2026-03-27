@@ -22,5 +22,6 @@ data class MainUiState(
     val showCredentialSwitchConfirmation: Boolean = false,
     val selectedCredentialForSwitch: Credential? = null,
     val isSettingUpCredential: Boolean = false,
-    val viewMode: ViewMode = ViewMode.LIST
+    val viewMode: ViewMode = ViewMode.LIST,
+    val isPremium: Boolean = false
 )

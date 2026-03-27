@@ -111,6 +111,8 @@ import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsScreen
 import com.hieuwu.supabasestorageclient.presentation.starred.StarredScreen
 import com.hieuwu.supabasestorageclient.presentation.uploads.UploadScreen
+import com.hieuwu.supabasestorageclient.presentation.components.PremiumBadge
+import com.hieuwu.supabasestorageclient.presentation.components.UpgradeBadge
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -158,6 +160,16 @@ fun MainScreen(
                     },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
+                if (uiState.isPremium) {
+                    PremiumBadge()
+                } else {
+                    UpgradeBadge(
+                        onUpgradeClick = {
+                            scope.launch { drawerState.close() }
+                            viewModel.onUpgradeClick()
+                        }
+                    )
+                }
             }
         }
     ) {

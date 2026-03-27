@@ -13,6 +13,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.UploadFileUseCase
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -32,7 +33,8 @@ class MainViewModel(
     private val createBucketUseCase: CreateBucketUseCase,
     private val credentialRepository: CredentialRepository,
     private val settingsRepository: SettingsRepository,
-    private val supabaseClientManager: SupabaseClientManager
+    private val supabaseClientManager: SupabaseClientManager,
+    private val purchaseRepository: PurchaseRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -49,6 +51,15 @@ class MainViewModel(
     init {
         observeCredentials()
         observeSettings()
+        observePremiumStatus()
+    }
+
+    private fun observePremiumStatus() {
+        viewModelScope.launch {
+            purchaseRepository.isPro.collect { isPro ->
+                _uiState.update { it.copy(isPremium = isPro) }
+            }
+        }
     }
 
     private fun observeCredentials() {
@@ -280,5 +291,9 @@ class MainViewModel(
             val settings = settingsRepository.getSettings().first()
             settingsRepository.updateSettings(settings.copy(viewMode = newViewMode))
         }
+    }
+
+    fun onUpgradeClick() {
+        purchaseRepository.triggerPaywall()
     }
 }
