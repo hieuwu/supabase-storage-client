@@ -35,6 +35,11 @@ interface PurchaseRepository {
     suspend fun checkEntitlements()
 
     /**
+     * Update the internal entitlement status using provided CustomerInfo.
+     */
+    fun updatePurchaseStatus(customerInfo: com.revenuecat.purchases.kmp.models.CustomerInfo)
+
+    /**
      * Fetch the current offering from RevenueCat.
      */
     fun fetchOffering(): Flow<ApiResponse<Offering>>

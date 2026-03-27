@@ -54,12 +54,25 @@ class PurchaseRepositoryImpl(
 
     override suspend fun checkEntitlements() {
         try {
-            val proEntitlement = Purchases.sharedInstance.awaitCustomerInfo().activeSubscriptions.isNotEmpty()
-            _isPro.value = proEntitlement == true
+            val customerInfo = Purchases.sharedInstance.awaitCustomerInfo()
+            updateProStatus(customerInfo)
         } catch (e: Exception) {
             logger.e(e) { "Error checking entitlements: ${e.message}" }
             _isPro.value = false
         }
+    }
+
+    override fun updatePurchaseStatus(customerInfo: com.revenuecat.purchases.kmp.models.CustomerInfo) {
+        updateProStatus(customerInfo)
+    }
+
+    private fun updateProStatus(customerInfo: com.revenuecat.purchases.kmp.models.CustomerInfo) {
+        val hasActiveSubscription = customerInfo.activeSubscriptions.isNotEmpty()
+        val activeEntitlements = customerInfo.entitlements.active.keys
+        
+        logger.d { "Updating pro status: ($activeEntitlements), subscriptions=$hasActiveSubscription" }
+        
+        _isPro.value = hasActiveSubscription
     }
 
     override fun fetchOffering(): Flow<ApiResponse<Offering>> = flow {

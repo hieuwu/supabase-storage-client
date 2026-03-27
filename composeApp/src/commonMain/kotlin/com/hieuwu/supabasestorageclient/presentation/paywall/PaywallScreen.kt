@@ -13,7 +13,7 @@ import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 fun PaywallScreen(
     offering: Offering?,
     onDismiss: () -> Unit,
-    onPurchaseCompleted: () -> Unit,
+    onPurchaseCompleted: (CustomerInfo) -> Unit,
     onPurchaseError: (PurchasesError) -> Unit,
 ) {
     val options = PaywallOptions(dismissRequest = onDismiss) {
@@ -25,7 +25,7 @@ fun PaywallScreen(
                 storeTransaction: StoreTransaction
             ) {
                 super.onPurchaseCompleted(customerInfo, storeTransaction)
-                onPurchaseCompleted()
+                onPurchaseCompleted(customerInfo)
 
             }
 

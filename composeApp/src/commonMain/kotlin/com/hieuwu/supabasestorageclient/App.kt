@@ -115,9 +115,9 @@ fun App() {
                 PaywallScreen(
                     offering = currentOffering,
                     onDismiss = { showGlobalPaywall = false },
-                    onPurchaseCompleted = {
+                    onPurchaseCompleted = { customerInfo ->
+                        purchaseRepository.updatePurchaseStatus(customerInfo)
                         scope.launch {
-                            purchaseRepository.checkEntitlements()
                             snackbarHostState.showSnackbar("Purchase successful!")
                         }
                         showGlobalPaywall = false
