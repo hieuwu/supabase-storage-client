@@ -67,12 +67,11 @@ class PurchaseRepositoryImpl(
     }
 
     private fun updateProStatus(customerInfo: com.revenuecat.purchases.kmp.models.CustomerInfo) {
-        val hasActiveSubscription = customerInfo.activeSubscriptions.isNotEmpty()
-        val activeEntitlements = customerInfo.entitlements.active.keys
+        val activeEntitlements = customerInfo.entitlements.active.isNotEmpty()
         
-        logger.d { "Updating pro status: ($activeEntitlements), subscriptions=$hasActiveSubscription" }
-        
-        _isPro.value = hasActiveSubscription
+        logger.d { "Updating pro status: ($activeEntitlements)" }
+
+        _isPro.value = activeEntitlements
     }
 
     override fun fetchOffering(): Flow<ApiResponse<Offering>> = flow {
