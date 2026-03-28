@@ -4,13 +4,11 @@ import com.hieuwu.supabasestorageclient.BuildKonfig
 
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
-import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
 import com.revenuecat.purchases.kmp.PurchasesException
 import com.revenuecat.purchases.kmp.ktx.awaitCustomerInfo
 import com.revenuecat.purchases.kmp.ktx.awaitOfferings
-import com.revenuecat.purchases.kmp.models.EntitlementInfo
 import com.revenuecat.purchases.kmp.models.Offering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +52,8 @@ class PurchaseRepositoryImpl(
 
     override suspend fun checkEntitlements() {
         try {
+            logger.d { "Start configure purchases" }
+            Purchases.configure(PurchasesConfiguration(BuildKonfig.REVENUECAT_API_KEY))
             val customerInfo = Purchases.sharedInstance.awaitCustomerInfo()
             updateProStatus(customerInfo)
         } catch (e: Exception) {
@@ -67,11 +67,10 @@ class PurchaseRepositoryImpl(
     }
 
     private fun updateProStatus(customerInfo: com.revenuecat.purchases.kmp.models.CustomerInfo) {
-        val activeEntitlements = customerInfo.entitlements.active.isNotEmpty()
-        
-        logger.d { "Updating pro status: ($activeEntitlements)" }
+        val activeSubscription = customerInfo.activeSubscriptions.isNotEmpty()
+        logger.d { "Updating pro status: ($activeSubscription)" }
 
-        _isPro.value = activeEntitlements
+        _isPro.value = activeSubscription
     }
 
     override fun fetchOffering(): Flow<ApiResponse<Offering>> = flow {

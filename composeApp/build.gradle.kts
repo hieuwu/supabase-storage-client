@@ -219,7 +219,10 @@ buildkonfig {
         create("android") {
             buildConfigField(FieldSpec.Type.STRING, "REVENUECAT_API_KEY", revenueCatApiKeyAndroid)
         }
-        create("ios") {
+        create("iosArm64") {
+            buildConfigField(FieldSpec.Type.STRING, "REVENUECAT_API_KEY", revenueCatApiKeyIos)
+        }
+        create("iosSimulatorArm64") {
             buildConfigField(FieldSpec.Type.STRING, "REVENUECAT_API_KEY", revenueCatApiKeyIos)
         }
     }
