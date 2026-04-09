@@ -169,6 +169,15 @@ fun MainScreen(
                             viewModel.onUpgradeClick()
                         }
                     )
+                    NavigationDrawerItem(
+                        label = { Text("Restore Purchases") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            viewModel.onRestoreClick()
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
                 }
             }
         }
@@ -781,6 +790,10 @@ fun MainScreen(
 
     if (uiState.isSettingUpCredential) {
         PremiumLoadingOverlay(message = "Setting up...")
+    }
+
+    if (uiState.isRestoring) {
+        PremiumLoadingOverlay(message = "Restoring...")
     }
 }
 

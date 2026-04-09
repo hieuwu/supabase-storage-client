@@ -12,10 +12,27 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
+import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 
 class SettingsViewModel(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val purchaseRepository: PurchaseRepository
 ) : ViewModel() {
+
+    private val _isRestoring = MutableStateFlow(false)
+    val isRestoring = _isRestoring.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage = _successMessage.asStateFlow()
+
+    val isPro = purchaseRepository.isPro
 
     val settings: StateFlow<UserSettings?> = settingsRepository.getSettings()
         .stateIn(
@@ -71,5 +88,27 @@ class SettingsViewModel(
         viewModelScope.launch {
             settingsRepository.updateSettings(current.copy(sessionDownloadDirectory = path))
         }
+    }
+
+    fun onRestorePurchases() {
+        _isRestoring.value = true
+        viewModelScope.launch {
+            val result = purchaseRepository.restorePurchases()
+            _isRestoring.value = false
+            when (result) {
+                is ApiResponse.Success -> {
+                    _successMessage.value = "Restored successfully!"
+                }
+                is ApiResponse.Error -> {
+                    _error.value = "Restore failed: ${result.exception.message}"
+                }
+                is ApiResponse.Loading -> { }
+            }
+        }
+    }
+
+    fun clearMessages() {
+        _error.value = null
+        _successMessage.value = null
     }
 }

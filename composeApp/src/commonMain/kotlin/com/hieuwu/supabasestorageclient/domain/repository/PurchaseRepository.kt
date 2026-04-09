@@ -43,4 +43,9 @@ interface PurchaseRepository {
      * Fetch the current offering from RevenueCat.
      */
     fun fetchOffering(): Flow<ApiResponse<Offering>>
+
+    /**
+     * Restore purchases from RevenueCat.
+     */
+    suspend fun restorePurchases(): ApiResponse<com.revenuecat.purchases.kmp.models.CustomerInfo>
 }

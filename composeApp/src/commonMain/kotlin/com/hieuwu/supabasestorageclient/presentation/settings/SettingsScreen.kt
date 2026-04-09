@@ -29,7 +29,24 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+    val isRestoring by viewModel.isRestoring.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val successMessage by viewModel.successMessage.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(error, successMessage) {
+        error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+        successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
 
     var pickingForSession by remember { mutableStateOf(false) }
     val directoryPickerLauncher = rememberDirectoryPickerLauncher { platformDirectory ->
@@ -48,6 +65,8 @@ fun SettingsScreen(
         }
         return
     }
+
+    Box(modifier = modifier.fillMaxSize()) {
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -315,7 +334,49 @@ fun SettingsScreen(
                 }
             }
         }
+
+        if (!isPro) {
+            item {
+                Text(
+                    text = "Subscription",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    SettingsRow(
+                        title = "Restore Purchases",
+                        subtitle = "Already purchased on another device?",
+                        icon = Icons.Default.Restore,
+                        onClick = { viewModel.onRestorePurchases() },
+                        trailingContent = {
+                            if (isRestoring) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+        }
     }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
+}
 }
 
 @Composable

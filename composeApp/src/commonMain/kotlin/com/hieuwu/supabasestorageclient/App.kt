@@ -115,6 +115,9 @@ fun App() {
                 PaywallScreen(
                     offering = currentOffering,
                     onDismiss = { showGlobalPaywall = false },
+                    onPurchaseStarted = {
+                        scope.launch { snackbarHostState.showSnackbar("Starting purchase...") }
+                    },
                     onPurchaseCompleted = { customerInfo ->
                         purchaseRepository.updatePurchaseStatus(customerInfo)
                         scope.launch {
@@ -125,6 +128,28 @@ fun App() {
                     onPurchaseError = { error ->
                         scope.launch {
                             snackbarHostState.showSnackbar("Purchase failed: ${error.message}")
+                        }
+                    },
+                    onPurchaseCancelled = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Purchase cancelled")
+                        }
+                    },
+                    onRestoreStarted = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Restoring purchases...")
+                        }
+                    },
+                    onRestoreCompleted = { customerInfo ->
+                        purchaseRepository.updatePurchaseStatus(customerInfo)
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Restore successful!")
+                        }
+                        showGlobalPaywall = false
+                    },
+                    onRestoreError = { error ->
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Restore failed: ${error.message}")
                         }
                     }
                 )

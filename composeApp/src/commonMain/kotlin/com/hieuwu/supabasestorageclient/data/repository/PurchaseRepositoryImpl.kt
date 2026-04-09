@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import co.touchlab.kermit.Logger
+import com.revenuecat.purchases.kmp.ktx.awaitRestore
 
 class PurchaseRepositoryImpl(
     private val logger: Logger
@@ -90,6 +91,17 @@ class PurchaseRepositoryImpl(
         } catch (e: Exception) {
             logger.e(e) { "General error fetching offering: ${e.message}" }
             emit(ApiResponse.Error(e))
+        }
+    }
+
+    override suspend fun restorePurchases(): ApiResponse<com.revenuecat.purchases.kmp.models.CustomerInfo> {
+        return try {
+            val customerInfo = Purchases.sharedInstance.awaitRestore()
+            updateProStatus(customerInfo)
+            ApiResponse.Success(customerInfo)
+        } catch (e: Exception) {
+            logger.e(e) { "Error restoring purchases: ${e.message}" }
+            ApiResponse.Error(e)
         }
     }
 }

@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -295,5 +297,31 @@ class MainViewModel(
 
     fun onUpgradeClick() {
         purchaseRepository.triggerPaywall()
+    }
+
+    fun onRestoreClick() {
+        _uiState.update { it.copy(isRestoring = true) }
+        viewModelScope.launch {
+            val result = purchaseRepository.restorePurchases()
+            when (result) {
+                is ApiResponse.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isRestoring = false,
+                            successMessage = "Restored successfully!"
+                        )
+                    }
+                }
+                is ApiResponse.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRestoring = false,
+                            error = "Restore failed: ${result.exception.message}"
+                        )
+                    }
+                }
+                is ApiResponse.Loading -> { /* Handled by isRestoring = true */ }
+            }
+        }
     }
 }

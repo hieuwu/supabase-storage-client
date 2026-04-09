@@ -13,7 +13,6 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.buildkonfig)
-//    alias(libs.plugins.kotlin.cocoapods)
 }
 
 kotlin {
@@ -38,16 +37,16 @@ kotlin {
 
     jvm()
 
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
+    js {
+        browser()
+        binaries.executable()
+    }
 
-//    @OptIn(ExperimentalWasmDsl::class)
-//    wasmJs {
-//        browser()
-//        binaries.executable()
-//    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        binaries.executable()
+    }
 
     sourceSets {
         androidMain.dependencies {
@@ -114,22 +113,6 @@ kotlin {
             implementation(libs.sqldelight.native)
         }
     }
-
-//    cocoapods {
-//        noPodspec()
-//        summary = "Some description for the Shared Module"
-//        homepage = "Link to the Shared Module homepage"
-//        version = "1.0"
-//        ios.deploymentTarget = "18.2"
-//        pod("PurchasesHybridCommon") {
-//            version = "17.42.0"
-//            extraOpts += listOf("-compiler-option", "-fmodules")
-//        }
-//        pod("PurchasesHybridCommonUI") {
-//            version = "17.42.0"
-//            extraOpts += listOf("-compiler-option", "-fmodules")
-//        }
-//    }
 }
 
 android {
@@ -149,7 +132,7 @@ android {
         applicationId = "com.hieuwu.supabasestorageclient"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 4
+        versionCode = 6
         versionName = "1.0"
     }
     packaging {
