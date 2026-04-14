@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
@@ -36,6 +37,7 @@ fun SettingsScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(error, successMessage) {
         error?.let {
@@ -366,6 +368,45 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                    )
+                }
+            }
+        }
+
+        item {
+            Text(
+                text = "Legal",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Column {
+                    SettingsRow(
+                        title = "Terms of Service",
+                        subtitle = "Read our terms and conditions",
+                        icon = Icons.Default.Description,
+                        onClick = { uriHandler.openUri("https://hieuwu.github.io/supabuckt-landing/terms-of-service.html") }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    SettingsRow(
+                        title = "Privacy Policy",
+                        subtitle = "Read our privacy policy",
+                        icon = Icons.Default.Lock,
+                        onClick = { uriHandler.openUri("https://hieuwu.github.io/supabuckt-landing/privacy-policy.html") }
                     )
                 }
             }
