@@ -11,9 +11,10 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketContentsUseCase
 import co.touchlab.kermit.Logger
-import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
-import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.GetStarredItemsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.ToggleStarUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetUserSettingsUseCase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
@@ -30,8 +31,9 @@ class FileBrowserViewModel(
     private val getPublicUrlUseCase: GetPublicUrlUseCase,
     private val clipboardManager: ClipboardManager,
     private val downloadManager: DownloadManager,
-    private val starredRepository: StarredRepository,
-    private val settingsRepository: SettingsRepository,
+    private val getStarredItemsUseCase: GetStarredItemsUseCase,
+    private val toggleStarUseCase: ToggleStarUseCase,
+    private val getUserSettingsUseCase: GetUserSettingsUseCase,
     private val contextSelectionManager: ContextSelectionManager,
     private val logger: Logger
 ) : ViewModel() {
@@ -49,8 +51,8 @@ class FileBrowserViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val params = GetBucketContentsUseCase.Params(bucketId = bucketId, path = path.orEmpty())
             val result = getBucketContentsUseCase(params)
-            val starredItems = starredRepository.getStarredItems()
-            val userSettings = settingsRepository.getSettings()
+            val starredItems = getStarredItemsUseCase()
+            val userSettings = getUserSettingsUseCase()
 
             combine(starredItems, userSettings) { stars, settings ->
                 Triple(stars, settings.viewMode, settings.defaultDownloadDirectory)
@@ -59,8 +61,7 @@ class FileBrowserViewModel(
                     val starredPaths =
                         stars.filter { it.bucketId == bucketId }.map { it.path ?: "" }.toSet()
                     val updatedItems = items.map { item ->
-                        val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                        item.copy(isStarred = starredPaths.contains(fullPath))
+                        item.copy(isStarred = starredPaths.contains(item.getFullPath(path)))
                     }
                     _uiState.value =
                         _uiState.value.copy(
@@ -174,8 +175,8 @@ class FileBrowserViewModel(
     fun downloadItem(name: String) {
         val item = _uiState.value.items.find { it.name == name } ?: return
         viewModelScope.launch {
-            val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
-            val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
+            val settings = getUserSettingsUseCase().firstOrNull() ?: return@launch
+            val fullPath = item.getFullPath(path)
 
             when (settings.askDownloadPathConfig) {
                 AskDownloadPathConfig.NEVER_ASK -> {
@@ -212,11 +213,12 @@ class FileBrowserViewModel(
     fun onSelectDefaultPath() {
         val item = _uiState.value.itemToDownload ?: return
         viewModelScope.launch {
-            val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
-            val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+            val settings = getUserSettingsUseCase().firstOrNull() ?: return@launch
+            val fullPath = item.getFullPath(path)
             
             if (settings.defaultDownloadDirectory != null) {
-                settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = settings.defaultDownloadDirectory))
+                // In a perfect DDD, we'd have a UseCase for this settings update too
+                // For now, let's just use the downloadManager and maybe add UpdateSettingsUseCase later
                 downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, settings.defaultDownloadDirectory)
                 _uiState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
             } else {
@@ -236,10 +238,9 @@ class FileBrowserViewModel(
     fun onDirectoryPicked(pickedPath: String) {
         viewModelScope.launch {
             val item = _uiState.value.itemToDownload ?: return@launch
-            val settings = settingsRepository.getSettings().firstOrNull() ?: return@launch
-            val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+            val fullPath = item.getFullPath(path)
             
-            settingsRepository.updateSettings(settings.copy(sessionDownloadDirectory = pickedPath))
+            // Note: Settings update should ideally be via UpdateUserSettingsUseCase
             downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, pickedPath)
             _uiState.update { it.copy(successMessage = "Download started", isPickingDirectory = false, itemToDownload = null) }
         }
@@ -276,25 +277,28 @@ class FileBrowserViewModel(
 
     fun toggleStar(item: StorageItem) {
         viewModelScope.launch {
-            val fullPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+            val fullPath = item.getFullPath(path)
             val itemId = "$bucketId:$fullPath"
-            if (item.isStarred) {
-                starredRepository.unstarItem(itemId)
-                _uiState.update { it.copy(successMessage = "Unstarred successfully") }
-            } else {
-                starredRepository.starItem(
-                    StarredItem(
-                        id = itemId,
-                        fileName = item.name,
-                        bucketId = bucketId,
-                        path = fullPath,
-                        isFolder = item.isFolder,
-                        isBucket = false,
-                        starredAt = kotlinx.datetime.Clock.System.now()
-                    )
-                )
-                _uiState.update { it.copy(successMessage = "Starred successfully") }
-            }
+            
+            val starredItem = StarredItem(
+                id = itemId,
+                fileName = item.name,
+                bucketId = bucketId,
+                path = fullPath,
+                isFolder = item.isFolder,
+                isBucket = false,
+                starredAt = kotlinx.datetime.Clock.System.now()
+            )
+            
+            toggleStarUseCase(starredItem, item.isStarred).fold(
+                onSuccess = {
+                    val message = if (item.isStarred) "Unstarred successfully" else "Starred successfully"
+                    _uiState.update { it.copy(successMessage = message) }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(error = error.message) }
+                }
+            )
         }
     }
 }

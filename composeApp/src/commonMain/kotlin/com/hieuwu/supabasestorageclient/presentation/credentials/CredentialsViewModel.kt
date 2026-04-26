@@ -10,7 +10,6 @@ import kotlinx.coroutines.launch
 import io.github.jan.supabase.storage.storage
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.usecase.ClearCacheUseCase
-import kotlinx.coroutines.delay
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

@@ -2,14 +2,18 @@ package com.hieuwu.supabasestorageclient.presentation.starred
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
-import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.GetStarredItemsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetUserSettingsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.UnstarItemUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.ClearAllStarredItemsUseCase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class StarredViewModel(
-    private val starredRepository: StarredRepository,
-    private val settingsRepository: SettingsRepository
+    private val getStarredItemsUseCase: GetStarredItemsUseCase,
+    private val getUserSettingsUseCase: GetUserSettingsUseCase,
+    private val unstarItemUseCase: UnstarItemUseCase,
+    private val clearAllStarredItemsUseCase: ClearAllStarredItemsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StarredUiState())
@@ -22,8 +26,8 @@ class StarredViewModel(
     fun loadStarredItems() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val starredItems = starredRepository.getStarredItems()
-            val userSettings = settingsRepository.getSettings()
+            val starredItems = getStarredItemsUseCase()
+            val userSettings = getUserSettingsUseCase()
 
             combine(starredItems, userSettings) { items, settings ->
                 Pair(items, settings.viewMode)
@@ -35,8 +39,9 @@ class StarredViewModel(
 
     fun unstarItem(id: String) {
         viewModelScope.launch {
-            starredRepository.unstarItem(id)
-            _uiState.update { it.copy(successMessage = "Unstarred successfully") }
+            unstarItemUseCase(id).onSuccess {
+                _uiState.update { it.copy(successMessage = "Unstarred successfully") }
+            }
         }
     }
 
@@ -46,12 +51,13 @@ class StarredViewModel(
 
     fun confirmClearAll() {
         viewModelScope.launch {
-            starredRepository.clearAllStarredItems()
-            _uiState.update {
-                it.copy(
-                    showClearAllConfirmation = false,
-                    successMessage = "Cleared all starred items"
-                )
+            clearAllStarredItemsUseCase().onSuccess {
+                _uiState.update {
+                    it.copy(
+                        showClearAllConfirmation = false,
+                        successMessage = "Cleared all starred items"
+                    )
+                }
             }
         }
     }
