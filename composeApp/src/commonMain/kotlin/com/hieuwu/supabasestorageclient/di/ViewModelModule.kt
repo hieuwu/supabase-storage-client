@@ -21,7 +21,22 @@ val viewModelModule = module {
 
     viewModelOf(::BucketsViewModel)
     viewModel { (bucketId: String, path: String?) ->
-        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        FileBrowserViewModel(
+            bucketId,
+            path,
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get()
+        )
     }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(
