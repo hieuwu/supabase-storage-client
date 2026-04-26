@@ -10,4 +10,9 @@ data class Bucket(
     val allowedMimeTypes: List<String>?,
     val fileSizeLimit: Long?,
     val isStarred: Boolean = false
-)
+) {
+    fun isMimeTypeAllowed(mimeType: String): Boolean {
+        if (allowedMimeTypes == null) return true
+        return allowedMimeTypes.contains(mimeType)
+    }
+}
