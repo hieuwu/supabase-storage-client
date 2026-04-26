@@ -1,10 +1,17 @@
 package com.hieuwu.supabasestorageclient.di
 
+import com.hieuwu.supabasestorageclient.data.datasource.LocalStorageDataSource
+import com.hieuwu.supabasestorageclient.data.datasource.RemoteStorageDataSource
+import com.hieuwu.supabasestorageclient.data.datasource.local.LocalStorageDataSourceImpl
+import com.hieuwu.supabasestorageclient.data.datasource.remote.RemoteStorageDataSourceImpl
 import com.hieuwu.supabasestorageclient.data.repository.*
 import com.hieuwu.supabasestorageclient.domain.repository.*
 import org.koin.dsl.module
 
 val repositoryModule = module {
+    single<RemoteStorageDataSource> { RemoteStorageDataSourceImpl(get()) }
+    single<LocalStorageDataSource> { LocalStorageDataSourceImpl(get()) }
+
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
     single<PurchaseRepository> { PurchaseRepositoryImpl(get()) }
