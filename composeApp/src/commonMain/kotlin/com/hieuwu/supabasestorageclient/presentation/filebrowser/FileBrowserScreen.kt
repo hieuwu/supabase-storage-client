@@ -106,27 +106,29 @@ fun BucketScreen(
     var itemToMove by remember { mutableStateOf<StorageItem?>(null) }
     var itemToDelete by remember { mutableStateOf<StorageItem?>(null) }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
+    val content = uiState as? BucketUiState.Content
+
+    LaunchedEffect(content?.error) {
+        content?.error?.let {
             viewModel.clearMessages()
         }
     }
 
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let {
+    LaunchedEffect(content?.successMessage) {
+        content?.successMessage?.let {
             viewModel.clearMessages()
         }
     }
 
     val launcher = rememberFileSaverLauncher(FileKitDialogSettings.createDefault()) { platformFile ->
-            if (platformFile != null) {
-                uiState.itemToDownload?.let { item ->
-                    viewModel.startDownload(item.name, platformFile)
-                }
-            } else {
-                viewModel.onFileSaved()
+        if (platformFile != null) {
+            content?.itemToDownload?.let { item ->
+                viewModel.startDownload(item.name, platformFile)
             }
+        } else {
+            viewModel.onFileSaved()
         }
+    }
 
     val directoryPickerLauncher = rememberDirectoryPickerLauncher { platformDirectory ->
         if (platformDirectory != null) {
@@ -136,15 +138,15 @@ fun BucketScreen(
         }
     }
 
-    LaunchedEffect(uiState.isPickingDirectory) {
-        if (uiState.isPickingDirectory) {
+    LaunchedEffect(content?.isPickingDirectory) {
+        if (content?.isPickingDirectory == true) {
             directoryPickerLauncher.launch()
         }
     }
 
-    LaunchedEffect(uiState.isSavingFile, uiState.itemToDownload) {
-        if (uiState.isSavingFile) {
-            uiState.itemToDownload?.let { item ->
+    LaunchedEffect(content?.isSavingFile, content?.itemToDownload) {
+        if (content?.isSavingFile == true) {
+            content.itemToDownload?.let { item ->
                 val extension = item.name.substringAfterLast(".", "")
                 val nameWithoutExtension = if (extension.isNotEmpty()) {
                     item.name.substringBeforeLast(".")
@@ -159,7 +161,6 @@ fun BucketScreen(
             }
         }
     }
-    var showMenu by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Breadcrumbs(
@@ -167,93 +168,119 @@ fun BucketScreen(
             onPathClick = onNavigateToFolder,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            PullToRefreshBox(
-                isRefreshing = uiState.isLoading,
-                onRefresh = { viewModel.refreshContents() },
-                modifier = Modifier.fillMaxSize()
-            ) {
-                if (uiState.isLoading && uiState.items.isEmpty()) {
+
+        AnimatedContent(
+            targetState = uiState,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            label = "BucketStateTransition"
+        ) { state ->
+            when (state) {
+                is BucketUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize()) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
-                } else if (uiState.items.isEmpty()) {
+                }
+                is BucketUiState.Error -> {
                     EmptyState(
                         icon = Icons.Default.Folder,
-                        title = "No files found",
-                        subtitle = "This folder is empty. Upload some files to get started.",
+                        title = "Error loading files",
+                        subtitle = state.message,
                         modifier = Modifier.fillMaxSize()
                     )
-                } else {
-                    AnimatedContent(
-                        targetState = uiState.viewMode,
-                        transitionSpec = {
-                            fadeIn().togetherWith(fadeOut())
-                        },
-                        label = "ViewModeTransition"
-                    ) { targetViewMode ->
-                        if (targetViewMode == ViewMode.LIST) {
-                            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                items(uiState.items) { item ->
-                                    StorageItemRow(
-                                        item = item,
-                                        sharedTransitionScope = sharedTransitionScope,
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                        onClick = {
-                                            if (item.isFolder) {
-                                                val nextPath =
-                                                    if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                                onNavigateToFolder(nextPath)
-                                            } else {
-                                                onNavigateToFile(bucketId, item.name, path)
-                                            }
-                                        },
-                                        onRename = { itemToRename = item },
-                                        onMove = { itemToMove = item },
-                                        onDelete = { itemToDelete = item },
-                                        onStar = { viewModel.toggleStar(item) },
-                                        onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                        onCopyPath = { viewModel.copyPath(item.name) },
-                                        onDownload = { viewModel.downloadItem(item.name) }
-                                    )
-                                    HorizontalDivider()
-                                }
-                            }
+                }
+                is BucketUiState.Content -> {
+                    PullToRefreshBox(
+                        isRefreshing = false, // Loading is handled by top state
+                        onRefresh = { viewModel.refreshContents() },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        if (state.items.isEmpty()) {
+                            EmptyState(
+                                icon = Icons.Default.Folder,
+                                title = "No files found",
+                                subtitle = "This folder is empty. Upload some files to get started.",
+                                modifier = Modifier.fillMaxSize()
+                            )
                         } else {
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(120.dp),
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(uiState.items) { item ->
-                                    StorageItemGrid(
-                                        item = item,
-                                        sharedTransitionScope = sharedTransitionScope,
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                        onClick = {
-                                            if (item.isFolder) {
-                                                val nextPath =
-                                                    if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
-                                                onNavigateToFolder(nextPath)
-                                            } else {
-                                                onNavigateToFile(bucketId, item.name, path)
-                                            }
-                                        },
-                                        onRename = { itemToRename = item },
-                                        onMove = { itemToMove = item },
-                                        onDelete = { itemToDelete = item },
-                                        onStar = { viewModel.toggleStar(item) },
-                                        onGetUrl = { viewModel.getPublicUrl(item.name) },
-                                        onCopyPath = { viewModel.copyPath(item.name) },
-                                        onDownload = { viewModel.downloadItem(item.name) }
-                                    )
+                            AnimatedContent(
+                                targetState = state.viewMode,
+                                transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                                label = "ViewModeTransition"
+                            ) { targetViewMode ->
+                                if (targetViewMode == ViewMode.LIST) {
+                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                        items(state.items) { item ->
+                                            StorageItemRow(
+                                                item = item,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = {
+                                                    if (item.isFolder) {
+                                                        val nextPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                                        onNavigateToFolder(nextPath)
+                                                    } else {
+                                                        onNavigateToFile(bucketId, item.name, path)
+                                                    }
+                                                },
+                                                onRename = { itemToRename = item },
+                                                onMove = { itemToMove = item },
+                                                onDelete = { itemToDelete = item },
+                                                onStar = { viewModel.toggleStar(item) },
+                                                onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                                onCopyPath = { viewModel.copyPath(item.name) },
+                                                onDownload = { viewModel.downloadItem(item.name) }
+                                            )
+                                            HorizontalDivider()
+                                        }
+                                    }
+                                } else {
+                                    LazyVerticalGrid(
+                                        columns = GridCells.Adaptive(120.dp),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        items(state.items) { item ->
+                                            StorageItemGrid(
+                                                item = item,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = {
+                                                    if (item.isFolder) {
+                                                        val nextPath = if (path.isNullOrEmpty()) item.name else "$path/${item.name}"
+                                                        onNavigateToFolder(nextPath)
+                                                    } else {
+                                                        onNavigateToFile(bucketId, item.name, path)
+                                                    }
+                                                },
+                                                onRename = { itemToRename = item },
+                                                onMove = { itemToMove = item },
+                                                onDelete = { itemToDelete = item },
+                                                onStar = { viewModel.toggleStar(item) },
+                                                onGetUrl = { viewModel.getPublicUrl(item.name) },
+                                                onCopyPath = { viewModel.copyPath(item.name) },
+                                                onDownload = { viewModel.downloadItem(item.name) }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
+
+        content?.let { state ->
+            if (state.showDownloadPathOptionDialog) {
+                DownloadPathOptionDialog(
+                    defaultPath = state.defaultDownloadPath,
+                    onDismiss = { viewModel.onCancelDownload() },
+                    onConfirmDefault = { viewModel.onSelectDefaultPath() },
+                    onConfirmCustom = { viewModel.onSelectCustomPath() }
+                )
             }
         }
 
@@ -289,18 +316,8 @@ fun BucketScreen(
                 }
             )
         }
-
-        if (uiState.showDownloadPathOptionDialog) {
-            DownloadPathOptionDialog(
-                defaultPath = uiState.defaultDownloadPath,
-                onDismiss = { viewModel.onCancelDownload() },
-                onConfirmDefault = { viewModel.onSelectDefaultPath() },
-                onConfirmCustom = { viewModel.onSelectCustomPath() }
-            )
-        }
     }
 }
-
 @Composable
 fun DeleteConfirmationDialog(
     item: StorageItem,
@@ -718,7 +735,7 @@ fun StorageItemGrid(
             }
 
             if (!item.isFolder) {
-                val sizeStr = item.size?.let { "${it / 1024} KB" } ?: ""
+                val sizeStr = item.size?.let { formatSize(it) } ?: ""
                 Text(
                     text = sizeStr,
                     style = MaterialTheme.typography.labelSmall,
@@ -798,12 +815,11 @@ fun MoveDialog(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(16.dp)
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -812,15 +828,10 @@ fun MoveDialog(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Text(
-                "Enter new path in current bucket. Leave empty for root.",
-                style = MaterialTheme.typography.bodyMedium
-            )
             OutlinedTextField(
                 value = newPath,
                 onValueChange = { newPath = it },
-                label = { Text("New Path") },
-                placeholder = { Text("path/to/folder") },
+                label = { Text("New Path (e.g. folder1/folder2)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -840,12 +851,6 @@ fun MoveDialog(
     }
 }
 
-private fun isImage(extension: String) =
-    extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
-
-private fun isVideo(extension: String) = extension in listOf("mp4", "mov", "avi", "mkv", "webm")
-private fun isPdf(extension: String) = extension == "pdf"
-
 @Composable
 fun DownloadPathOptionDialog(
     defaultPath: String?,
@@ -855,31 +860,46 @@ fun DownloadPathOptionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Download Folder") },
+        title = { Text("Download Attachment") },
         text = {
-            Column {
-                Text("How would you like to select the download folder for this session?")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Where would you like to save this file?")
                 if (defaultPath != null) {
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = "Current default: $defaultPath",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("Current default: $defaultPath", style = MaterialTheme.typography.labelSmall)
                 }
             }
         },
         confirmButton = {
-            if (defaultPath != null) {
-                TextButton(onClick = onConfirmDefault) {
-                    Text("Use Default")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (defaultPath != null) {
+                    Button(
+                        onClick = onConfirmDefault,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Save to Default folder")
+                    }
+                }
+                Button(
+                    onClick = onConfirmCustom,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Select folder...")
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onConfirmCustom) {
-                Text("Pick Folder")
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
             }
         }
     )
 }
+
+private fun isImage(extension: String): Boolean =
+    extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
+
+private fun isVideo(extension: String): Boolean =
+    extension in listOf("mp4", "mov", "avi", "mkv", "webm")
+
+private fun isPdf(extension: String): Boolean =
+    extension == "pdf"
