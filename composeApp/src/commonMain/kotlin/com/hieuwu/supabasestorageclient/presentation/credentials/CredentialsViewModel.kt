@@ -4,20 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
-import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import io.github.jan.supabase.storage.storage
-import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
-import com.hieuwu.supabasestorageclient.domain.usecase.ClearCacheUseCase
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 class CredentialsViewModel(
-    private val credentialRepository: CredentialRepository,
+    private val observeCredentialsUseCase: ObserveCredentialsUseCase,
+    private val getLastUsedCredentialIdUseCase: GetLastUsedCredentialIdUseCase,
+    private val addCredentialUseCase: AddCredentialUseCase,
+    private val updateCredentialUseCase: UpdateCredentialUseCase,
+    private val deleteCredentialUseCase: DeleteCredentialUseCase,
+    private val triggerPaywallUseCase: TriggerPaywallUseCase,
+    private val switchCredentialUseCase: SwitchCredentialUseCase,
+    private val observeProStatusUseCase: ObserveProStatusUseCase,
     private val supabaseClientManager: SupabaseClientManager,
-    private val clearCacheUseCase: ClearCacheUseCase,
-    private val purchaseRepository: PurchaseRepository,
     private val logger: co.touchlab.kermit.Logger
 ) : ViewModel() {
 
@@ -31,9 +31,9 @@ class CredentialsViewModel(
     private fun loadCredentials() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            credentialRepository.getCredentials()
+            observeCredentialsUseCase()
                 .collect { credentials ->
-                    val lastUsedId = credentialRepository.getLastUsedId()
+                    val lastUsedId = getLastUsedCredentialIdUseCase()
                     _uiState.update {
                         it.copy(
                             credentials = credentials,
@@ -45,7 +45,7 @@ class CredentialsViewModel(
         }
 
         viewModelScope.launch {
-            purchaseRepository.isPro.collect { isPro ->
+            observeProStatusUseCase().collect { isPro ->
                 _uiState.update { it.copy(isPro = isPro) }
             }
         }
@@ -64,28 +64,10 @@ class CredentialsViewModel(
 
     fun selectCredential(credential: Credential) {
         viewModelScope.launch {
-
             logger.d { "Selecting credential: ${credential.name} (${credential.id})" }
             _uiState.update { it.copy(isSettingUp = true, error = null) }
             try {
-                // Clear cache for the current credential before switching
-                val currentId = credentialRepository.getLastUsedId()
-                if (currentId != null) {
-                    clearCacheUseCase(ClearCacheUseCase.Params(currentId))
-                }
-
-                credentialRepository.setLastUsedId(credential.id)
-                
-                // Clear cache for the new credential to ensure a fresh state
-                clearCacheUseCase(ClearCacheUseCase.Params(credential.id))
-                
-                val newClient = supabaseClientManager.createClient(credential)
-
-                logger.d { "Verifying new client connection..." }
-                newClient.storage.retrieveBuckets()
-                
-                supabaseClientManager.setClient(newClient)
-                logger.d { "Active credential switched to ${credential.name}" }
+                switchCredentialUseCase(credential)
                 _uiState.update { it.copy(lastUsedId = credential.id) }
             } catch (e: Exception) {
                 logger.e(e) { "Credential selection failed" }
@@ -97,26 +79,17 @@ class CredentialsViewModel(
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     fun addCredential(name: String, url: String, key: String) {
         viewModelScope.launch {
             try {
-                val isPro = purchaseRepository.isPro.value
+                val isPro = _uiState.value.isPro
                 val currentCount = _uiState.value.credentials.size
                 if (!isPro && currentCount >= 2) {
-                    purchaseRepository.triggerPaywall()
+                    triggerPaywallUseCase()
                     return@launch
                 }
-
-                val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-                val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-                val newCredential = Credential(
-                    id = Uuid.random().toString(),
-                    name = name.trim(),
-                    url = sanitizedUrl,
-                    key = sanitizedKey
-                )
-                credentialRepository.saveCredential(newCredential)
+                addCredentialUseCase(name, url, key)
+                hideAddSheet()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to add credential: ${e.message}") }
             }
@@ -125,14 +98,10 @@ class CredentialsViewModel(
 
     fun onAddClick() {
         val uiState = _uiState.value
-        if (purchaseRepository.shouldEnablePurchase) {
-            if (uiState.isPro || uiState.credentials.size < 2) {
-                _uiState.update { it.copy(showAddSheet = true) }
-            } else {
-                purchaseRepository.triggerPaywall()
-            }
-        } else {
+        if (uiState.isPro || uiState.credentials.size < 2) {
             _uiState.update { it.copy(showAddSheet = true) }
+        } else {
+            triggerPaywallUseCase()
         }
     }
 
@@ -143,15 +112,7 @@ class CredentialsViewModel(
     fun updateCredential(id: String, name: String, url: String, key: String) {
         viewModelScope.launch {
             try {
-                val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-                val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-                val updatedCredential = Credential(
-                    id = id,
-                    name = name.trim(),
-                    url = sanitizedUrl,
-                    key = sanitizedKey
-                )
-                credentialRepository.saveCredential(updatedCredential)
+                updateCredentialUseCase(id, name, url, key)
                 hideEditSheet()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to update credential: ${e.message}") }
@@ -182,7 +143,7 @@ class CredentialsViewModel(
     fun deleteCredential(id: String) {
         viewModelScope.launch {
             try {
-                credentialRepository.removeCredential(id)
+                deleteCredentialUseCase(id)
                 hideDeleteDialog()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to delete credential: ${e.message}") }
