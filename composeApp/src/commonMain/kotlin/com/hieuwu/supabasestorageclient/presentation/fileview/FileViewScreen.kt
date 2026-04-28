@@ -10,8 +10,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.hieuwu.supabasestorageclient.util.formatDate
-import com.hieuwu.supabasestorageclient.util.formatSize
+import com.hieuwu.supabasestorageclient.core.formatDate
+import com.hieuwu.supabasestorageclient.core.formatSize
+import com.hieuwu.supabasestorageclient.platform.PdfViewer
+import com.hieuwu.supabasestorageclient.platform.VideoPlayer
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
@@ -198,8 +200,12 @@ fun FileViewerContent(
     val extension = fileName.substringAfterLast(".", "").lowercase()
     when {
         isImage(extension) -> { ImageViewer(url = url) }
-        isVideo(extension) -> { VideoPlayer(url = url) }
-        isPdf(extension) -> { PdfViewer(url = url) }
+        isVideo(extension) -> {
+            VideoPlayer(url = url)
+        }
+        isPdf(extension) -> {
+            PdfViewer(url = url)
+        }
         else -> { Text("No viewer available for this file type.") }
     }
 }

@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.platform
 
 import platform.UIKit.UIPasteboard
 

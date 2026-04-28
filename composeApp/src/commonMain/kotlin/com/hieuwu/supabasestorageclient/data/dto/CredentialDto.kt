@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.data.model
+package com.hieuwu.supabasestorageclient.data.dto
 
 import com.hieuwu.supabasestorageclient.domain.model.Credential
 import kotlinx.serialization.Serializable

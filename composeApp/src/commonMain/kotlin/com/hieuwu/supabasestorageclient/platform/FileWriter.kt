@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.platform
 
 interface FileWriter {
     fun writeToFile(path: String, data: ByteArray)

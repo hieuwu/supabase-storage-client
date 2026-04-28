@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.core
 
 import kotlin.math.pow
 import kotlin.math.roundToLong

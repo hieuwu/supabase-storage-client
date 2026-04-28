@@ -7,8 +7,8 @@ import org.koin.dsl.module
 
 actual fun platformModule(): Module = module {
     single<Settings> { com.russhwolf.settings.KeychainSettings(service = "SupabaseClient") }
-    single<com.hieuwu.supabasestorageclient.util.ClipboardManager> { 
-        com.hieuwu.supabasestorageclient.util.IosClipboardManager() 
+    single<com.hieuwu.supabasestorageclient.platform.ClipboardManager> {
+        com.hieuwu.supabasestorageclient.platform.IosClipboardManager()
     }
     single { DatabaseDriverFactory() }
 }

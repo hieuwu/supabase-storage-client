@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalForeignApi::class)
 
-package com.hieuwu.supabasestorageclient.presentation.fileview
+package com.hieuwu.supabasestorageclient.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -9,7 +9,6 @@ import androidx.compose.ui.interop.UIKitView
 import platform.AVFoundation.*
 import platform.AVKit.*
 import platform.Foundation.*
-import platform.UIKit.*
 import platform.PDFKit.*
 import platform.CoreGraphics.*
 import kotlinx.cinterop.*

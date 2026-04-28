@@ -8,7 +8,7 @@ import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
-import com.hieuwu.supabasestorageclient.util.FileWriter
+import com.hieuwu.supabasestorageclient.platform.FileWriter
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write

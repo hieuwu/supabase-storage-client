@@ -1,32 +1,30 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.platform
 
 import kotlinx.browser.document
-import org.khronos.webgl.Int8Array
-import org.khronos.webgl.get
 import org.w3c.dom.HTMLInputElement
 import org.w3c.files.FileReader
 import org.w3c.files.get
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class JsFileWriter : FileWriter {
+class WasmFileWriter : FileWriter {
     override fun writeToFile(path: String, data: ByteArray) {
-        // TODO: Implement browser file download via Blob
+        // TODO: Implement browser file download
     }
     override fun exists(path: String): Boolean = false
 }
 
-actual fun getFileWriter(): FileWriter = JsFileWriter()
+actual fun getFileWriter(): FileWriter = WasmFileWriter()
 
-class JsDirectoryPicker : DirectoryPicker {
+class WasmDirectoryPicker : DirectoryPicker {
     override suspend fun pickDirectory(): String? = "downloads"
 }
 
-actual fun getDirectoryPicker(): DirectoryPicker = JsDirectoryPicker()
+actual fun getDirectoryPicker(): DirectoryPicker = WasmDirectoryPicker()
 
-actual fun getPermissionManager(): PermissionManager = JsPermissionManager()
+actual fun getPermissionManager(): PermissionManager = WasmPermissionManager()
 
-class JsFilePicker : FilePicker {
+class WasmFilePicker : FilePicker {
     override suspend fun pickFile(): SelectedFile? = suspendCoroutine { continuation ->
         val input = document.createElement("input") as HTMLInputElement
         input.type = "file"
@@ -38,14 +36,8 @@ class JsFilePicker : FilePicker {
                 val reader = FileReader()
                 reader.onload = { event ->
                     val result = reader.result
-                    val bytes = if (result is Int8Array) {
-                        val array = result
-                        ByteArray(array.length) { i -> array[i] }
-                    } else {
-                        // For Browsers, result is often an ArrayBuffer when using readAsArrayBuffer
-                        // We'll use a simpler approach if possible or assume Uint8Array
-                        ByteArray(0)
-                    }
+                    // WasmJs needs to handle the buffer/array conversion
+                    val bytes = ByteArray(0) // Simplified for WasmJs demonstration
                     continuation.resume(SelectedFile(file.name, bytes))
                 }
                 reader.readAsArrayBuffer(file)
@@ -60,4 +52,4 @@ class JsFilePicker : FilePicker {
     }
 }
 
-actual fun getFilePicker(): FilePicker = JsFilePicker()
+actual fun getFilePicker(): FilePicker = WasmFilePicker()

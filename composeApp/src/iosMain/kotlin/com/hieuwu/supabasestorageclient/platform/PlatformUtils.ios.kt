@@ -1,7 +1,6 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.platform
 
 import platform.Foundation.*
-import platform.UIKit.*
 import kotlinx.cinterop.*
 
 class IosFileWriter : FileWriter {

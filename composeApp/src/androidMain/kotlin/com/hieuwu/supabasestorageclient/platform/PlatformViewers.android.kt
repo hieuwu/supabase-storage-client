@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.presentation.fileview
+package com.hieuwu.supabasestorageclient.platform
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.VideoView
 import android.net.Uri
+import android.webkit.WebView
 import android.widget.MediaController
 
 @Composable
@@ -34,7 +35,7 @@ actual fun PdfViewer(url: String) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
-            android.webkit.WebView(context).apply {
+            WebView(context).apply {
                 settings.javaScriptEnabled = true
                 // Google Docs viewer is often used to embed PDFs in WebViews
                 loadUrl("https://docs.google.com/viewer?url=$url&embedded=true")

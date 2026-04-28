@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.core
 
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone

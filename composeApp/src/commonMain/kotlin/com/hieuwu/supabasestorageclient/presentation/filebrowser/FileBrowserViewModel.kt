@@ -19,7 +19,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.UpdateUserSettingsUseCase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
-import com.hieuwu.supabasestorageclient.util.ClipboardManager
+import com.hieuwu.supabasestorageclient.platform.ClipboardManager
 import io.github.vinceglb.filekit.PlatformFile
 
 class FileBrowserViewModel(

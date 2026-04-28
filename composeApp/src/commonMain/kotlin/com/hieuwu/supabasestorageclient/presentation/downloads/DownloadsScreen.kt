@@ -54,8 +54,8 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.presentation.components.FileInfoDialog
-import com.hieuwu.supabasestorageclient.util.format
-import com.hieuwu.supabasestorageclient.util.formatDate
+import com.hieuwu.supabasestorageclient.core.format
+import com.hieuwu.supabasestorageclient.core.formatDate
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

@@ -18,8 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
-import com.hieuwu.supabasestorageclient.util.formatDate
-import com.hieuwu.supabasestorageclient.util.formatSize
+import com.hieuwu.supabasestorageclient.core.formatDate
+import com.hieuwu.supabasestorageclient.core.formatSize
 import org.koin.compose.viewmodel.koinViewModel
 
 import org.koin.core.parameter.parametersOf

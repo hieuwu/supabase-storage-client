@@ -8,7 +8,7 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.usecase.CancelDownloadUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.DeleteDownloadUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.ObserveDownloadsUseCase
-import com.hieuwu.supabasestorageclient.util.FileWriter
+import com.hieuwu.supabasestorageclient.platform.FileWriter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn

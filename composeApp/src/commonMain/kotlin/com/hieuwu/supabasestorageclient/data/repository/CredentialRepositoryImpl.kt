@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import co.touchlab.kermit.Logger
-import com.hieuwu.supabasestorageclient.data.model.CredentialDto
-import com.hieuwu.supabasestorageclient.data.model.toDomain
-import com.hieuwu.supabasestorageclient.data.model.toDto
+import com.hieuwu.supabasestorageclient.data.dto.CredentialDto
+import com.hieuwu.supabasestorageclient.data.dto.toDomain
+import com.hieuwu.supabasestorageclient.data.dto.toDto
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

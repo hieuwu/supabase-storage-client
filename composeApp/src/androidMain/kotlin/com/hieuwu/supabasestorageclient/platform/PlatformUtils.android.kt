@@ -1,9 +1,5 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.platform
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import org.koin.mp.KoinPlatformTools
 import java.io.File
 import java.io.FileOutputStream
 

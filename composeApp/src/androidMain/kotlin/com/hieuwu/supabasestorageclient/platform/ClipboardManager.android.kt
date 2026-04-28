@@ -1,11 +1,11 @@
-package com.hieuwu.supabasestorageclient.util
+package com.hieuwu.supabasestorageclient.platform
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import org.koin.mp.KoinPlatformTools
 
-class AndroidClipboardManager(private val context: Context) : com.hieuwu.supabasestorageclient.util.ClipboardManager {
+class AndroidClipboardManager(private val context: Context) : com.hieuwu.supabasestorageclient.platform.ClipboardManager {
     override fun copyText(text: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Supabase Storage", text)
@@ -15,7 +15,7 @@ class AndroidClipboardManager(private val context: Context) : com.hieuwu.supabas
 
 // Note: This is a hacky way to get context in a static expect function
 // Ideally we register it in Koin
-actual fun getClipboardManager(): com.hieuwu.supabasestorageclient.util.ClipboardManager {
+actual fun getClipboardManager(): com.hieuwu.supabasestorageclient.platform.ClipboardManager {
     val context = KoinPlatformTools.defaultContext().get().get<Context>()
     return AndroidClipboardManager(context)
 }

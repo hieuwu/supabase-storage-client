@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.presentation.fileview
+package com.hieuwu.supabasestorageclient.platform
 
 import androidx.compose.runtime.Composable
 
