@@ -69,7 +69,7 @@ fun UploadScreen(
                         status = item.formatStatus(),
                         fromPath = item.from,
                         toPath = item.to,
-                        size = formatSize(item.uploadedSize, item.totalSize),
+                        size =  item.formatUploadProgress(),
                         date = item.uploadedTime?.let { formatDateTime(it) },
                         onDismissRequest = { viewModel.hideFileInfo() }
                     )
@@ -166,17 +166,4 @@ fun UploadItemRow(
             }
         }
     }
-}
-
-private fun formatSize(uploaded: Long, total: Long): String {
-    if (total <= 0) return formatBytes(uploaded)
-    return "${formatBytes(uploaded)} / ${formatBytes(total)}"
-}
-
-private fun formatBytes(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return "${kb.format(1)} KB"
-    val mb = kb / 1024.0
-    return "${mb.format(1)} MB"
 }
