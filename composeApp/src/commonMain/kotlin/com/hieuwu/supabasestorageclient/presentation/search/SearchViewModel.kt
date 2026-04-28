@@ -8,7 +8,8 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetBucketContentsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.GetBucketsUseCase
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
-import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.GetStarredItemsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.ToggleStarUseCase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
@@ -17,7 +18,8 @@ class SearchViewModel(
     private val bucketId: String?,
     private val getBucketsUseCase: GetBucketsUseCase,
     private val getBucketContentsUseCase: GetBucketContentsUseCase,
-    private val starredRepository: StarredRepository,
+    private val getStarredItemsUseCase: GetStarredItemsUseCase,
+    private val toggleStarUseCase: ToggleStarUseCase,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -28,15 +30,14 @@ class SearchViewModel(
     )
     val uiState: StateFlow<SearchUiState> = combine(
         _uiState,
-        starredRepository.getStarredItems()
+        getStarredItemsUseCase()
     ) { state, starredItems ->
         val starredIds = starredItems.map { it.id }.toSet()
         state.copy(
             buckets = state.buckets.map { it.copy(isStarred = starredIds.contains(it.id)) },
             storageItems = state.storageItems.map { result ->
-                val fullPath = result.item.name // Assuming item name is what's used for ID
-                val itemId = if (result.item.isFolder) "${result.bucketId}:$fullPath" else "${result.bucketId}:$fullPath"
-                // Wait, I need to check how itemId is constructed for files/folders
+                val fullPath = result.item.name
+                val itemId = "${result.bucketId}:$fullPath"
                 result.copy(item = result.item.copy(isStarred = starredIds.contains(itemId) || starredIds.contains("${result.bucketId}:${result.item.name}")))
             }
         )
@@ -71,7 +72,6 @@ class SearchViewModel(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 if (bucketId == null) {
-                    // Search for buckets
                     getBucketsUseCase().onSuccess { buckets ->
                         val filtered = buckets.filter { it.name.contains(query, ignoreCase = true) }
                         _uiState.update {
@@ -86,7 +86,6 @@ class SearchViewModel(
                         _uiState.update { it.copy(isLoading = false, error = e.message) }
                     }
                 } else {
-                    // Search for files and folders in the specific bucket
                     val params = GetBucketContentsUseCase.Params(bucketId = bucketId, path = "")
                     val items = getBucketContentsUseCase(params).getOrNull() ?: emptyList()
                     val filtered = items.filter { it.name.contains(query, ignoreCase = true) }
@@ -109,42 +108,36 @@ class SearchViewModel(
 
     fun toggleStar(bucket: Bucket) {
         viewModelScope.launch {
-            if (bucket.isStarred) {
-                starredRepository.unstarItem(bucket.id)
-            } else {
-                starredRepository.starItem(
-                    StarredItem(
-                        id = bucket.id,
-                        fileName = bucket.name,
-                        bucketId = bucket.id,
-                        path = null,
-                        isFolder = false,
-                        isBucket = true,
-                        starredAt = kotlinx.datetime.Clock.System.now()
-                    )
-                )
-            }
+            toggleStarUseCase(
+                StarredItem(
+                    id = bucket.id,
+                    fileName = bucket.name,
+                    bucketId = bucket.id,
+                    path = null,
+                    isFolder = false,
+                    isBucket = true,
+                    starredAt = Clock.System.now()
+                ),
+                isStarred = bucket.isStarred
+            )
         }
     }
 
     fun toggleStar(item: StorageItem, bucketId: String) {
         viewModelScope.launch {
             val itemId = "${bucketId}:${item.name}"
-            if (item.isStarred) {
-                starredRepository.unstarItem(itemId)
-            } else {
-                starredRepository.starItem(
-                    StarredItem(
-                        id = itemId,
-                        fileName = item.name,
-                        bucketId = bucketId,
-                        path = item.name, // This might be wrong for nested files, but Search currently only searches root?
-                        isFolder = item.isFolder,
-                        isBucket = false,
-                        starredAt = Clock.System.now()
-                    )
-                )
-            }
+            toggleStarUseCase(
+                StarredItem(
+                    id = itemId,
+                    fileName = item.name,
+                    bucketId = bucketId,
+                    path = item.name,
+                    isFolder = item.isFolder,
+                    isBucket = false,
+                    starredAt = Clock.System.now(),
+                ),
+                item.isStarred
+            )
         }
     }
 
