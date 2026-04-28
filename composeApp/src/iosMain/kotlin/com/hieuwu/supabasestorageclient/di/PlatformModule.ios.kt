@@ -1,6 +1,6 @@
 package com.hieuwu.supabasestorageclient.di
 
-import com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory
+import com.hieuwu.supabasestorageclient.data.datasource.local.database.DatabaseDriverFactory
 import com.russhwolf.settings.Settings
 import org.koin.core.module.Module
 import org.koin.dsl.module

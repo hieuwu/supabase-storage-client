@@ -14,5 +14,5 @@ class JsClipboardManager : com.hieuwu.supabasestorageclient.platform.ClipboardMa
 actual fun platformModule(): Module = module {
     single<com.russhwolf.settings.Settings> { com.russhwolf.settings.StorageSettings() }
     single<com.hieuwu.supabasestorageclient.platform.ClipboardManager> { JsClipboardManager() }
-    single { com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory() }
+    single { com.hieuwu.supabasestorageclient.data.datasource.local.database.DatabaseDriverFactory() }
 }

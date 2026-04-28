@@ -23,5 +23,9 @@ actual fun platformModule(): Module = module {
     single<com.hieuwu.supabasestorageclient.platform.ClipboardManager> {
         com.hieuwu.supabasestorageclient.platform.AndroidClipboardManager(get())
     }
-    single { com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory(get()) }
+    single {
+        com.hieuwu.supabasestorageclient.data.datasource.local.database.DatabaseDriverFactory(
+            get()
+        )
+    }
 }

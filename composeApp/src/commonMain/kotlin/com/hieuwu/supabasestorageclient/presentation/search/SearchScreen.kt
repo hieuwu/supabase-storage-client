@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.core.formatDate
@@ -239,9 +240,9 @@ fun StorageItemResultRow(
             val extension = item.name.substringAfterLast(".", "").lowercase()
             val icon = when {
                 item.isFolder -> Icons.Default.Folder
-                extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp") -> Icons.Default.Image
-                extension in listOf("mp4", "mov", "avi", "mkv", "webm") -> Icons.Default.VideoLibrary
-                extension == "pdf" -> Icons.Default.PictureAsPdf
+                FileUtils.isImage(extension) -> Icons.Default.Image
+                FileUtils.isVideo(extension) -> Icons.Default.VideoLibrary
+                FileUtils.isPdf(extension) -> Icons.Default.PictureAsPdf
                 else -> Icons.Default.InsertDriveFile
             }
             with(sharedTransitionScope) {

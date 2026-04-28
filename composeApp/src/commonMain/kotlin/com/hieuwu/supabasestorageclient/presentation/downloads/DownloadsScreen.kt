@@ -18,13 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -42,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -54,8 +48,10 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.presentation.components.FileInfoDialog
-import com.hieuwu.supabasestorageclient.core.format
 import com.hieuwu.supabasestorageclient.core.formatDate
+import com.hieuwu.supabasestorageclient.presentation.fileicons.FileIconUtils.getFileIcon
+import com.hieuwu.supabasestorageclient.presentation.formatters.formatDownloadProgress
+import com.hieuwu.supabasestorageclient.presentation.formatters.formatStatus
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -139,10 +135,10 @@ fun DownloadsScreen(
             FileInfoDialog(
                 fileName = item.fileName,
                 icon = getFileIcon(item.fileName),
-                status = formatStatus(item),
+                status = item.formatStatus(),
                 fromPath = item.from,
                 toPath = item.destinationPath,
-                size = formatSize(item.downloadedSize, item.totalSize),
+                size = item.formatDownloadProgress(),
                 date = item.downloadedTime?.let { formatDate(it) },
                 onDismissRequest = { viewModel.hideFileInfo() }
             )
@@ -211,7 +207,7 @@ fun DownloadItemRow(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = formatStatus(item),
+                            text = item.formatStatus() ,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -277,45 +273,11 @@ fun DownloadItemRow(
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
-                        text = formatSize(item.downloadedSize, item.totalSize),
+                        text = item.formatDownloadProgress(),
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
         }
     }
-}
-
-fun getFileIcon(fileName: String): ImageVector {
-    val extension = fileName.substringAfterLast('.', "").lowercase()
-    return when (extension) {
-        "pdf" -> Icons.Default.Description
-        "jpg", "jpeg", "png", "gif" -> Icons.Default.Image
-        "mp4", "mov", "avi" -> Icons.Default.Movie
-        "mp3", "wav" -> Icons.Default.MusicNote
-        else -> Icons.Default.InsertDriveFile
-    }
-}
-
-fun formatStatus(item: DownloadItem): String {
-    return when (item.status) {
-        DownloadStatus.Downloading -> "Downloading..."
-        DownloadStatus.Paused -> "Paused"
-        DownloadStatus.Completed -> "Completed"
-        DownloadStatus.Error -> "Error"
-        DownloadStatus.Cancelled -> "Cancelled"
-    }
-}
-
-fun formatSize(downloaded: Long, total: Long): String {
-    if (total <= 0) return formatBytes(downloaded)
-    return "${formatBytes(downloaded)} / ${formatBytes(total)}"
-}
-
-fun formatBytes(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return "${kb.format(1)} KB"
-    val mb = kb / 1024.0
-    return "${mb.format(1)} MB"
 }

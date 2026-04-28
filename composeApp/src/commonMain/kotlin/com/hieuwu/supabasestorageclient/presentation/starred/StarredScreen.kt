@@ -24,9 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.core.formatDateTime
+import com.hieuwu.supabasestorageclient.presentation.fileicons.FileIconUtils.getFileIcon
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,17 +278,6 @@ fun StarredItemRow(
                 }
             }
         }
-    }
-}
-
-private fun getFileIcon(fileName: String): androidx.compose.ui.graphics.vector.ImageVector {
-    val extension = fileName.substringAfterLast('.', "").lowercase()
-    return when (extension) {
-        "pdf" -> Icons.Default.Description
-        "jpg", "jpeg", "png", "gif" -> Icons.Default.Image
-        "mp4", "mov", "avi" -> Icons.Default.Movie
-        "mp3", "wav" -> Icons.Default.MusicNote
-        else -> Icons.Default.InsertDriveFile
     }
 }
 

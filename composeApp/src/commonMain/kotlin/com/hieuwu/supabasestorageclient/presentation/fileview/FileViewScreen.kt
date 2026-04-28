@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.core.formatDate
 import com.hieuwu.supabasestorageclient.core.formatSize
 import com.hieuwu.supabasestorageclient.platform.PdfViewer
@@ -199,14 +200,20 @@ fun FileViewerContent(
 ) {
     val extension = fileName.substringAfterLast(".", "").lowercase()
     when {
-        isImage(extension) -> { ImageViewer(url = url) }
-        isVideo(extension) -> {
+        FileUtils.isImage(extension) -> {
+            ImageViewer(url = url)
+        }
+
+        FileUtils.isVideo(extension) -> {
             VideoPlayer(url = url)
         }
-        isPdf(extension) -> {
+
+        FileUtils.isPdf(extension) -> {
             PdfViewer(url = url)
         }
-        else -> { Text("No viewer available for this file type.") }
+
+        else -> {
+            Text("No viewer available for this file type.") }
     }
 }
 
@@ -222,9 +229,9 @@ fun FileMetadataSection(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val icon = when {
-        isImage(extension) -> Icons.Default.Image
-        isVideo(extension) -> Icons.Default.VideoLibrary
-        isPdf(extension) -> Icons.Default.PictureAsPdf
+        FileUtils.isImage(extension) -> Icons.Default.Image
+        FileUtils.isVideo(extension) -> Icons.Default.VideoLibrary
+        FileUtils.isPdf(extension) -> Icons.Default.PictureAsPdf
         else -> Icons.Default.InsertDriveFile
     }
 
@@ -312,11 +319,6 @@ fun ActionButton(
         Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
-
-private fun isImage(extension: String) = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
-private fun isVideo(extension: String) = extension in listOf("mp4", "mov", "avi", "mkv", "webm")
-private fun isPdf(extension: String) = extension == "pdf"
-
 @Composable
 fun DownloadPathOptionDialog(
     defaultPath: String?,

@@ -74,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
@@ -425,9 +426,9 @@ fun StorageItemRow(
             val extension = item.name.substringAfterLast(".", "").lowercase()
             val icon = when {
                 item.isFolder -> Icons.Default.Folder
-                isImage(extension) -> Icons.Default.Image
-                isVideo(extension) -> Icons.Default.VideoLibrary
-                isPdf(extension) -> Icons.Default.PictureAsPdf
+                FileUtils.isImage(extension) -> Icons.Default.Image
+                FileUtils.isVideo(extension) -> Icons.Default.VideoLibrary
+                FileUtils.isPdf(extension) -> Icons.Default.PictureAsPdf
                 else -> Icons.Default.InsertDriveFile
             }
             with(sharedTransitionScope) {
@@ -697,9 +698,9 @@ fun StorageItemGrid(
             val extension = item.name.substringAfterLast(".", "").lowercase()
             val icon = when {
                 item.isFolder -> Icons.Default.Folder
-                isImage(extension) -> Icons.Default.Image
-                isVideo(extension) -> Icons.Default.VideoLibrary
-                isPdf(extension) -> Icons.Default.PictureAsPdf
+                FileUtils.isImage(extension) -> Icons.Default.Image
+                FileUtils.isVideo(extension) -> Icons.Default.VideoLibrary
+                FileUtils.isPdf(extension) -> Icons.Default.PictureAsPdf
                 else -> Icons.Default.InsertDriveFile
             }
 
@@ -892,12 +893,3 @@ fun DownloadPathOptionDialog(
         }
     )
 }
-
-private fun isImage(extension: String): Boolean =
-    extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
-
-private fun isVideo(extension: String): Boolean =
-    extension in listOf("mp4", "mov", "avi", "mkv", "webm")
-
-private fun isPdf(extension: String): Boolean =
-    extension == "pdf"

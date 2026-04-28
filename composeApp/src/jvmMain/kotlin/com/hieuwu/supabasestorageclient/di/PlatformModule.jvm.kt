@@ -16,5 +16,5 @@ class JvmClipboardManager : com.hieuwu.supabasestorageclient.platform.ClipboardM
 actual fun platformModule(): Module = module {
     single<com.russhwolf.settings.Settings> { com.russhwolf.settings.PreferencesSettings.Factory().create() }
     single<com.hieuwu.supabasestorageclient.platform.ClipboardManager> { JvmClipboardManager() }
-    single { com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory() }
+    single { com.hieuwu.supabasestorageclient.data.datasource.local.database.DatabaseDriverFactory() }
 }

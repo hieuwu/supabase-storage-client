@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.database
+package com.hieuwu.supabasestorageclient.data.datasource.local.database
 
 import app.cash.sqldelight.db.SqlDriver
 
