@@ -16,43 +16,38 @@ class StarredViewModel(
     private val clearAllStarredItemsUseCase: ClearAllStarredItemsUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StarredUiState())
-    val uiState: StateFlow<StarredUiState> = _uiState.asStateFlow()
+    private val _manualState = MutableStateFlow(ManualStarredState())
 
-    init {
-        loadStarredItems()
-    }
-
-    fun loadStarredItems() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val starredItems = getStarredItemsUseCase()
-            val userSettings = getUserSettingsUseCase()
-
-            combine(starredItems, userSettings) { items, settings ->
-                Pair(items, settings.viewMode)
-            }.collect { (items, viewMode) ->
-                _uiState.update { it.copy(items = items, isLoading = false, viewMode = viewMode) }
-            }
-        }
-    }
+    val uiState: StateFlow<StarredUiState> = combine(
+        getStarredItemsUseCase(),
+        getUserSettingsUseCase(),
+        _manualState
+    ) { items, settings, manual ->
+        StarredUiState.Content(
+            items = items,
+            viewMode = settings.viewMode,
+            showClearAllConfirmation = manual.showClearAllConfirmation,
+            successMessage = manual.successMessage,
+            error = manual.error
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StarredUiState.Loading)
 
     fun unstarItem(id: String) {
         viewModelScope.launch {
             unstarItemUseCase(id).onSuccess {
-                _uiState.update { it.copy(successMessage = "Unstarred successfully") }
+                _manualState.update { it.copy(successMessage = "Unstarred successfully") }
             }
         }
     }
 
     fun onClearAllClick() {
-        _uiState.update { it.copy(showClearAllConfirmation = true) }
+        _manualState.update { it.copy(showClearAllConfirmation = true) }
     }
 
     fun confirmClearAll() {
         viewModelScope.launch {
             clearAllStarredItemsUseCase().onSuccess {
-                _uiState.update {
+                _manualState.update {
                     it.copy(
                         showClearAllConfirmation = false,
                         successMessage = "Cleared all starred items"
@@ -63,11 +58,16 @@ class StarredViewModel(
     }
 
     fun dismissClearAllConfirmation() {
-        _uiState.update { it.copy(showClearAllConfirmation = false) }
+        _manualState.update { it.copy(showClearAllConfirmation = false) }
     }
 
     fun clearMessages() {
-        _uiState.update { it.copy(successMessage = null, error = null) }
+        _manualState.update { it.copy(successMessage = null, error = null) }
     }
-
 }
+
+data class ManualStarredState(
+    val showClearAllConfirmation: Boolean = false,
+    val successMessage: String? = null,
+    val error: String? = null
+)
