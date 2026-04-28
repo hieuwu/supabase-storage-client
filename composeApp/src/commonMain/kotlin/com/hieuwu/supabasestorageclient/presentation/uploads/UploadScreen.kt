@@ -24,7 +24,6 @@ import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.presentation.components.FileInfoDialog
 import com.hieuwu.supabasestorageclient.util.format
-import com.hieuwu.supabasestorageclient.util.formatDate
 import com.hieuwu.supabasestorageclient.util.formatDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -32,43 +31,45 @@ import org.koin.compose.viewmodel.koinViewModel
 fun UploadScreen(
     viewModel: UploadViewModel = koinViewModel()
 ) {
-    val uploads by viewModel.uploads.collectAsStateWithLifecycle()
-    val itemToShowInfo by viewModel.showFileInfoDialog
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (uploads.isEmpty()) {
-            EmptyState(
-                icon = Icons.Default.Upload,
-                title = "No Uploads Yet",
-                subtitle = "Your file uploads will appear here."
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(uploads, key = { it.id }) { item ->
-                    UploadItemRow(
-                        item = item,
-                        onCancel = { viewModel.cancelUpload(item.id) },
-                        onShowInfo = { viewModel.showFileInfo(item) }
+        when (val state = uiState) {
+            is UploadUiState.Empty -> {
+                EmptyState(
+                    icon = Icons.Default.Upload,
+                    title = "No Uploads Yet",
+                    subtitle = "Your file uploads will appear here."
+                )
+            }
+            is UploadUiState.Content -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(state.uploads, key = { it.id }) { item ->
+                        UploadItemRow(
+                            item = item,
+                            onCancel = { viewModel.cancelUpload(item.id) },
+                            onShowInfo = { viewModel.showFileInfo(item) }
+                        )
+                    }
+                }
+
+                state.selectedItem?.let { item ->
+                    FileInfoDialog(
+                        fileName = item.fileName,
+                        icon = getFileIcon(item.fileName),
+                        status = formatStatus(item),
+                        fromPath = item.from,
+                        toPath = item.to,
+                        size = formatSize(item.uploadedSize, item.totalSize),
+                        date = item.uploadedTime?.let { formatDateTime(it) },
+                        onDismissRequest = { viewModel.hideFileInfo() }
                     )
                 }
             }
-        }
-
-        itemToShowInfo?.let { item ->
-            FileInfoDialog(
-                fileName = item.fileName,
-                icon = getFileIcon(item.fileName),
-                status = formatStatus(item),
-                fromPath = item.from,
-                toPath = item.to,
-                size = formatSize(item.uploadedSize, item.totalSize),
-                date = item.uploadedTime?.let { formatDateTime(it) },
-                onDismissRequest = { viewModel.hideFileInfo() }
-            )
         }
     }
 }
