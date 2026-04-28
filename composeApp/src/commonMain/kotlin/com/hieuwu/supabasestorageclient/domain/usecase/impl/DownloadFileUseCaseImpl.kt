@@ -1,12 +1,17 @@
 package com.hieuwu.supabasestorageclient.domain.usecase.impl
 
-import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
+import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.usecase.DownloadFileUseCase
+import io.github.vinceglb.filekit.PlatformFile
 
 class DownloadFileUseCaseImpl(
-    private val storageRepository: StorageRepository
+    private val downloadManager: DownloadManager
 ) : DownloadFileUseCase {
-    override suspend fun invoke(params: DownloadFileUseCase.Params): Result<ByteArray> = runCatching {
-        storageRepository.downloadFile(params.bucketId, params.path)
+    override suspend fun downloadToPath(bucketId: String, path: String, fileName: String, directoryPath: String) {
+        downloadManager.downloadToDirectoryPath(bucketId, path, fileName, directoryPath)
+    }
+
+    override suspend fun download(bucketId: String, path: String, fileName: String, platformFile: PlatformFile) {
+        downloadManager.download(bucketId, path, fileName, platformFile)
     }
 }
