@@ -2,7 +2,8 @@ package com.hieuwu.supabasestorageclient.presentation.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hieuwu.supabasestorageclient.domain.repository.OnboardingRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.IsOnboardingCompletedUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.MarkOnboardingCompletedUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
  * ViewModel for managing onboarding flow state and actions
  */
 class OnboardingViewModel(
-    private val onboardingRepository: OnboardingRepository
+    private val isOnboardingCompletedUseCase: IsOnboardingCompletedUseCase,
+    private val markOnboardingCompletedUseCase: MarkOnboardingCompletedUseCase
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -27,7 +29,7 @@ class OnboardingViewModel(
     }
     
     private fun checkOnboardingStatus() {
-        _isCompleted.value = onboardingRepository.isOnboardingCompleted()
+        _isCompleted.value = isOnboardingCompletedUseCase()
     }
     
     fun onPageChanged(page: Int) {
@@ -40,7 +42,7 @@ class OnboardingViewModel(
     
     fun completeOnboarding() {
         viewModelScope.launch {
-            onboardingRepository.markOnboardingCompleted()
+            markOnboardingCompletedUseCase()
             _isCompleted.value = true
         }
     }
