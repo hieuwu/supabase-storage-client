@@ -4,28 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
-import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
-import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
-import com.hieuwu.supabasestorageclient.domain.usecase.CreateBucketUseCase
-import com.hieuwu.supabasestorageclient.domain.usecase.CreateFolderUseCase
-import com.hieuwu.supabasestorageclient.domain.usecase.UploadFileUseCase
-import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
-import com.hieuwu.supabasestorageclient.domain.model.UserSettings
+import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
-import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import com.hieuwu.supabasestorageclient.data.network.ApiResponse
-
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -33,10 +18,15 @@ class MainViewModel(
     private val createFolderUseCase: CreateFolderUseCase,
     private val uploadFileUseCase: UploadFileUseCase,
     private val createBucketUseCase: CreateBucketUseCase,
-    private val credentialRepository: CredentialRepository,
-    private val settingsRepository: SettingsRepository,
-    private val supabaseClientManager: SupabaseClientManager,
-    private val purchaseRepository: PurchaseRepository
+    private val observeCredentialsUseCase: ObserveCredentialsUseCase,
+    private val getLastUsedCredentialIdUseCase: GetLastUsedCredentialIdUseCase,
+    private val observeUserSettingsUseCase: GetUserSettingsUseCase,
+    private val updateUserSettingsUseCase: UpdateUserSettingsUseCase,
+    private val switchCredentialUseCase: SwitchCredentialUseCase,
+    private val deleteCredentialUseCase: DeleteCredentialUseCase,
+    private val triggerPaywallUseCase: TriggerPaywallUseCase,
+    private val observeProStatusUseCase: ObserveProStatusUseCase,
+    private val restorePurchasesUseCase: RestorePurchasesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -48,36 +38,33 @@ class MainViewModel(
     private val _navigateToBuckets = MutableSharedFlow<Unit>()
     val navigateToBuckets: SharedFlow<Unit> = _navigateToBuckets.asSharedFlow()
 
-    private var currentSettings: UserSettings? = null
-
     init {
-        observeCredentials()
-        observeSettings()
-        observePremiumStatus()
+        observeData()
     }
 
-    private fun observePremiumStatus() {
+    private fun observeData() {
         viewModelScope.launch {
-            purchaseRepository.isPro.collect { isPro ->
-                _uiState.update { it.copy(isPremium = isPro) }
-            }
-        }
-    }
-
-    private fun observeCredentials() {
-        viewModelScope.launch {
-            credentialRepository.getCredentials().collect { credentials ->
-                val lastUsedId = credentialRepository.getLastUsedId()
+            observeCredentialsUseCase().collect { credentials ->
+                val lastUsedId = getLastUsedCredentialIdUseCase()
                 _uiState.update { it.copy(credentials = credentials, lastUsedId = lastUsedId) }
             }
         }
-    }
 
-    private fun observeSettings() {
         viewModelScope.launch {
-            settingsRepository.getSettings().collect { settings ->
-                currentSettings = settings
-                _uiState.update { it.copy(viewMode = settings.viewMode) }
+            observeUserSettingsUseCase().collect { settings ->
+                _uiState.update { state ->
+                    state.copy(
+                        viewMode = settings.viewMode,
+                        newBucketFileSizeLimit = if (state.newBucketFileSizeLimit.isEmpty()) settings.fileSizeLimit.toString() else state.newBucketFileSizeLimit,
+                        newBucketFileSizeUnit = if (state.isNewBucketSizeLimitEnabled) settings.fileSizeUnit else state.newBucketFileSizeUnit
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            observeProStatusUseCase().collect { isPro ->
+                _uiState.update { it.copy(isPremium = isPro) }
             }
         }
     }
@@ -95,26 +82,32 @@ class MainViewModel(
     }
 
     fun onCreateBucketClick() {
-        _uiState.update { 
-            it.copy(
-                isCreateBucketDialogVisible = true,
-                isNewBucketSizeLimitEnabled = false,
-                newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
-                newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES
-            )
+        viewModelScope.launch {
+            val settings = observeUserSettingsUseCase().first()
+            _uiState.update { 
+                it.copy(
+                    isCreateBucketDialogVisible = true,
+                    isNewBucketSizeLimitEnabled = false,
+                    newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
+                    newBucketFileSizeUnit = settings.fileSizeUnit
+                )
+            }
         }
     }
 
     fun onDismissCreateBucketDialog() {
-        _uiState.update {
-            it.copy(
-                isCreateBucketDialogVisible = false,
-                newBucketId = "",
-                isNewBucketPublic = true,
-                isNewBucketSizeLimitEnabled = false,
-                newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
-                newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES
-            )
+        viewModelScope.launch {
+            val settings = observeUserSettingsUseCase().first()
+            _uiState.update {
+                it.copy(
+                    isCreateBucketDialogVisible = false,
+                    newBucketId = "",
+                    isNewBucketPublic = true,
+                    isNewBucketSizeLimitEnabled = false,
+                    newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
+                    newBucketFileSizeUnit = settings.fileSizeUnit
+                )
+            }
         }
     }
 
@@ -127,16 +120,17 @@ class MainViewModel(
     }
 
     fun onNewBucketSizeLimitToggle(enabled: Boolean) {
-        _uiState.update { 
-            it.copy(
-                isNewBucketSizeLimitEnabled = enabled,
-                newBucketFileSizeLimit = if (enabled && it.newBucketFileSizeLimit.isEmpty()) 
-                    currentSettings?.fileSizeLimit?.toString() ?: "" 
-                else it.newBucketFileSizeLimit,
-                newBucketFileSizeUnit = if (enabled) 
-                    currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES 
-                else it.newBucketFileSizeUnit
-            )
+        viewModelScope.launch {
+            val settings = observeUserSettingsUseCase().first()
+            _uiState.update { 
+                it.copy(
+                    isNewBucketSizeLimitEnabled = enabled,
+                    newBucketFileSizeLimit = if (enabled && it.newBucketFileSizeLimit.isEmpty()) 
+                        settings.fileSizeLimit.toString() else it.newBucketFileSizeLimit,
+                    newBucketFileSizeUnit = if (enabled) 
+                        settings.fileSizeUnit else it.newBucketFileSizeUnit
+                )
+            }
         }
     }
 
@@ -166,14 +160,15 @@ class MainViewModel(
             )
             createBucketUseCase(params).fold(
                 onSuccess = {
+                    val settings = observeUserSettingsUseCase().first()
                     _uiState.update {
                         it.copy(
                             isCreateBucketDialogVisible = false,
                             newBucketId = "",
                             isNewBucketPublic = true,
                             isNewBucketSizeLimitEnabled = false,
-                            newBucketFileSizeLimit = currentSettings?.fileSizeLimit?.toString() ?: "",
-                            newBucketFileSizeUnit = currentSettings?.fileSizeUnit ?: SizeUnit.MEGABYTES,
+                            newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
+                            newBucketFileSizeUnit = settings.fileSizeUnit,
                             successMessage = "Bucket created"
                         )
                     }
@@ -265,10 +260,7 @@ class MainViewModel(
         _uiState.update { it.copy(showCredentialSwitchConfirmation = false, isSettingUpCredential = true) }
         viewModelScope.launch {
             try {
-                credentialRepository.setLastUsedId(credential.id)
-                val newClient = supabaseClientManager.createClient(credential)
-                // Optionally verify client
-                supabaseClientManager.setClient(newClient)
+                switchCredentialUseCase(credential)
                 _navigateToBuckets.emit(Unit)
                 _uiState.update { it.copy(lastUsedId = credential.id, isSettingUpCredential = false) }
             } catch (e: Exception) {
@@ -279,48 +271,37 @@ class MainViewModel(
 
     fun onRemoveCredential(id: String) {
         viewModelScope.launch {
-            credentialRepository.removeCredential(id)
-            if (id == _uiState.value.lastUsedId) {
-                // If removing current one, clear client
-                supabaseClientManager.clearClient()
-            }
+            deleteCredentialUseCase(id)
+            // If current was removed, the UseCase or Manager should handle clearing technically,
+            // but for UI we might need to react if not already doing so via credentials stream.
         }
     }
 
     fun toggleViewMode() {
-        val newViewMode = if (_uiState.value.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
         viewModelScope.launch {
-            val settings = settingsRepository.getSettings().first()
-            settingsRepository.updateSettings(settings.copy(viewMode = newViewMode))
+            val settings = observeUserSettingsUseCase().first()
+            val newViewMode = if (settings.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
+            updateUserSettingsUseCase(settings.copy(viewMode = newViewMode))
         }
     }
 
     fun onUpgradeClick() {
-        purchaseRepository.triggerPaywall()
+        triggerPaywallUseCase()
     }
 
     fun onRestoreClick() {
         _uiState.update { it.copy(isRestoring = true) }
         viewModelScope.launch {
-            val result = purchaseRepository.restorePurchases()
+            val result = restorePurchasesUseCase()
+            _uiState.update { it.copy(isRestoring = false) }
             when (result) {
                 is ApiResponse.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isRestoring = false,
-                            successMessage = "Restored successfully!"
-                        )
-                    }
+                    _uiState.update { it.copy(successMessage = "Restored successfully!") }
                 }
                 is ApiResponse.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isRestoring = false,
-                            error = "Restore failed: ${result.exception.message}"
-                        )
-                    }
+                    _uiState.update { it.copy(error = "Restore failed: ${result.exception.message}") }
                 }
-                is ApiResponse.Loading -> { /* Handled by isRestoring = true */ }
+                is ApiResponse.Loading -> { }
             }
         }
     }
