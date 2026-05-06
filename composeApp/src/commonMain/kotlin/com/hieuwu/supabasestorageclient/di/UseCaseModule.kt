@@ -14,6 +14,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.MoveFileUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketContentsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.UpdateBucketUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.UploadFileUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.impl.ClearCacheUseCaseImpl
 import com.hieuwu.supabasestorageclient.domain.usecase.impl.CreateBucketUseCaseImpl
@@ -29,6 +30,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.impl.GetPublicUrlUseCaseI
 import com.hieuwu.supabasestorageclient.domain.usecase.impl.MoveFileUseCaseImpl
 import com.hieuwu.supabasestorageclient.domain.usecase.impl.RefreshBucketContentsUseCaseImpl
 import com.hieuwu.supabasestorageclient.domain.usecase.impl.RefreshBucketsUseCaseImpl
+import com.hieuwu.supabasestorageclient.domain.usecase.impl.UpdateBucketUseCaseImpl
 import com.hieuwu.supabasestorageclient.domain.usecase.impl.UploadFileUseCaseImpl
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -45,6 +47,7 @@ val useCaseModule = module {
     factory { UploadFileUseCaseImpl(get()) } bind UploadFileUseCase::class
     factory { EmptyBucketUseCaseImpl(get()) } bind EmptyBucketUseCase::class
     factory { CreateBucketUseCaseImpl(get()) } bind CreateBucketUseCase::class
+    factory { UpdateBucketUseCaseImpl(get()) } bind UpdateBucketUseCase::class
     factory { DeleteBucketUseCaseImpl(get()) } bind DeleteBucketUseCase::class
     factory { ClearCacheUseCaseImpl(get()) } bind ClearCacheUseCase::class
     factory { RefreshBucketsUseCaseImpl(get()) } bind RefreshBucketsUseCase::class

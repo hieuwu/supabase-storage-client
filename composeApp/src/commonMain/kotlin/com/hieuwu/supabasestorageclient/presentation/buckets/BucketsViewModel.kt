@@ -12,6 +12,7 @@ import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
+import com.hieuwu.supabasestorageclient.domain.RefreshManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +27,7 @@ class BucketsViewModel(
     private val starredRepository: StarredRepository,
     private val settingsRepository: SettingsRepository,
     private val contextSelectionManager: ContextSelectionManager,
+    private val refreshManager: RefreshManager,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -35,6 +37,15 @@ class BucketsViewModel(
     init {
         contextSelectionManager.clearContext()
         loadBuckets()
+        observeRefresh()
+    }
+
+    private fun observeRefresh() {
+        viewModelScope.launch {
+            refreshManager.refreshBuckets.collect {
+                loadBuckets()
+            }
+        }
     }
 
     fun loadBuckets() {

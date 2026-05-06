@@ -22,6 +22,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -48,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -63,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
+import com.hieuwu.supabasestorageclient.util.formatSize
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import org.koin.compose.viewmodel.koinViewModel
@@ -71,6 +78,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun BucketsScreen(
     onBucketClick: (String) -> Unit,
+    onUpdateBucketClick: (Bucket) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: BucketsViewModel = koinViewModel()
@@ -124,6 +132,7 @@ fun BucketsScreen(
                                     animatedVisibilityScope = animatedVisibilityScope,
                                     onClick = { onBucketClick(bucket.id) },
                                     onToggleStar = { viewModel.toggleStar(bucket) },
+                                    onUpdateClick = { onUpdateBucketClick(bucket) },
                                     onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
                                     onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
                                 )
@@ -145,6 +154,7 @@ fun BucketsScreen(
                                     animatedVisibilityScope = animatedVisibilityScope,
                                     onClick = { onBucketClick(bucket.id) },
                                     onToggleStar = { viewModel.toggleStar(bucket) },
+                                    onUpdateClick = { onUpdateBucketClick(bucket) },
                                     onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
                                     onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
                                 )
@@ -219,6 +229,7 @@ fun BucketListItem(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
     onToggleStar: () -> Unit,
+    onUpdateClick: () -> Unit,
     onEmptyClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -237,10 +248,46 @@ fun BucketListItem(
             }
         },
         supportingContent = {
-            if (bucket.public) {
-                Text("Public", color = MaterialTheme.colorScheme.primary)
-            } else {
-                Text("Private")
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (bucket.public) {
+                        Text("Public", color = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Text("Private")
+                    }
+                    bucket.fileSizeLimit?.let { limit ->
+                        Spacer(Modifier.width(8.dp))
+                        Text("•", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Limit: ${formatSize(limit)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                bucket.allowedMimeTypes?.let { types ->
+                    if (types.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState())
+                        ) {
+                            types.forEach { type ->
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = {
+                                        Text(
+                                            type,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    },
+                                    modifier = Modifier.height(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         leadingContent = {
@@ -277,7 +324,7 @@ fun BucketListItem(
                             text = { Text("Update bucket") },
                             onClick = {
                                 showMenu = false
-                                // Leave update bucket for now
+                                onUpdateClick()
                             },
                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
                         )
@@ -313,6 +360,7 @@ fun BucketGridItem(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
     onToggleStar: () -> Unit,
+    onUpdateClick: () -> Unit,
     onEmptyClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -353,6 +401,14 @@ fun BucketGridItem(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Update bucket") },
+                            onClick = {
+                                showMenu = false
+                                onUpdateClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
                         DropdownMenuItem(
                             text = { Text("Empty bucket") },
                             onClick = {
@@ -407,6 +463,20 @@ fun BucketGridItem(
                     "Public",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Text(
+                    "Private",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            bucket.fileSizeLimit?.let { limit ->
+                Text(
+                    formatSize(limit),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

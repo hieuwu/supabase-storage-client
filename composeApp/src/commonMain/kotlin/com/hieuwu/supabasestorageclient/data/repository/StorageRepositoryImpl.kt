@@ -281,6 +281,24 @@ class StorageRepositoryImpl(
         }
     }
 
+    override suspend fun updateBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?) {
+        try {
+            client().storage.updateBucket(id) {
+                this.public = public
+                this.fileSizeLimit = when (unit) {
+                    SizeUnit.BYTES -> fileSizeLimit?.bytes
+                    SizeUnit.KILOBYTES -> fileSizeLimit?.kilobytes
+                    SizeUnit.MEGABYTES -> fileSizeLimit?.megabytes
+                    SizeUnit.GIGABYTES -> fileSizeLimit?.gigabytes
+                    null -> null
+                }
+            }
+        } catch (e: Exception) {
+            logger.e(e) { "Error updating bucket $id" }
+            throw e
+        }
+    }
+
     override suspend fun clearCache(credentialId: String?) {
         val id = credentialId ?: getCurrentCredentialId()
         logger.d { "Clearing local cache for credential: $id" }
