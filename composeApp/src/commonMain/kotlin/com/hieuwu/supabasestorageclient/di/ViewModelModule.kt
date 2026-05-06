@@ -81,6 +81,7 @@ val viewModelModule = module {
             createFolderUseCase = get(),
             uploadFileUseCase = get(),
             createBucketUseCase = get(),
+            updateBucketUseCase = get(),
             observeCredentialsUseCase = get(),
             getLastUsedCredentialIdUseCase = get(),
             observeUserSettingsUseCase = get(),
@@ -89,7 +90,8 @@ val viewModelModule = module {
             deleteCredentialUseCase = get(),
             triggerPaywallUseCase = get(),
             observeProStatusUseCase = get(),
-            restorePurchasesUseCase = get()
+            restorePurchasesUseCase = get(),
+            refreshManager = get(),
         )
     }
     viewModelOf(::SettingsViewModel)

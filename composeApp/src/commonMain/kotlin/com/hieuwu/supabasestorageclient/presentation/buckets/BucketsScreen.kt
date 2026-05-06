@@ -69,7 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
-import com.hieuwu.supabasestorageclient.util.formatSize
+import com.hieuwu.supabasestorageclient.core.formatSize
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import org.koin.compose.viewmodel.koinViewModel
@@ -115,6 +115,7 @@ fun BucketsScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                 }
+
                 is BucketsUiState.Error -> {
                     EmptyState(
                         icon = Icons.Default.Storage,
@@ -122,6 +123,7 @@ fun BucketsScreen(
                         subtitle = state.message
                     )
                 }
+
                 is BucketsUiState.Content -> {
                     PullToRefreshBox(
                         isRefreshing = false,
@@ -174,15 +176,15 @@ fun BucketsScreen(
                                                 onToggleStar = { viewModel.toggleStar(bucket) },
                                                 onUpdateClick = { onUpdateBucketClick(bucket) },
                                                 onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
-                                                onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
+                                                onDeleteClick = {
+                                                    viewModel.onDeleteBucketClick(
+                                                        bucket
+                                                    )
+                                                }
                                             )
                                         }
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
                             }
                         }
                     }
@@ -346,7 +348,12 @@ fun BucketListItem(
                                 showMenu = false
                                 onEmptyClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) }
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    contentDescription = null
+                                )
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete bucket") },
@@ -401,13 +408,17 @@ fun BucketGridItem(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-                
+
                 Box(modifier = Modifier.align(Alignment.TopEnd)) {
                     IconButton(
                         onClick = { showMenu = true },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More", modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "More",
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                     DropdownMenu(
                         expanded = showMenu,
@@ -427,7 +438,12 @@ fun BucketGridItem(
                                 showMenu = false
                                 onEmptyClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) }
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    contentDescription = null
+                                )
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete bucket") },
@@ -469,7 +485,7 @@ fun BucketGridItem(
                     )
                 )
             }
-            
+
             if (bucket.public) {
                 Text(
                     "Public",
@@ -483,7 +499,7 @@ fun BucketGridItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             bucket.fileSizeLimit?.let { limit ->
                 Text(
                     formatSize(limit),

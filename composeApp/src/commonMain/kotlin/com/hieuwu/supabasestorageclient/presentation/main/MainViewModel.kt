@@ -23,6 +23,13 @@ class MainViewModel(
     private val observeProStatusUseCase: ObserveProStatusUseCase,
     private val restorePurchasesUseCase: RestorePurchasesUseCase,
     private val updateBucketUseCase: UpdateBucketUseCase,
+    private val observeCredentialsUseCase: ObserveCredentialsUseCase,
+    private val getLastUsedCredentialIdUseCase: GetLastUsedCredentialIdUseCase,
+    private val observeUserSettingsUseCase: GetUserSettingsUseCase,
+    private val switchCredentialUseCase: SwitchCredentialUseCase,
+    private val deleteCredentialUseCase: DeleteCredentialUseCase,
+    private val updateUserSettingsUseCase: UpdateUserSettingsUseCase,
+    private val triggerPaywallUseCase: TriggerPaywallUseCase,
     private val refreshManager: RefreshManager
 ) : ViewModel() {
 
@@ -81,7 +88,7 @@ class MainViewModel(
     fun onCreateBucketClick() {
         viewModelScope.launch {
             val settings = observeUserSettingsUseCase().first()
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     isCreateBucketDialogVisible = true,
                     isUpdateBucketMode = false,
@@ -94,7 +101,10 @@ class MainViewModel(
     }
 
     fun onUpdateBucketClick(bucket: Bucket) {
-        val (limit, unit) = bucket.fileSizeLimit?.let { convertBytesToUnit(it) } ?: Pair(0L, SizeUnit.MEGABYTES)
+        val (limit, unit) = bucket.fileSizeLimit?.let { convertBytesToUnit(it) } ?: Pair(
+            0L,
+            SizeUnit.MEGABYTES
+        )
         _uiState.update {
             it.copy(
                 isCreateBucketDialogVisible = true,
@@ -145,12 +155,12 @@ class MainViewModel(
     fun onNewBucketSizeLimitToggle(enabled: Boolean) {
         viewModelScope.launch {
             val settings = observeUserSettingsUseCase().first()
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     isNewBucketSizeLimitEnabled = enabled,
-                    newBucketFileSizeLimit = if (enabled && it.newBucketFileSizeLimit.isEmpty()) 
+                    newBucketFileSizeLimit = if (enabled && it.newBucketFileSizeLimit.isEmpty())
                         settings.fileSizeLimit.toString() else it.newBucketFileSizeLimit,
-                    newBucketFileSizeUnit = if (enabled) 
+                    newBucketFileSizeUnit = if (enabled)
                         settings.fileSizeUnit else it.newBucketFileSizeUnit
                 )
             }
@@ -170,7 +180,8 @@ class MainViewModel(
         if (id.isBlank()) return
 
         val isSizeLimitEnabled = _uiState.value.isNewBucketSizeLimitEnabled
-        val fileSizeLimit = if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeLimit.toLongOrNull() else null
+        val fileSizeLimit =
+            if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeLimit.toLongOrNull() else null
         val isPublic = _uiState.value.isNewBucketPublic
         val unit = if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeUnit else null
 
@@ -260,10 +271,22 @@ class MainViewModel(
             val params = CreateFolderUseCase.Params(bucketId = context.bucketId, path = fullPath)
             createFolderUseCase(params).fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isNewFolderDialogVisible = false, newFolderName = "", successMessage = "Folder created") }
+                    _uiState.update {
+                        it.copy(
+                            isNewFolderDialogVisible = false,
+                            newFolderName = "",
+                            successMessage = "Folder created"
+                        )
+                    }
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isNewFolderDialogVisible = false, newFolderName = "", error = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isNewFolderDialogVisible = false,
+                            newFolderName = "",
+                            error = error.message
+                        )
+                    }
                 }
             )
         }
@@ -280,7 +303,7 @@ class MainViewModel(
             val fileName = platformFile.name
             val data = platformFile.readBytes()
             val fullPath = if (context.path.isEmpty()) fileName else "${context.path}/$fileName"
-            
+
             val params = UploadFileUseCase.Params(
                 bucketId = context.bucketId,
                 path = fullPath,
@@ -317,19 +340,39 @@ class MainViewModel(
     }
 
     fun onDismissCredentialSwitchConfirmation() {
-        _uiState.update { it.copy(showCredentialSwitchConfirmation = false, selectedCredentialForSwitch = null) }
+        _uiState.update {
+            it.copy(
+                showCredentialSwitchConfirmation = false,
+                selectedCredentialForSwitch = null
+            )
+        }
     }
 
     fun onConfirmCredentialSwitch() {
         val credential = _uiState.value.selectedCredentialForSwitch ?: return
-        _uiState.update { it.copy(showCredentialSwitchConfirmation = false, isSettingUpCredential = true) }
+        _uiState.update {
+            it.copy(
+                showCredentialSwitchConfirmation = false,
+                isSettingUpCredential = true
+            )
+        }
         viewModelScope.launch {
             try {
                 switchCredentialUseCase(credential)
                 _navigateToBuckets.emit(Unit)
-                _uiState.update { it.copy(lastUsedId = credential.id, isSettingUpCredential = false) }
+                _uiState.update {
+                    it.copy(
+                        lastUsedId = credential.id,
+                        isSettingUpCredential = false
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Switch failed: ${e.message}", isSettingUpCredential = false) }
+                _uiState.update {
+                    it.copy(
+                        error = "Switch failed: ${e.message}",
+                        isSettingUpCredential = false
+                    )
+                }
             }
         }
     }
@@ -345,7 +388,8 @@ class MainViewModel(
     fun toggleViewMode() {
         viewModelScope.launch {
             val settings = observeUserSettingsUseCase().first()
-            val newViewMode = if (settings.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
+            val newViewMode =
+                if (settings.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
             updateUserSettingsUseCase(settings.copy(viewMode = newViewMode))
         }
     }
@@ -363,10 +407,12 @@ class MainViewModel(
                 is ApiResponse.Success -> {
                     _uiState.update { it.copy(successMessage = "Restored successfully!") }
                 }
+
                 is ApiResponse.Error -> {
                     _uiState.update { it.copy(error = "Restore failed: ${result.exception.message}") }
                 }
-                is ApiResponse.Loading -> { }
+
+                is ApiResponse.Loading -> {}
             }
         }
     }
