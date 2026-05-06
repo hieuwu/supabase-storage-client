@@ -17,6 +17,7 @@ val useCaseModule = module {
     factory { UploadFileUseCaseImpl(get()) } bind UploadFileUseCase::class
     factory { EmptyBucketUseCaseImpl(get()) } bind EmptyBucketUseCase::class
     factory { CreateBucketUseCaseImpl(get()) } bind CreateBucketUseCase::class
+    factory { UpdateBucketUseCaseImpl(get()) } bind UpdateBucketUseCase::class
     factory { DeleteBucketUseCaseImpl(get()) } bind DeleteBucketUseCase::class
     factory { ClearCacheUseCaseImpl(get()) } bind ClearCacheUseCase::class
     factory { RefreshBucketsUseCaseImpl(get()) } bind RefreshBucketsUseCase::class

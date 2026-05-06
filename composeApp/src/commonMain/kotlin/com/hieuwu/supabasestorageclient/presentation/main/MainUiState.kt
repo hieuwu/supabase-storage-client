@@ -8,6 +8,7 @@ data class MainUiState(
     val isNewFolderDialogVisible: Boolean = false,
     val newFolderName: String = "",
     val isCreateBucketDialogVisible: Boolean = false,
+    val isUpdateBucketMode: Boolean = false,
     val newBucketId: String = "",
     val isNewBucketPublic: Boolean = true,
     val isNewBucketSizeLimitEnabled: Boolean = false,

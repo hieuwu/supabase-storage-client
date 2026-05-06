@@ -110,6 +110,10 @@ class StorageRepositoryImpl(
         remoteDataSource.createBucket(id, public, fileSizeLimit, unit)
     }
 
+    override suspend fun updateBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?) {
+        remoteDataSource.updateBucket(id, public, fileSizeLimit, unit)
+    }
+
     override suspend fun clearCache(credentialId: String?) {
         val id = credentialId ?: getCurrentCredentialId()
         localDataSource.clearCache(id)

@@ -459,6 +459,9 @@ fun MainScreen(
                             onBucketClick = { bucketId ->
                                 navController.navigate(Screen.Bucket.createRoute(bucketId))
                             },
+                            onUpdateBucketClick = { bucket ->
+                                viewModel.onUpdateBucketClick(bucket)
+                            },
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = this@composable
                         )
@@ -556,7 +559,7 @@ fun MainScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    "Create Bucket",
+                    if (uiState.isUpdateBucketMode) "Update Bucket" else "Create Bucket",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -565,6 +568,7 @@ fun MainScreen(
                     onValueChange = { viewModel.onNewBucketIdChange(it) },
                     label = { Text("Bucket ID") },
                     singleLine = true,
+                    enabled = !uiState.isUpdateBucketMode,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(
@@ -645,7 +649,7 @@ fun MainScreen(
                     onClick = { viewModel.onConfirmCreateBucket() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Create")
+                    Text(if (uiState.isUpdateBucketMode) "Update" else "Create")
                 }
                 TextButton(
                     onClick = { viewModel.onDismissCreateBucketDialog() },

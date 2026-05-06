@@ -8,6 +8,8 @@ import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import com.hieuwu.supabasestorageclient.domain.RefreshManager
+import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.flow.*
@@ -18,15 +20,10 @@ class MainViewModel(
     private val createFolderUseCase: CreateFolderUseCase,
     private val uploadFileUseCase: UploadFileUseCase,
     private val createBucketUseCase: CreateBucketUseCase,
-    private val observeCredentialsUseCase: ObserveCredentialsUseCase,
-    private val getLastUsedCredentialIdUseCase: GetLastUsedCredentialIdUseCase,
-    private val observeUserSettingsUseCase: GetUserSettingsUseCase,
-    private val updateUserSettingsUseCase: UpdateUserSettingsUseCase,
-    private val switchCredentialUseCase: SwitchCredentialUseCase,
-    private val deleteCredentialUseCase: DeleteCredentialUseCase,
-    private val triggerPaywallUseCase: TriggerPaywallUseCase,
     private val observeProStatusUseCase: ObserveProStatusUseCase,
-    private val restorePurchasesUseCase: RestorePurchasesUseCase
+    private val restorePurchasesUseCase: RestorePurchasesUseCase,
+    private val updateBucketUseCase: UpdateBucketUseCase,
+    private val refreshManager: RefreshManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -87,11 +84,36 @@ class MainViewModel(
             _uiState.update { 
                 it.copy(
                     isCreateBucketDialogVisible = true,
+                    isUpdateBucketMode = false,
                     isNewBucketSizeLimitEnabled = false,
                     newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
                     newBucketFileSizeUnit = settings.fileSizeUnit
                 )
             }
+        }
+    }
+
+    fun onUpdateBucketClick(bucket: Bucket) {
+        val (limit, unit) = bucket.fileSizeLimit?.let { convertBytesToUnit(it) } ?: Pair(0L, SizeUnit.MEGABYTES)
+        _uiState.update {
+            it.copy(
+                isCreateBucketDialogVisible = true,
+                isUpdateBucketMode = true,
+                newBucketId = bucket.id,
+                isNewBucketPublic = bucket.public,
+                isNewBucketSizeLimitEnabled = bucket.fileSizeLimit != null,
+                newBucketFileSizeLimit = if (bucket.fileSizeLimit != null) limit.toString() else it.newBucketFileSizeLimit,
+                newBucketFileSizeUnit = if (bucket.fileSizeLimit != null) unit else it.newBucketFileSizeUnit
+            )
+        }
+    }
+
+    private fun convertBytesToUnit(bytes: Long): Pair<Long, SizeUnit> {
+        return when {
+            bytes % 1_073_741_824L == 0L -> Pair(bytes / 1_073_741_824L, SizeUnit.GIGABYTES)
+            bytes % 1_048_576L == 0L -> Pair(bytes / 1_048_576L, SizeUnit.MEGABYTES)
+            bytes % 1024L == 0L -> Pair(bytes / 1024L, SizeUnit.KILOBYTES)
+            else -> Pair(bytes, SizeUnit.BYTES)
         }
     }
 
@@ -101,6 +123,7 @@ class MainViewModel(
             _uiState.update {
                 it.copy(
                     isCreateBucketDialogVisible = false,
+                    isUpdateBucketMode = false,
                     newBucketId = "",
                     isNewBucketPublic = true,
                     isNewBucketSizeLimitEnabled = false,
@@ -152,31 +175,73 @@ class MainViewModel(
         val unit = if (isSizeLimitEnabled) _uiState.value.newBucketFileSizeUnit else null
 
         viewModelScope.launch {
-            val params = CreateBucketUseCase.Params(
-                id = id,
-                public = isPublic,
-                fileSizeLimit = fileSizeLimit,
-                unit = unit
-            )
-            createBucketUseCase(params).fold(
-                onSuccess = {
-                    val settings = observeUserSettingsUseCase().first()
-                    _uiState.update {
-                        it.copy(
-                            isCreateBucketDialogVisible = false,
-                            newBucketId = "",
-                            isNewBucketPublic = true,
-                            isNewBucketSizeLimitEnabled = false,
-                            newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
-                            newBucketFileSizeUnit = settings.fileSizeUnit,
-                            successMessage = "Bucket created"
-                        )
+            if (_uiState.value.isUpdateBucketMode) {
+                val params = UpdateBucketUseCase.Params(
+                    id = id,
+                    public = isPublic,
+                    fileSizeLimit = fileSizeLimit,
+                    unit = unit
+                )
+                updateBucketUseCase(params).fold(
+                    onSuccess = {
+                        val settings = observeUserSettingsUseCase().first()
+                        _uiState.update {
+                            it.copy(
+                                isCreateBucketDialogVisible = false,
+                                isUpdateBucketMode = false,
+                                newBucketId = "",
+                                isNewBucketPublic = true,
+                                isNewBucketSizeLimitEnabled = false,
+                                newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
+                                newBucketFileSizeUnit = settings.fileSizeUnit,
+                                successMessage = "Bucket updated"
+                            )
+                        }
+                        refreshManager.triggerRefreshBuckets()
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isCreateBucketDialogVisible = false,
+                                isUpdateBucketMode = false,
+                                error = error.message
+                            )
+                        }
                     }
-                },
-                onFailure = { error ->
-                    _uiState.update { it.copy(error = error.message) }
-                }
-            )
+                )
+            } else {
+                val params = CreateBucketUseCase.Params(
+                    id = id,
+                    public = isPublic,
+                    fileSizeLimit = fileSizeLimit,
+                    unit = unit
+                )
+                createBucketUseCase(params).fold(
+                    onSuccess = {
+                        val settings = observeUserSettingsUseCase().first()
+                        _uiState.update {
+                            it.copy(
+                                isCreateBucketDialogVisible = false,
+                                newBucketId = "",
+                                isNewBucketPublic = true,
+                                isNewBucketSizeLimitEnabled = false,
+                                newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
+                                newBucketFileSizeUnit = settings.fileSizeUnit,
+                                successMessage = "Bucket created"
+                            )
+                        }
+                        refreshManager.triggerRefreshBuckets()
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isCreateBucketDialogVisible = false,
+                                error = error.message
+                            )
+                        }
+                    }
+                )
+            }
         }
     }
 

@@ -20,4 +20,5 @@ interface RemoteStorageDataSource {
     suspend fun emptyBucket(bucketId: String)
     suspend fun deleteBucket(bucketId: String)
     suspend fun createBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?)
+    suspend fun updateBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?)
 }

@@ -156,4 +156,17 @@ class RemoteStorageDataSourceImpl(
             }
         }
     }
+
+    override suspend fun updateBucket(id: String, public: Boolean, fileSizeLimit: Long?, unit: SizeUnit?) {
+        client().storage.updateBucket(id) {
+            this.public = public
+            this.fileSizeLimit = when (unit) {
+                SizeUnit.BYTES -> fileSizeLimit?.bytes
+                SizeUnit.KILOBYTES -> fileSizeLimit?.kilobytes
+                SizeUnit.MEGABYTES -> fileSizeLimit?.megabytes
+                SizeUnit.GIGABYTES -> fileSizeLimit?.gigabytes
+                null -> null
+            }
+        }
+    }
 }

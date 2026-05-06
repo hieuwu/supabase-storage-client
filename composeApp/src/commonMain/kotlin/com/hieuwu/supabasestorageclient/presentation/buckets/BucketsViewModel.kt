@@ -10,9 +10,8 @@ import com.hieuwu.supabasestorageclient.domain.usecase.DeleteBucketUseCase
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
-import com.hieuwu.supabasestorageclient.domain.usecase.GetStarredItemsUseCase
-import com.hieuwu.supabasestorageclient.domain.usecase.GetUserSettingsUseCase
-import com.hieuwu.supabasestorageclient.domain.usecase.ToggleStarUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.*
+import com.hieuwu.supabasestorageclient.domain.RefreshManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -25,6 +24,7 @@ class BucketsViewModel(
     private val toggleStarUseCase: ToggleStarUseCase,
     private val getUserSettingsUseCase: GetUserSettingsUseCase,
     private val contextSelectionManager: ContextSelectionManager,
+    private val refreshManager: RefreshManager,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -65,6 +65,11 @@ class BucketsViewModel(
 
     init {
         contextSelectionManager.clearContext()
+        viewModelScope.launch {
+            refreshManager.refreshBuckets.collect {
+                refreshTrigger.emit(Unit)
+            }
+        }
     }
 
     fun refreshBuckets() {
