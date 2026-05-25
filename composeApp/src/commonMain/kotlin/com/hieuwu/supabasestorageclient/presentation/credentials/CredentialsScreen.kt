@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -170,7 +172,7 @@ fun CredentialsScreen(
     }
 
     if (uiState.showAddSheet) {
-        val sheetState = rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { viewModel.hideAddSheet() },
             sheetState = sheetState,
@@ -187,7 +189,7 @@ fun CredentialsScreen(
     }
 
     if (uiState.showEditSheet && uiState.credentialToEdit != null) {
-        val sheetState = rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { viewModel.hideEditSheet() },
             sheetState = sheetState,
@@ -455,6 +457,36 @@ private fun CredentialForm(
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(24.dp))
+
+        androidx.compose.material3.Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3)),
+            colors = androidx.compose.material3.CardDefaults.cardColors(
+                containerColor = Color(0xFFE3F2FD)
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color(0xFF0D47A1),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "These credentials are obtained from your Supabase dashboard. Do not share them with anyone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF0D47A1),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
 
         OutlinedTextField(
             value = name,

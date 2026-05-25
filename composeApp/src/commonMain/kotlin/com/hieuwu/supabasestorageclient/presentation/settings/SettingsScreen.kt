@@ -60,6 +60,7 @@ fun SettingsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0.dp),
         modifier = modifier.fillMaxSize()
     ) { padding ->
         AnimatedContent(
@@ -76,6 +77,14 @@ fun SettingsScreen(
                 }
                 is SettingsUiState.Content -> {
                     val settings = state.settings
+                    var limitInput by remember { mutableStateOf(settings.fileSizeLimit.toString()) }
+
+                    LaunchedEffect(settings.fileSizeLimit) {
+                        val currentParsed = limitInput.toLongOrNull() ?: 0L
+                        if (currentParsed != settings.fileSizeLimit) {
+                            limitInput = settings.fileSizeLimit.toString()
+                        }
+                    }
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
@@ -110,9 +119,13 @@ fun SettingsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         OutlinedTextField(
-                                            value = settings.fileSizeLimit.toString(),
-                                            onValueChange = { value ->
-                                                value.toLongOrNull()?.let { viewModel.updateFileSizeLimit(it) }
+                                            value = limitInput,
+                                            onValueChange = { newValue ->
+                                                if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                                    limitInput = newValue
+                                                    val parsedLimit = newValue.toLongOrNull() ?: 0L
+                                                    viewModel.updateFileSizeLimit(parsedLimit)
+                                                }
                                             },
                                             label = { Text("Limit") },
                                             modifier = Modifier.weight(1f),

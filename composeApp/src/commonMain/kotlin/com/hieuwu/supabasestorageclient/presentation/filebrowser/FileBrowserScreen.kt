@@ -162,11 +162,13 @@ fun BucketScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Breadcrumbs(
-            currentPath = path.orEmpty(),
-            onPathClick = onNavigateToFolder,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+        if (!path.isNullOrEmpty()) {
+            Breadcrumbs(
+                currentPath = path,
+                onPathClick = onNavigateToFolder,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
 
         AnimatedContent(
             targetState = uiState,
@@ -353,14 +355,14 @@ fun Breadcrumbs(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "root",
             modifier = Modifier.clickable { onPathClick("") },
             color = if (currentPath.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.bodyMedium
         )
 
         if (currentPath.isNotEmpty()) {
@@ -372,14 +374,14 @@ fun Breadcrumbs(
 
                 Text(
                     text = " / ",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = part,
                     modifier = Modifier.clickable { onPathClick(pathSnapshot) },
                     color = if (index == parts.lastIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }

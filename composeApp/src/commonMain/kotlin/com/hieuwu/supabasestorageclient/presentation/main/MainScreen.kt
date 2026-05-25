@@ -270,8 +270,18 @@ fun MainScreen(
                         }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
-                        IconButton(onClick = { viewModel.onLogoutClick() }) {
-                            Icon(Icons.Default.Logout, contentDescription = "Logout")
+                        val activeCredential = uiState.credentials.find { it.id == uiState.lastUsedId }
+                        if (activeCredential != null) {
+                            IconButton(onClick = { viewModel.onLogoutClick() }) {
+                                CredentialAvatar(
+                                    name = activeCredential.name,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = { viewModel.onLogoutClick() }) {
+                                Icon(Icons.Default.Logout, contentDescription = "Logout")
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

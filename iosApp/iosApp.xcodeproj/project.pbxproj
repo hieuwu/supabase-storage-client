@@ -357,6 +357,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.crafted.supabuckt;
 				PRODUCT_NAME = Supabuckt;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -392,6 +393,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.crafted.supabuckt;
 				PRODUCT_NAME = Supabuckt;
 				SWIFT_EMIT_LOC_STRINGS = YES;
