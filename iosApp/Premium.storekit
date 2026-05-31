@@ -102,7 +102,7 @@
   ],
   "subscriptionOffersKeyPair" : {
     "id" : "EC019388",
-    "privateKey" : "MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgj7shXvO/a7oELrt8pCRil28m5oZHQKqhFA3z9feEQ/SgCgYIKoZIzj0DAQehRANCAARDLKXLXKSd+u2H4Mq7Ye9fvOTVeHugwW9mCjJweeMoVcXzyIANdXM1thjqAqqbag2AQ5v2NEWlvIMeDsrNf/Sc"
+    "privateKey" : "PROVIDE_THIS_FROM_APPSTORE_CONNECT"
   },
   "version" : {
     "major" : 4,
