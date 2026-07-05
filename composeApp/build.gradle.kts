@@ -135,7 +135,7 @@ android {
         applicationId = "com.hieuwu.supabasestorageclient"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 8
+        versionCode = 9
         versionName = "1.0"
     }
     packaging {
