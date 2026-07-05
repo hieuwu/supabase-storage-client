@@ -3,6 +3,8 @@ package com.hieuwu.supabasestorageclient.core
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant as KotlinInstant
+import kotlinx.datetime.Instant as KxInstant
 
 /**
  * Formats an Instant into a more human-readable format.
@@ -73,3 +75,10 @@ fun formatDate(isoString: String?): String {
         isoString.take(10) // Fallback to YYYY-MM-DD
     }
 }
+
+fun KotlinInstant.toKxInstant(): KxInstant =
+    KxInstant.fromEpochMilliseconds(this.toEpochMilliseconds())
+
+/** Convert kotlinx.datetime.Instant → kotlin.time.Instant */
+fun KxInstant.toKotlinInstant(): KotlinInstant =
+    KotlinInstant.fromEpochMilliseconds(this.toEpochMilliseconds())

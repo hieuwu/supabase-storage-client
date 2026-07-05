@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 import com.hieuwu.supabasestorageclient.platform.ClipboardManager
 import io.github.vinceglb.filekit.PlatformFile
+import kotlinx.datetime.Clock
 
 class FileBrowserViewModel(
     private val bucketId: String,
@@ -287,7 +288,7 @@ class FileBrowserViewModel(
                 path = fullPath,
                 isFolder = item.isFolder,
                 isBucket = false,
-                starredAt = kotlinx.datetime.Clock.System.now()
+                starredAt = Clock.System.now()
             )
             
             toggleStarUseCase(starredItem, item.isStarred).fold(

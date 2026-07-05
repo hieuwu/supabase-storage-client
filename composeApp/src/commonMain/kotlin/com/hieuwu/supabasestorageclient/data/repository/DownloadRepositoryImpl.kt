@@ -6,10 +6,11 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import com.hieuwu.supabasestorageclient.core.toKxInstant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 class DownloadRepositoryImpl(
     private val database: AppDatabase
@@ -30,7 +31,7 @@ class DownloadRepositoryImpl(
                         totalSize = entity.total_size,
                         downloadedSize = entity.downloaded_size,
                         status = DownloadStatus.valueOf(entity.status),
-                        downloadedTime = entity.downloaded_time?.let { Instant.parse(it) },
+                        downloadedTime = entity.downloaded_time?.let { Instant.parse(it) }?.toKxInstant(),
                         destinationPath = entity.destination_path,
                         sourcePath = entity.source_path
                     )

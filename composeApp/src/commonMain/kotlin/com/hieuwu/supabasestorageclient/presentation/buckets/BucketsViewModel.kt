@@ -14,6 +14,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.domain.RefreshManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 class BucketsViewModel(
     private val getBucketsUseCase: GetBucketsUseCase,
@@ -169,7 +170,7 @@ class BucketsViewModel(
                 path = null,
                 isFolder = false,
                 isBucket = true,
-                starredAt = kotlinx.datetime.Clock.System.now()
+                starredAt = Clock.System.now()
             )
             toggleStarUseCase(starredItem, bucket.isStarred).fold(
                 onSuccess = {

@@ -23,7 +23,7 @@ class SwitchCredentialUseCaseImpl(
         
         val newClient = supabaseClientManager.createClient(credential)
         // Verify connection
-        newClient.storage.retrieveBuckets()
+        newClient.storage.listBuckets()
         
         supabaseClientManager.setClient(newClient)
     }

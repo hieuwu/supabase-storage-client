@@ -1,5 +1,6 @@
 package com.hieuwu.supabasestorageclient.data.datasource.remote
 
+import com.hieuwu.supabasestorageclient.core.toKxInstant
 import com.hieuwu.supabasestorageclient.data.datasource.RemoteStorageDataSource
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
@@ -28,11 +29,11 @@ class RemoteStorageDataSourceImpl(
         supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
 
     override suspend fun getBuckets(): List<Bucket> {
-        return client().storage.retrieveBuckets().map { bucket ->
+        return client().storage.listBuckets().map { bucket ->
             Bucket(
                 id = bucket.id,
                 name = bucket.name,
-                owner = bucket.owner ?: "",
+                owner = bucket.owner,
                 public = bucket.public,
                 createdAt = bucket.createdAt.toString(),
                 updatedAt = bucket.updatedAt.toString(),
@@ -50,9 +51,9 @@ class RemoteStorageDataSourceImpl(
             StorageItem(
                 name = file.name,
                 id = file.id,
-                updatedAt = file.updatedAt,
-                createdAt = file.createdAt,
-                lastAccessedAt = file.lastAccessedAt,
+                updatedAt = file.updatedAt?.toKxInstant(),
+                createdAt = file.createdAt?.toKxInstant(),
+                lastAccessedAt = file.lastAccessedAt?.toKxInstant(),
                 metadata = emptyMap(),
                 isFolder = file.id == null,
                 size = size

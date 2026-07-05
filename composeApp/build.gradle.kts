@@ -60,6 +60,7 @@ kotlin {
 
         }
         commonMain.dependencies {
+            implementation(libs.kotlinx.datetime) // or latest version
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -95,7 +96,8 @@ kotlin {
 
             implementation(libs.revenuecat.purchases)
             implementation(libs.revenuecat.purchases.ui)
-            
+
+
             // FileKit
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs.compose)
