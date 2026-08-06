@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		650B41822F5479A000DC08ED /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 650B41812F5479A000DC08ED /* Launch Screen.storyboard */; };
-		65B08C2A2F587A9B00D749F8 /* PurchasesHybridCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */; };
-		65B08C2C2F587A9B00D749F8 /* PurchasesHybridCommonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */; };
 		65C4300B2F757D6700428C88 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65C4300A2F757D6700428C88 /* StoreKit.framework */; };
 		65C4300D2F7580C800428C88 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 65C4300C2F7580C800428C88 /* Premium.storekit */; };
 		D3B01A1B28368F1F00123456 /* ComposeApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D3B01A1A28368F1F00123456 /* ComposeApp.framework */; };
@@ -59,8 +57,6 @@
 				D3B01A1D28368F1F00123456 /* libsqlite3.tbd in Frameworks */,
 				D3B01A1B28368F1F00123456 /* ComposeApp.framework in Frameworks */,
 				65C4300B2F757D6700428C88 /* StoreKit.framework in Frameworks */,
-				65B08C2C2F587A9B00D749F8 /* PurchasesHybridCommonUI in Frameworks */,
-				65B08C2A2F587A9B00D749F8 /* PurchasesHybridCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,8 +114,6 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
-				65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */,
-				65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */,
 			);
 			productName = iosApp;
 			productReference = 38C9C68559EA6AA6C3C8327A /* Supabuckt.app */;
@@ -150,7 +144,6 @@
 			mainGroup = 04D2DE5EFFD4FEF2193C6005;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BE32DC1DE790D1C29F0C0FD5 /* Products */;
@@ -302,6 +295,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -342,6 +336,7 @@
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = GS2V32ACLJ;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -357,6 +352,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.crafted.supabuckt;
 				PRODUCT_NAME = Supabuckt;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -392,6 +388,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.crafted.supabuckt;
 				PRODUCT_NAME = Supabuckt;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -422,30 +419,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/RevenueCat/purchases-hybrid-common";
-			requirement = {
-				kind = exactVersion;
-				version = 17.41.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		65B08C292F587A9B00D749F8 /* PurchasesHybridCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
-			productName = PurchasesHybridCommon;
-		};
-		65B08C2B2F587A9B00D749F8 /* PurchasesHybridCommonUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 65B08C282F587A9B00D749F8 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
-			productName = PurchasesHybridCommonUI;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9B5D59B373854B1D729D47D3 /* Project object */;
 }

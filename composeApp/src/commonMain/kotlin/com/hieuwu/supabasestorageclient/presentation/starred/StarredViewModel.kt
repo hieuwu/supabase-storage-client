@@ -2,66 +2,72 @@ package com.hieuwu.supabasestorageclient.presentation.starred
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
-import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
+import com.hieuwu.supabasestorageclient.domain.usecase.GetStarredItemsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.GetUserSettingsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.UnstarItemUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.ClearAllStarredItemsUseCase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class StarredViewModel(
-    private val starredRepository: StarredRepository,
-    private val settingsRepository: SettingsRepository
+    private val getStarredItemsUseCase: GetStarredItemsUseCase,
+    private val getUserSettingsUseCase: GetUserSettingsUseCase,
+    private val unstarItemUseCase: UnstarItemUseCase,
+    private val clearAllStarredItemsUseCase: ClearAllStarredItemsUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StarredUiState())
-    val uiState: StateFlow<StarredUiState> = _uiState.asStateFlow()
+    private val _manualState = MutableStateFlow(ManualStarredState())
 
-    init {
-        loadStarredItems()
-    }
+    val uiState: StateFlow<StarredUiState> = combine(
+        getStarredItemsUseCase(),
+        getUserSettingsUseCase(),
+        _manualState
+    ) { items, settings, manual ->
+        StarredUiState.Content(
+            items = items,
+            viewMode = settings.viewMode,
+            showClearAllConfirmation = manual.showClearAllConfirmation,
+            successMessage = manual.successMessage,
+            error = manual.error
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StarredUiState.Loading)
 
-    fun loadStarredItems() {
+    fun unstarItem(id: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val starredItems = starredRepository.getStarredItems()
-            val userSettings = settingsRepository.getSettings()
-
-            combine(starredItems, userSettings) { items, settings ->
-                Pair(items, settings.viewMode)
-            }.collect { (items, viewMode) ->
-                _uiState.update { it.copy(items = items, isLoading = false, viewMode = viewMode) }
+            unstarItemUseCase(id).onSuccess {
+                _manualState.update { it.copy(successMessage = "Unstarred successfully") }
             }
         }
     }
 
-    fun unstarItem(id: String) {
-        viewModelScope.launch {
-            starredRepository.unstarItem(id)
-            _uiState.update { it.copy(successMessage = "Unstarred successfully") }
-        }
-    }
-
     fun onClearAllClick() {
-        _uiState.update { it.copy(showClearAllConfirmation = true) }
+        _manualState.update { it.copy(showClearAllConfirmation = true) }
     }
 
     fun confirmClearAll() {
         viewModelScope.launch {
-            starredRepository.clearAllStarredItems()
-            _uiState.update {
-                it.copy(
-                    showClearAllConfirmation = false,
-                    successMessage = "Cleared all starred items"
-                )
+            clearAllStarredItemsUseCase().onSuccess {
+                _manualState.update {
+                    it.copy(
+                        showClearAllConfirmation = false,
+                        successMessage = "Cleared all starred items"
+                    )
+                }
             }
         }
     }
 
     fun dismissClearAllConfirmation() {
-        _uiState.update { it.copy(showClearAllConfirmation = false) }
+        _manualState.update { it.copy(showClearAllConfirmation = false) }
     }
 
     fun clearMessages() {
-        _uiState.update { it.copy(successMessage = null, error = null) }
+        _manualState.update { it.copy(successMessage = null, error = null) }
     }
-
 }
+
+data class ManualStarredState(
+    val showClearAllConfirmation: Boolean = false,
+    val successMessage: String? = null,
+    val error: String? = null
+)

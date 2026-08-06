@@ -9,14 +9,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,9 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
-import com.hieuwu.supabasestorageclient.util.formatDateTime
+import com.hieuwu.supabasestorageclient.core.formatDateTime
+import com.hieuwu.supabasestorageclient.presentation.fileicons.FileIconUtils.getFileIcon
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,124 +45,127 @@ fun StarredScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.successMessage, uiState.error) {
-        uiState.successMessage?.let {
+    val content = uiState as? StarredUiState.Content
+
+    LaunchedEffect(content?.successMessage, content?.error) {
+        content?.successMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
-        uiState.error?.let {
+        content?.error?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        PullToRefreshBox(
-            isRefreshing = uiState.isLoading,
-            onRefresh = { viewModel.loadStarredItems() },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (uiState.isLoading && uiState.items.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-            } else if (uiState.items.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.StarOutline,
-                    title = "No Starred Items",
-                    subtitle = "Your starred files and folders will appear here."
-                )
-            } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        onClick = { viewModel.onClearAllClick() },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Clear All")
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0.dp),
+        modifier = modifier.fillMaxSize()
+    ) { padding ->
+        AnimatedContent(
+            targetState = uiState,
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            label = "StarredStateTransition"
+        ) { state ->
+            when (state) {
+                is StarredUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                 }
-                AnimatedContent(
-                    targetState = uiState.viewMode,
-                    transitionSpec = {
-                        fadeIn().togetherWith(fadeOut())
-                    },
-                    label = "StarredViewModeTransition"
-                ) { targetViewMode ->
-                    if (targetViewMode == ViewMode.LIST) {
-                        LazyColumn(
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.items) { item ->
-                                StarredItemRow(
-                                    item = item,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    onClick = {
-                                        when {
-                                            item.isBucket -> onNavigateToBucket(item.bucketId)
-                                            item.isFolder -> onNavigateToFolder(
-                                                item.bucketId,
-                                                item.path ?: ""
-                                            )
-                                            else -> onNavigateToFile(
-                                                item.bucketId,
-                                                item.fileName,
-                                                item.path?.substringBeforeLast("/", "")
-                                            )
-                                        }
-                                    },
-                                    onUnstar = { viewModel.unstarItem(item.id) }
-                                )
-                            }
-                        }
+                is StarredUiState.Error -> {
+                    EmptyState(
+                        icon = Icons.Default.Error,
+                        title = "Error loading starred items",
+                        subtitle = state.message
+                    )
+                }
+                is StarredUiState.Content -> {
+                    if (state.items.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.StarOutline,
+                            title = "No Starred Items",
+                            subtitle = "Your starred files and folders will appear here."
+                        )
                     } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(140.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.items) { item ->
-                                StarredItemGrid(
-                                    item = item,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    onClick = {
-                                        when {
-                                            item.isBucket -> onNavigateToBucket(item.bucketId)
-                                            item.isFolder -> onNavigateToFolder(
-                                                item.bucketId,
-                                                item.path ?: ""
-                                            )
-                                            else -> onNavigateToFile(
-                                                item.bucketId,
-                                                item.fileName,
-                                                item.path?.substringBeforeLast("/", "")
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = { viewModel.onClearAllClick() },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Icon(Icons.Default.DeleteSweep, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Clear All")
+                                }
+                            }
+                            AnimatedContent(
+                                targetState = state.viewMode,
+                                transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                                label = "StarredViewModeTransition"
+                            ) { targetViewMode ->
+                                if (targetViewMode == ViewMode.LIST) {
+                                    LazyColumn(
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        items(state.items) { item ->
+                                            StarredItemRow(
+                                                item = item,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = {
+                                                    when {
+                                                        item.isBucket -> onNavigateToBucket(item.bucketId)
+                                                        item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
+                                                        else -> onNavigateToFile(item.bucketId, item.fileName, item.path?.substringBeforeLast("/", ""))
+                                                    }
+                                                },
+                                                onUnstar = { viewModel.unstarItem(item.id) }
                                             )
                                         }
-                                    },
-                                    onUnstar = { viewModel.unstarItem(item.id) }
-                                )
+                                    }
+                                } else {
+                                    LazyVerticalGrid(
+                                        columns = GridCells.Adaptive(140.dp),
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        items(state.items) { item ->
+                                            StarredItemGrid(
+                                                item = item,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = {
+                                                    when {
+                                                        item.isBucket -> onNavigateToBucket(item.bucketId)
+                                                        item.isFolder -> onNavigateToFolder(item.bucketId, item.path ?: "")
+                                                        else -> onNavigateToFile(item.bucketId, item.fileName, item.path?.substringBeforeLast("/", ""))
+                                                    }
+                                                },
+                                                onUnstar = { viewModel.unstarItem(item.id) }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
-           }
+            }
         }
     }
-    }
 
-    if (uiState.showClearAllConfirmation) {
+    if (content?.showClearAllConfirmation == true) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissClearAllConfirmation() },
             title = { Text("Clear All Starred") },
@@ -277,17 +279,6 @@ fun StarredItemRow(
                 }
             }
         }
-    }
-}
-
-private fun getFileIcon(fileName: String): androidx.compose.ui.graphics.vector.ImageVector {
-    val extension = fileName.substringAfterLast('.', "").lowercase()
-    return when (extension) {
-        "pdf" -> Icons.Default.Description
-        "jpg", "jpeg", "png", "gif" -> Icons.Default.Image
-        "mp4", "mov", "avi" -> Icons.Default.Movie
-        "mp3", "wav" -> Icons.Default.MusicNote
-        else -> Icons.Default.InsertDriveFile
     }
 }
 

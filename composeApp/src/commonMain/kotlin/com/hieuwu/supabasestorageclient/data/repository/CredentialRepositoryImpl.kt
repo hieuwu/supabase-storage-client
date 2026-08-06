@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.data.dto.CredentialDto
+import com.hieuwu.supabasestorageclient.data.dto.toDomain
+import com.hieuwu.supabasestorageclient.data.dto.toDto
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -34,8 +37,8 @@ class CredentialRepositoryImpl(
         val json = settings.getString(KEY_CREDENTIALS, "[]")
         _lastUsedId.value = settings.getStringOrNull(KEY_LAST_USED_ID)
         try {
-            val list = Json.decodeFromString<List<Credential>>(json)
-            _credentials.value = list
+            val list = Json.decodeFromString<List<CredentialDto>>(json)
+            _credentials.value = list.map { it.toDomain() }
         } catch (e: Exception) {
             logger.e(e) { "Error decoding credentials from settings" }
             _credentials.value = emptyList()
@@ -66,7 +69,8 @@ class CredentialRepositoryImpl(
     }
 
     private fun persistCredentials() {
-        val json = Json.encodeToString(_credentials.value)
+        val dtos = _credentials.value.map { it.toDto() }
+        val json = Json.encodeToString(dtos)
         settings[KEY_CREDENTIALS] = json
     }
 

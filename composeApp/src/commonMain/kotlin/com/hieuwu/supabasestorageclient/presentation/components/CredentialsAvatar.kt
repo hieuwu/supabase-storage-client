@@ -18,7 +18,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun CredentialAvatar(name: String) {
+fun CredentialAvatar(
+    name: String,
+    modifier: Modifier = Modifier.size(40.dp)
+) {
     val initials = remember(name) { extractInitials(name) }
     val baseColor = remember(name) {
         val colors = listOf(
@@ -32,8 +35,7 @@ fun CredentialAvatar(name: String) {
     }
 
     Box(
-        modifier = Modifier
-            .size(40.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(baseColor.copy(alpha = 0.15f)),
         contentAlignment = Alignment.Center

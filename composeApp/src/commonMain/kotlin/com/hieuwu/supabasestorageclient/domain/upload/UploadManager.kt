@@ -2,12 +2,12 @@ package com.hieuwu.supabasestorageclient.domain.upload
 
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
+import com.hieuwu.supabasestorageclient.domain.model.StorageUploadStatus
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
-import io.github.jan.supabase.storage.UploadStatus as SupabaseUploadStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -69,15 +69,15 @@ class UploadManager(
 
                 storageRepository.uploadFileAsFlow(bucketId, path, data).collect { status ->
                     when (status) {
-                        is SupabaseUploadStatus.Progress -> {
+                        is StorageUploadStatus.Progress -> {
                             val currentItem = _uploads.value.find { it.id == id }
                             currentItem?.copy(
-                                uploadedSize = status.totalBytesSend,
+                                uploadedSize = status.totalBytesSent,
                                 totalSize = status.contentLength,
                                 status = UploadStatus.Uploading
                             )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-                        is SupabaseUploadStatus.Success -> {
+                        is StorageUploadStatus.Success -> {
                             val currentItem = _uploads.value.find { it.id == id }
                             currentItem?.copy(
                                 status = UploadStatus.Completed,

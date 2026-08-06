@@ -1,34 +1,39 @@
 package com.hieuwu.supabasestorageclient.presentation.uploads
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
-import com.hieuwu.supabasestorageclient.domain.upload.UploadManager
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import androidx.compose.runtime.State
+import com.hieuwu.supabasestorageclient.domain.usecase.ObserveUploadsUseCase
+import com.hieuwu.supabasestorageclient.domain.usecase.CancelUploadUseCase
+import kotlinx.coroutines.flow.*
 
 class UploadViewModel(
-    private val uploadManager: UploadManager
+    private val observeUploadsUseCase: ObserveUploadsUseCase,
+    private val cancelUploadUseCase: CancelUploadUseCase
 ) : ViewModel() {
 
-    val uploads: StateFlow<List<UploadItem>> = uploadManager.uploads
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _manualState = MutableStateFlow<UploadItem?>(null)
 
-    private val _showFileInfoDialog = mutableStateOf<UploadItem?>(null)
-    val showFileInfoDialog: State<UploadItem?> = _showFileInfoDialog
+    val uiState: StateFlow<UploadUiState> = combine(
+        observeUploadsUseCase(),
+        _manualState
+    ) { uploads, selectedItem ->
+        if (uploads.isEmpty()) {
+            UploadUiState.Empty
+        } else {
+            UploadUiState.Content(uploads, selectedItem)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UploadUiState.Empty)
 
     fun showFileInfo(item: UploadItem) {
-        _showFileInfoDialog.value = item
+        _manualState.value = item
     }
 
     fun hideFileInfo() {
-        _showFileInfoDialog.value = null
+        _manualState.value = null
     }
 
     fun cancelUpload(id: String) {
-        uploadManager.cancel(id)
+        cancelUploadUseCase(id)
     }
 }

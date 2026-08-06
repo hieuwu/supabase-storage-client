@@ -27,6 +27,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -69,7 +70,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
-import com.hieuwu.supabasestorageclient.util.formatSize
+import com.hieuwu.supabasestorageclient.core.formatSize
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import org.koin.compose.viewmodel.koinViewModel
@@ -86,137 +87,152 @@ fun BucketsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val content = uiState as? BucketsUiState.Content
+
+    LaunchedEffect(content?.successMessage, content?.error) {
+        content?.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+        content?.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0.dp),
         modifier = Modifier.fillMaxSize()
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isLoading,
-            onRefresh = { viewModel.refreshBuckets() },
-            modifier = Modifier.padding(padding).fillMaxSize()
-        ) {
-            if (uiState.isLoading && uiState.buckets.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.error != null && uiState.buckets.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { viewModel.loadBuckets() }) {
-                        Text("Retry")
+        AnimatedContent(
+            targetState = uiState,
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            label = "BucketsStateTransition"
+        ) { state ->
+            when (state) {
+                is BucketsUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                 }
-            } else if (uiState.buckets.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.Storage,
-                    title = "No buckets found",
-                    subtitle = "You don't have any buckets yet. Create one to start storing files.",
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                AnimatedContent(
-                    targetState = uiState.viewMode,
-                    transitionSpec = {
-                        fadeIn().togetherWith(fadeOut())
-                    },
-                    label = "BucketsViewModeTransition"
-                ) { targetViewMode ->
-                    if (targetViewMode == ViewMode.LIST) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(uiState.buckets) { bucket ->
-                                BucketListItem(
-                                    bucket = bucket,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    onClick = { onBucketClick(bucket.id) },
-                                    onToggleStar = { viewModel.toggleStar(bucket) },
-                                    onUpdateClick = { onUpdateBucketClick(bucket) },
-                                    onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
-                                    onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
-                                )
-                                HorizontalDivider()
-                            }
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(160.dp),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.buckets) { bucket ->
-                                BucketGridItem(
-                                    bucket = bucket,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    onClick = { onBucketClick(bucket.id) },
-                                    onToggleStar = { viewModel.toggleStar(bucket) },
-                                    onUpdateClick = { onUpdateBucketClick(bucket) },
-                                    onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
-                                    onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
-            if (uiState.isLoading && uiState.buckets.isNotEmpty()) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
+                is BucketsUiState.Error -> {
+                    EmptyState(
+                        icon = Icons.Default.Storage,
+                        title = "Error loading buckets",
+                        subtitle = state.message
+                    )
+                }
+
+                is BucketsUiState.Content -> {
+                    PullToRefreshBox(
+                        isRefreshing = false,
+                        onRefresh = { viewModel.refreshBuckets() },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        if (state.buckets.isEmpty()) {
+                            EmptyState(
+                                icon = Icons.Default.Storage,
+                                title = "No buckets found",
+                                subtitle = "You don't have any buckets yet. Create one to start storing files.",
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        } else {
+                            AnimatedContent(
+                                targetState = state.viewMode,
+                                transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                                label = "BucketsViewModeTransition"
+                            ) { targetViewMode ->
+                                if (targetViewMode == ViewMode.LIST) {
+                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                        items(state.buckets) { bucket ->
+                                            BucketListItem(
+                                                bucket = bucket,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = { onBucketClick(bucket.id) },
+                                                onToggleStar = { viewModel.toggleStar(bucket) },
+                                                onUpdateClick = { onUpdateBucketClick(bucket) },
+                                                onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
+                                                onDeleteClick = { viewModel.onDeleteBucketClick(bucket) }
+                                            )
+                                            HorizontalDivider()
+                                        }
+                                    }
+                                } else {
+                                    LazyVerticalGrid(
+                                        columns = GridCells.Adaptive(160.dp),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        items(state.buckets) { bucket ->
+                                            BucketGridItem(
+                                                bucket = bucket,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = { onBucketClick(bucket.id) },
+                                                onToggleStar = { viewModel.toggleStar(bucket) },
+                                                onUpdateClick = { onUpdateBucketClick(bucket) },
+                                                onEmptyClick = { viewModel.onEmptyBucketClick(bucket) },
+                                                onDeleteClick = {
+                                                    viewModel.onDeleteBucketClick(
+                                                        bucket
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    if (uiState.showEmptyConfirmation) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissDialogs() },
-            title = { Text("Empty Bucket") },
-            text = { Text("Are you sure you want to empty the bucket '${uiState.selectedBucket?.name}'? All files will be deleted.") },
-            confirmButton = {
-                Button(onClick = { viewModel.confirmEmptyBucket() }) {
-                    Text("Confirm")
+    content?.let { state ->
+        if (state.showEmptyConfirmation) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissDialogs() },
+                title = { Text("Empty Bucket") },
+                text = { Text("Are you sure you want to empty the bucket '${state.selectedBucket?.name}'? All files will be deleted.") },
+                confirmButton = {
+                    Button(onClick = { viewModel.confirmEmptyBucket() }) {
+                        Text("Confirm")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissDialogs() }) {
+                        Text("Cancel")
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissDialogs() }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    if (uiState.showDeleteConfirmation) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissDialogs() },
-            title = { Text("Delete Bucket") },
-            text = { Text("Are you sure you want to delete the bucket '${uiState.selectedBucket?.name}'? This action cannot be undone.") },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.confirmDeleteBucket() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Confirm")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissDialogs() }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    LaunchedEffect(uiState.successMessage, uiState.error) {
-        uiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearMessages()
+            )
         }
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearMessages()
+
+        if (state.showDeleteConfirmation) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissDialogs() },
+                title = { Text("Delete Bucket") },
+                text = { Text("Are you sure you want to delete the bucket '${state.selectedBucket?.name}'? This action cannot be undone.") },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.confirmDeleteBucket() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Confirm")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissDialogs() }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
@@ -334,7 +350,12 @@ fun BucketListItem(
                                 showMenu = false
                                 onEmptyClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) }
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    contentDescription = null
+                                )
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete bucket") },
@@ -389,13 +410,17 @@ fun BucketGridItem(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-                
+
                 Box(modifier = Modifier.align(Alignment.TopEnd)) {
                     IconButton(
                         onClick = { showMenu = true },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More", modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "More",
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                     DropdownMenu(
                         expanded = showMenu,
@@ -415,7 +440,12 @@ fun BucketGridItem(
                                 showMenu = false
                                 onEmptyClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) }
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    contentDescription = null
+                                )
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete bucket") },
@@ -457,7 +487,7 @@ fun BucketGridItem(
                     )
                 )
             }
-            
+
             if (bucket.public) {
                 Text(
                     "Public",
@@ -471,7 +501,7 @@ fun BucketGridItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             bucket.fileSizeLimit?.let { limit ->
                 Text(
                     formatSize(limit),
@@ -482,5 +512,3 @@ fun BucketGridItem(
         }
     }
 }
-
-

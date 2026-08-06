@@ -19,56 +19,62 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.presentation.components.EmptyState
 import com.hieuwu.supabasestorageclient.presentation.components.FileInfoDialog
-import com.hieuwu.supabasestorageclient.util.format
-import com.hieuwu.supabasestorageclient.util.formatDate
-import com.hieuwu.supabasestorageclient.util.formatDateTime
+import com.hieuwu.supabasestorageclient.core.format
+import com.hieuwu.supabasestorageclient.core.formatDateTime
+import com.hieuwu.supabasestorageclient.presentation.fileicons.FileIconUtils.getFileIcon
+import com.hieuwu.supabasestorageclient.presentation.formatters.formatStatus
+import com.hieuwu.supabasestorageclient.presentation.formatters.formatUploadProgress
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun UploadScreen(
     viewModel: UploadViewModel = koinViewModel()
 ) {
-    val uploads by viewModel.uploads.collectAsStateWithLifecycle()
-    val itemToShowInfo by viewModel.showFileInfoDialog
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (uploads.isEmpty()) {
-            EmptyState(
-                icon = Icons.Default.Upload,
-                title = "No Uploads Yet",
-                subtitle = "Your file uploads will appear here."
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(uploads, key = { it.id }) { item ->
-                    UploadItemRow(
-                        item = item,
-                        onCancel = { viewModel.cancelUpload(item.id) },
-                        onShowInfo = { viewModel.showFileInfo(item) }
+        when (val state = uiState) {
+            is UploadUiState.Empty -> {
+                EmptyState(
+                    icon = Icons.Default.Upload,
+                    title = "No Uploads Yet",
+                    subtitle = "Your file uploads will appear here."
+                )
+            }
+
+            is UploadUiState.Content -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(state.uploads, key = { it.id }) { item ->
+                        UploadItemRow(
+                            item = item,
+                            onCancel = { viewModel.cancelUpload(item.id) },
+                            onShowInfo = { viewModel.showFileInfo(item) }
+                        )
+                    }
+                }
+
+                state.selectedItem?.let { item ->
+                    FileInfoDialog(
+                        fileName = item.fileName,
+                        icon = getFileIcon(item.fileName),
+                        status = item.formatStatus(),
+                        fromPath = item.from,
+                        toPath = item.to,
+                        size =  item.formatUploadProgress(),
+                        date = item.uploadedTime?.let { formatDateTime(it) },
+                        onDismissRequest = { viewModel.hideFileInfo() }
                     )
                 }
             }
-        }
-
-        itemToShowInfo?.let { item ->
-            FileInfoDialog(
-                fileName = item.fileName,
-                icon = getFileIcon(item.fileName),
-                status = formatStatus(item),
-                fromPath = item.from,
-                toPath = item.to,
-                size = formatSize(item.uploadedSize, item.totalSize),
-                date = item.uploadedTime?.let { formatDateTime(it) },
-                onDismissRequest = { viewModel.hideFileInfo() }
-            )
         }
     }
 }
@@ -126,17 +132,17 @@ fun UploadItemRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = formatStatus(item),
+                        text = item.formatStatus(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
                 }
-                
+
                 IconButton(onClick = onCancel) {
                     Icon(Icons.Default.Close, contentDescription = "Cancel/Remove")
                 }
             }
-            
+
             if (item.status == UploadStatus.Uploading) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
@@ -144,51 +150,20 @@ fun UploadItemRow(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
                         text = "${(item.progress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
-                        text = formatSize(item.uploadedSize, item.totalSize),
+                        text = item.formatUploadProgress(),
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
         }
     }
-}
-
-private fun getFileIcon(fileName: String): ImageVector {
-    val extension = fileName.substringAfterLast('.', "").lowercase()
-    return when (extension) {
-        "pdf" -> Icons.Default.Description
-        "jpg", "jpeg", "png", "gif" -> Icons.Default.Image
-        "mp4", "mov", "avi" -> Icons.Default.Movie
-        "mp3", "wav" -> Icons.Default.MusicNote
-        else -> Icons.Default.InsertDriveFile
-    }
-}
-
-private fun formatStatus(item: UploadItem): String {
-    return when (item.status) {
-        UploadStatus.Uploading -> "Uploading..."
-        UploadStatus.Paused -> "Paused"
-        UploadStatus.Completed -> "Completed ${if (item.uploadedTime != null) "at ${formatDateTime(item.uploadedTime)}" else ""}"
-        UploadStatus.Error -> "Error"
-        UploadStatus.Cancelled -> "Cancelled"
-    }
-}
-
-private fun formatSize(uploaded: Long, total: Long): String {
-    if (total <= 0) return formatBytes(uploaded)
-    return "${formatBytes(uploaded)} / ${formatBytes(total)}"
-}
-
-private fun formatBytes(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return "${kb.format(1)} KB"
-    val mb = kb / 1024.0
-    return "${mb.format(1)} MB"
 }

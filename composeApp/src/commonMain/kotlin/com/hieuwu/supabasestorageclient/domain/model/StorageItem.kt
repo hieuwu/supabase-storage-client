@@ -12,4 +12,9 @@ data class StorageItem(
     val isFolder: Boolean,
     val size: Long? = null,
     val isStarred: Boolean = false
-)
+) {
+    fun getFullPath(parentPath: String?): String {
+        return if (parentPath.isNullOrEmpty()) name else "$parentPath/$name"
+    }
+
+}

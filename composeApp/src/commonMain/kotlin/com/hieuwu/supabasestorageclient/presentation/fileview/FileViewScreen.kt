@@ -1,50 +1,20 @@
 package com.hieuwu.supabasestorageclient.presentation.fileview
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.animation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.hieuwu.supabasestorageclient.util.formatDate
-import com.hieuwu.supabasestorageclient.util.formatSize
+import com.hieuwu.supabasestorageclient.core.FileUtils
+import com.hieuwu.supabasestorageclient.core.formatDate
+import com.hieuwu.supabasestorageclient.core.formatSize
+import com.hieuwu.supabasestorageclient.platform.PdfViewer
+import com.hieuwu.supabasestorageclient.platform.VideoPlayer
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
@@ -64,27 +34,24 @@ fun FileViewScreen(
     viewModel: FileViewViewModel = koinViewModel(parameters = { parametersOf(bucketId, fileName, path) })
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    var showDeleteDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(uiState.isDeleted) {
-        if (uiState.isDeleted) {
-            // Give some time for the success snackbar to be seen if it was triggered
+    val content = uiState as? FileViewUiState.Content
+
+    LaunchedEffect(content?.isDeleted) {
+        if (content?.isDeleted == true) {
             kotlinx.coroutines.delay(1000)
             onBack()
         }
     }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
+    LaunchedEffect(content?.error, content?.successMessage) {
+        content?.error?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
-    }
-
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let {
+        content?.successMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
@@ -106,15 +73,15 @@ fun FileViewScreen(
         }
     }
 
-    LaunchedEffect(uiState.isPickingDirectory) {
-        if (uiState.isPickingDirectory) {
+    LaunchedEffect(content?.isPickingDirectory) {
+        if (content?.isPickingDirectory == true) {
             directoryPickerLauncher.launch()
         }
     }
 
-    LaunchedEffect(uiState.isSavingFile, uiState.itemToDownload) {
-        if (uiState.isSavingFile) {
-            uiState.itemToDownload?.let { item ->
+    LaunchedEffect(content?.isSavingFile, content?.itemToDownload) {
+        if (content?.isSavingFile == true) {
+            content.itemToDownload?.let { item ->
                 val extension = item.name.substringAfterLast(".", "")
                 val nameWithoutExtension = if (extension.isNotEmpty()) {
                     item.name.substringBeforeLast(".")
@@ -130,84 +97,94 @@ fun FileViewScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator()
-                } else if (uiState.error != null) {
-                    Text("Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
-                } else if (uiState.publicUrl != null) {
-                    FileViewerContent(
-                        url = uiState.publicUrl!!,
-                        fileName = fileName
-                    )
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = Modifier.fillMaxSize()
+    ) { padding ->
+        AnimatedContent(
+            targetState = uiState,
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            label = "FileViewStateTransition"
+        ) { state ->
+            when (state) {
+                is FileViewUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is FileViewUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is FileViewUiState.Content -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            state.publicUrl?.let { url ->
+                                FileViewerContent(url = url, fileName = fileName)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        FileMetadataSection(
+                            fileName = fileName,
+                            extension = fileName.substringAfterLast(".", ""),
+                            size = state.metadata?.size?.let { formatSize(it) } ?: "Unknown",
+                            addedOn = formatDate(state.metadata?.createdAt),
+                            lastModified = formatDate(state.metadata?.updatedAt),
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        FileActionsRow(
+                            onDownload = { viewModel.downloadFile() },
+                            onGetUrl = { viewModel.copyUrl() },
+                            onDelete = { showDeleteDialog = true }
+                        )
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            FileMetadataSection(
-                fileName = fileName,
-                extension = fileName.substringAfterLast(".", ""),
-                size = uiState.metadata?.size?.let { formatSize(it) } ?: "Unknown",
-                addedOn = formatDate(uiState.metadata?.createdAt),
-                lastModified = formatDate(uiState.metadata?.updatedAt),
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            FileActionsRow(
-                onDownload = { viewModel.downloadFile() },
-                onGetUrl = { viewModel.copyUrl() },
-                onDelete = { showDeleteDialog = true }
-            )
         }
+    }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-
-        if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete File") },
-                text = { Text("Are you sure you want to delete '$fileName'? This action cannot be undone.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showDeleteDialog = false
-                            viewModel.deleteFile()
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Delete")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel")
-                    }
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete File") },
+            text = { Text("Are you sure you want to delete '$fileName'? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteFile()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
                 }
-            )
-        }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
-        if (uiState.showDownloadPathOptionDialog) {
+    content?.let { state ->
+        if (state.showDownloadPathOptionDialog) {
             DownloadPathOptionDialog(
-                defaultPath = uiState.defaultDownloadPath,
+                defaultPath = state.defaultDownloadPath,
                 onDismiss = { viewModel.onCancelDownload() },
                 onConfirmDefault = { viewModel.onSelectDefaultPath() },
                 onConfirmCustom = { viewModel.onSelectCustomPath() }
@@ -223,18 +200,20 @@ fun FileViewerContent(
 ) {
     val extension = fileName.substringAfterLast(".", "").lowercase()
     when {
-        isImage(extension) -> {
+        FileUtils.isImage(extension) -> {
             ImageViewer(url = url)
         }
-        isVideo(extension) -> {
+
+        FileUtils.isVideo(extension) -> {
             VideoPlayer(url = url)
         }
-        isPdf(extension) -> {
+
+        FileUtils.isPdf(extension) -> {
             PdfViewer(url = url)
         }
+
         else -> {
-            Text("No viewer available for this file type.")
-        }
+            Text("No viewer available for this file type.") }
     }
 }
 
@@ -250,9 +229,9 @@ fun FileMetadataSection(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val icon = when {
-        isImage(extension) -> Icons.Default.Image
-        isVideo(extension) -> Icons.Default.VideoLibrary
-        isPdf(extension) -> Icons.Default.PictureAsPdf
+        FileUtils.isImage(extension) -> Icons.Default.Image
+        FileUtils.isVideo(extension) -> Icons.Default.VideoLibrary
+        FileUtils.isPdf(extension) -> Icons.Default.PictureAsPdf
         else -> Icons.Default.InsertDriveFile
     }
 
@@ -340,11 +319,6 @@ fun ActionButton(
         Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
-
-private fun isImage(extension: String) = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
-private fun isVideo(extension: String) = extension in listOf("mp4", "mov", "avi", "mkv", "webm")
-private fun isPdf(extension: String) = extension == "pdf"
-
 @Composable
 fun DownloadPathOptionDialog(
     defaultPath: String?,

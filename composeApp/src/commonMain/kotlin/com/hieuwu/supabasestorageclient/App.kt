@@ -24,6 +24,7 @@ import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewModel
 import com.hieuwu.supabasestorageclient.presentation.paywall.PaywallScreen
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
+import com.hieuwu.supabasestorageclient.presentation.settings.SettingsUiState
 import com.hieuwu.supabasestorageclient.presentation.theme.SupaBucktTheme
 import com.revenuecat.purchases.kmp.models.Offering
 import kotlinx.coroutines.launch
@@ -33,9 +34,10 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun App() {
     val settingsViewModel: SettingsViewModel = koinViewModel()
-    val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
+    val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val currentTheme = (settingsState as? SettingsUiState.Content)?.settings?.theme ?: AppTheme.SYSTEM
     
-    SupaBucktTheme(appTheme = settings?.theme ?: AppTheme.SYSTEM) {
+    SupaBucktTheme(appTheme = currentTheme) {
         val onboardingViewModel: OnboardingViewModel = koinViewModel()
         val isOnboardingCompleted by onboardingViewModel.isCompleted.collectAsStateWithLifecycle()
         

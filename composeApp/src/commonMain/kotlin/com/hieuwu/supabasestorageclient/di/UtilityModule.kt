@@ -4,8 +4,8 @@ import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.domain.download.DownloadManager
 import com.hieuwu.supabasestorageclient.domain.upload.UploadManager
+import com.hieuwu.supabasestorageclient.platform.*
 import com.hieuwu.supabasestorageclient.domain.RefreshManager
-import com.hieuwu.supabasestorageclient.util.*
 import org.koin.dsl.module
 
 val utilityModule = module {

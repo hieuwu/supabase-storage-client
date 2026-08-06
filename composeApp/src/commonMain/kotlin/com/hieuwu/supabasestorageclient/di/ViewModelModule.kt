@@ -16,12 +16,41 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val viewModelModule = module {
-    viewModel { OnboardingViewModel(get()) }
-    viewModel { CredentialsViewModel(get(), get(), get(), get(), get()) }
+    viewModel { OnboardingViewModel(get(), get()) }
+    viewModel { 
+        CredentialsViewModel(
+            observeCredentialsUseCase = get(),
+            getLastUsedCredentialIdUseCase = get(),
+            addCredentialUseCase = get(),
+            updateCredentialUseCase = get(),
+            deleteCredentialUseCase = get(),
+            triggerPaywallUseCase = get(),
+            switchCredentialUseCase = get(),
+            observeProStatusUseCase = get(),
+            supabaseClientManager = get(),
+            logger = get()
+        )
+    }
 
     viewModelOf(::BucketsViewModel)
     viewModel { (bucketId: String, path: String?) ->
-        FileBrowserViewModel(bucketId, path, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        FileBrowserViewModel(
+            bucketId,
+            path,
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get()
+        )
     }
     viewModel { (bucketId: String, fileName: String, path: String?) ->
         FileViewViewModel(
@@ -31,18 +60,51 @@ val viewModelModule = module {
             getPublicUrlUseCase = get(),
             deleteFileUseCase = get(),
             getFileMetadataUseCase = get(),
+            getUserSettingsUseCase = get(),
+            updateUserSettingsUseCase = get(),
+            downloadFileUseCase = get(),
             clipboardManager = get(),
-            downloadManager = get(),
-            settingsRepository = get(),
             logger = get()
         )
     }
-    viewModelOf(::DownloadsViewModel)
-    viewModelOf(::MainViewModel)
+    viewModel {
+        DownloadsViewModel(
+            observeDownloadsUseCase = get(),
+            cancelDownloadUseCase = get(),
+            deleteDownloadUseCase = get(),
+            fileWriter = get()
+        )
+    }
+    viewModel {
+        MainViewModel(
+            contextSelectionManager = get(),
+            createFolderUseCase = get(),
+            uploadFileUseCase = get(),
+            createBucketUseCase = get(),
+            updateBucketUseCase = get(),
+            observeCredentialsUseCase = get(),
+            getLastUsedCredentialIdUseCase = get(),
+            observeUserSettingsUseCase = get(),
+            updateUserSettingsUseCase = get(),
+            switchCredentialUseCase = get(),
+            deleteCredentialUseCase = get(),
+            triggerPaywallUseCase = get(),
+            observeProStatusUseCase = get(),
+            restorePurchasesUseCase = get(),
+            refreshManager = get(),
+        )
+    }
     viewModelOf(::SettingsViewModel)
     viewModelOf(::UploadViewModel)
     viewModelOf(::StarredViewModel)
     viewModel { (bucketId: String?) ->
-        SearchViewModel(bucketId, get(), get(), get(), get())
+        SearchViewModel(
+            bucketId = bucketId,
+            getBucketsUseCase = get(),
+            getBucketContentsUseCase = get(),
+            getStarredItemsUseCase = get(),
+            toggleStarUseCase = get(),
+            logger = get()
+        )
     }
 }

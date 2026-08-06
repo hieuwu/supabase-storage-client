@@ -60,6 +60,7 @@ kotlin {
 
         }
         commonMain.dependencies {
+            implementation(libs.kotlinx.datetime) // or latest version
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -95,13 +96,15 @@ kotlin {
 
             implementation(libs.revenuecat.purchases)
             implementation(libs.revenuecat.purchases.ui)
-            
+
+
             // FileKit
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test) // Use the latest version
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -132,7 +135,7 @@ android {
         applicationId = "com.hieuwu.supabasestorageclient"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 6
+        versionCode = 9
         versionName = "1.0"
     }
     packaging {

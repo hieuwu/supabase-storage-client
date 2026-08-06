@@ -17,18 +17,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -170,7 +175,7 @@ fun CredentialsScreen(
     }
 
     if (uiState.showAddSheet) {
-        val sheetState = rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { viewModel.hideAddSheet() },
             sheetState = sheetState,
@@ -187,7 +192,7 @@ fun CredentialsScreen(
     }
 
     if (uiState.showEditSheet && uiState.credentialToEdit != null) {
-        val sheetState = rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = { viewModel.hideEditSheet() },
             sheetState = sheetState,
@@ -448,6 +453,8 @@ private fun CredentialForm(
             .fillMaxWidth()
             .padding(16.dp)
             .padding(bottom = 32.dp)
+            .imePadding()
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = title,
@@ -455,6 +462,36 @@ private fun CredentialForm(
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(24.dp))
+
+        androidx.compose.material3.Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3)),
+            colors = androidx.compose.material3.CardDefaults.cardColors(
+                containerColor = Color(0xFFE3F2FD)
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color(0xFF0D47A1),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "These credentials are obtained from your Supabase dashboard. Do not share them with anyone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF0D47A1),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
 
         OutlinedTextField(
             value = name,

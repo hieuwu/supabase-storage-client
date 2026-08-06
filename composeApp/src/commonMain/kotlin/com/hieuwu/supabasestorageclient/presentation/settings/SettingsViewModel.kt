@@ -2,105 +2,81 @@ package com.hieuwu.supabasestorageclient.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hieuwu.supabasestorageclient.domain.model.AppTheme
-import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
-import com.hieuwu.supabasestorageclient.domain.model.UserSettings
-import com.hieuwu.supabasestorageclient.domain.model.ViewMode
-import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
-import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.domain.model.*
+import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class SettingsViewModel(
-    private val settingsRepository: SettingsRepository,
-    private val purchaseRepository: PurchaseRepository
+    private val getUserSettingsUseCase: GetUserSettingsUseCase,
+    private val updateUserSettingsUseCase: UpdateUserSettingsUseCase,
+    private val observeProStatusUseCase: ObserveProStatusUseCase,
+    private val restorePurchasesUseCase: RestorePurchasesUseCase
 ) : ViewModel() {
 
-    private val _isRestoring = MutableStateFlow(false)
-    val isRestoring = _isRestoring.asStateFlow()
+    private val _manualState = MutableStateFlow(ManualSettingsState())
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error = _error.asStateFlow()
-
-    private val _successMessage = MutableStateFlow<String?>(null)
-    val successMessage = _successMessage.asStateFlow()
-
-    val isPro = purchaseRepository.isPro
-
-    val settings: StateFlow<UserSettings?> = settingsRepository.getSettings()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+    val uiState: StateFlow<SettingsUiState> = combine(
+        getUserSettingsUseCase(),
+        observeProStatusUseCase(),
+        _manualState
+    ) { settings, isPro, manual ->
+        SettingsUiState.Content(
+            settings = settings,
+            isPro = isPro,
+            isRestoring = manual.isRestoring,
+            successMessage = manual.successMessage,
+            error = manual.error
         )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState.Loading)
 
     fun updateFileSizeLimit(limit: Long) {
-        val current = settings.value ?: return
-        viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(fileSizeLimit = limit))
-        }
+        update { it.copy(fileSizeLimit = limit) }
     }
 
     fun updateFileUnit(unit: SizeUnit) {
-        val current = settings.value ?: return
-        viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(fileSizeUnit = unit))
-        }
+        update { it.copy(fileSizeUnit = unit) }
     }
 
     fun updateViewMode(viewMode: ViewMode) {
-        val current = settings.value ?: return
-        viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(viewMode = viewMode))
-        }
+        update { it.copy(viewMode = viewMode) }
     }
 
     fun updateTheme(theme: AppTheme) {
-        val current = settings.value ?: return
-        viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(theme = theme))
-        }
+        update { it.copy(theme = theme) }
     }
 
     fun updateAskDownloadPathConfig(config: AskDownloadPathConfig) {
-        val current = settings.value ?: return
-        viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(askDownloadPathConfig = config))
-        }
+        update { it.copy(askDownloadPathConfig = config) }
     }
 
     fun updateDefaultDownloadDirectory(path: String?) {
-        val current = settings.value ?: return
-        viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(defaultDownloadDirectory = path))
-        }
+        update { it.copy(defaultDownloadDirectory = path) }
     }
 
     fun updateSessionDownloadDirectory(path: String?) {
-        val current = settings.value ?: return
+        update { it.copy(sessionDownloadDirectory = path) }
+    }
+
+    private fun update(block: (UserSettings) -> UserSettings) {
+        val currentState = uiState.value as? SettingsUiState.Content ?: return
         viewModelScope.launch {
-            settingsRepository.updateSettings(current.copy(sessionDownloadDirectory = path))
+            updateUserSettingsUseCase(block(currentState.settings))
         }
     }
 
     fun onRestorePurchases() {
-        _isRestoring.value = true
+        _manualState.update { it.copy(isRestoring = true, error = null) }
         viewModelScope.launch {
-            val result = purchaseRepository.restorePurchases()
-            _isRestoring.value = false
+            val result = restorePurchasesUseCase()
+            _manualState.update { it.copy(isRestoring = false) }
             when (result) {
                 is ApiResponse.Success -> {
-                    _successMessage.value = "Restored successfully!"
+                    _manualState.update { it.copy(successMessage = "Restored successfully!") }
                 }
                 is ApiResponse.Error -> {
-                    _error.value = "Restore failed: ${result.exception.message}"
+                    _manualState.update { it.copy(error = "Restore failed: ${result.exception.message}") }
                 }
                 is ApiResponse.Loading -> { }
             }
@@ -108,7 +84,12 @@ class SettingsViewModel(
     }
 
     fun clearMessages() {
-        _error.value = null
-        _successMessage.value = null
+        _manualState.update { it.copy(error = null, successMessage = null) }
     }
 }
+
+data class ManualSettingsState(
+    val isRestoring: Boolean = false,
+    val successMessage: String? = null,
+    val error: String? = null
+)

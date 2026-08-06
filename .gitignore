@@ -17,3 +17,20 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Signed build artifacts — never commit these
+composeApp/release/
+*.aab
+*.apk
+*.ipa
+
+# Signing material
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# StoreKit subscription signing keys are pasted into these at test time
+# (see README → In-app purchases). Keep the placeholder value committed.
+

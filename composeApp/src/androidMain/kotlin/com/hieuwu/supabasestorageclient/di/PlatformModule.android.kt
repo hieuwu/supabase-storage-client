@@ -20,8 +20,12 @@ actual fun platformModule(): Module = module {
         )
         com.russhwolf.settings.SharedPreferencesSettings(sharedPreferences)
     }
-    single<com.hieuwu.supabasestorageclient.util.ClipboardManager> { 
-        com.hieuwu.supabasestorageclient.util.AndroidClipboardManager(get()) 
+    single<com.hieuwu.supabasestorageclient.platform.ClipboardManager> {
+        com.hieuwu.supabasestorageclient.platform.AndroidClipboardManager(get())
     }
-    single { com.hieuwu.supabasestorageclient.database.DatabaseDriverFactory(get()) }
+    single {
+        com.hieuwu.supabasestorageclient.data.datasource.local.database.DatabaseDriverFactory(
+            get()
+        )
+    }
 }

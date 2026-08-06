@@ -2,28 +2,27 @@ package com.hieuwu.supabasestorageclient.domain.download
 
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
+import com.hieuwu.supabasestorageclient.domain.model.StorageDownloadStatus
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.DownloadRepository
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
-import com.hieuwu.supabasestorageclient.util.FileWriter
+import com.hieuwu.supabasestorageclient.platform.FileWriter
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write
-import io.github.jan.supabase.storage.DownloadStatus as SupabaseDownloadStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
@@ -95,7 +94,7 @@ class DownloadManager(
 
                 storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
                     when (status) {
-                        is SupabaseDownloadStatus.Progress -> {
+                        is StorageDownloadStatus.Progress -> {
                             val currentItem = _downloads.value.find { it.id == id }
                             currentItem?.copy(
                                 downloadedSize = status.totalBytesReceived,
@@ -103,7 +102,7 @@ class DownloadManager(
                                 status = DownloadStatus.Downloading
                             )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-                        is SupabaseDownloadStatus.ByteData -> {
+                        is StorageDownloadStatus.ByteData -> {
                             buffersMutex.withLock {
                                 byteBuffers[id]?.add(status.data)
                             }
@@ -114,7 +113,7 @@ class DownloadManager(
                             val currentItem = _downloads.value.find { it.id == id }
                             currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-                        SupabaseDownloadStatus.Success -> {
+                        StorageDownloadStatus.Success -> {
                         }
                     }
                 }
@@ -192,7 +191,7 @@ class DownloadManager(
 
                 storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
                     when (status) {
-                        is SupabaseDownloadStatus.Progress -> {
+                        is StorageDownloadStatus.Progress -> {
                             val currentItem = _downloads.value.find { it.id == id }
                             currentItem?.copy(
                                 downloadedSize = status.totalBytesReceived,
@@ -200,7 +199,7 @@ class DownloadManager(
                                 status = DownloadStatus.Downloading
                             )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-                        is SupabaseDownloadStatus.ByteData -> {
+                        is StorageDownloadStatus.ByteData -> {
                             buffersMutex.withLock {
                                 byteBuffers[id]?.add(status.data)
                             }
@@ -211,7 +210,7 @@ class DownloadManager(
                             val currentItem = _downloads.value.find { it.id == id }
                             currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-                        SupabaseDownloadStatus.Success -> {
+                        StorageDownloadStatus.Success -> {
                         }
                     }
                 }

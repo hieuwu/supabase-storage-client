@@ -1,8 +1,8 @@
 package com.hieuwu.supabasestorageclient.domain.usecase
 
-import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
+import io.github.vinceglb.filekit.PlatformFile
 
-fun interface DownloadFileUseCase {
-    data class Params(val bucketId: String, val path: String)
-    suspend operator fun invoke(params: Params): Result<ByteArray>
+interface DownloadFileUseCase {
+    suspend fun downloadToPath(bucketId: String, path: String, fileName: String, directoryPath: String)
+    suspend fun download(bucketId: String, path: String, fileName: String, platformFile: PlatformFile)
 }
