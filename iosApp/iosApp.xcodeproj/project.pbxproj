@@ -352,7 +352,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.crafted.supabuckt;
 				PRODUCT_NAME = Supabuckt;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -388,7 +388,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.crafted.supabuckt;
 				PRODUCT_NAME = Supabuckt;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -419,7 +419,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = 9B5D59B373854B1D729D47D3 /* Project object */;
 }

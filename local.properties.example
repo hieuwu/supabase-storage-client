@@ -1,0 +1,14 @@
+# Copy this file to `local.properties` and fill in your own values.
+#
+#     cp local.properties.example local.properties
+#
+# `local.properties` is git-ignored and must NEVER be committed.
+
+# These are RevenueCat *public SDK keys*. They are designed to be shipped inside
+# client binaries and cannot move money or read another account's data — but they
+# are still tied to YOUR RevenueCat project, so use your own rather than sharing.
+# Get them at: RevenueCat dashboard -> Project settings -> API keys -> Public SDK key
+#
+# Android key starts with `goog_`, iOS key starts with `appl_`.
+revenuecat.api.key.android=
+revenuecat.api.key.ios=
