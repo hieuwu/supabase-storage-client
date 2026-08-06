@@ -21,6 +21,8 @@ Compose Multiplatform codebase.
 <a href="https://apps.apple.com/us/app/supabuckt-supabase-storage/id6759938222"><img src="https://hieuwu.github.io/supabuckt-landing/assets/app-store-download.svg" height="52" alt="Download on the App Store" /></a>
 <a href="https://play.google.com/store/apps/details?id=com.hieuwu.supabasestorageclient"><img src="https://hieuwu.github.io/supabuckt-landing/assets/playstore-download.svg" height="52" alt="Get it on Google Play" /></a>
 
+[![Made with Supabase](https://supabase.com/badge-made-with-supabase-dark.svg)](https://supabase.com)
+
 <br /><br />
 
 <img src="https://hieuwu.github.io/supabuckt-landing/assets/preview.png" width="880" alt="SupaBuckt preview" />
