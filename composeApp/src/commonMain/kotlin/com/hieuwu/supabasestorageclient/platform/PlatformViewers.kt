@@ -7,3 +7,6 @@ expect fun VideoPlayer(url: String)
 
 @Composable
 expect fun PdfViewer(url: String)
+
+@Composable
+expect fun GifViewer(url: String)
