@@ -33,7 +33,8 @@ class DownloadRepositoryImpl(
                         status = DownloadStatus.valueOf(entity.status),
                         downloadedTime = entity.downloaded_time?.let { Instant.parse(it) }?.toKxInstant(),
                         destinationPath = entity.destination_path,
-                        sourcePath = entity.source_path
+                        sourcePath = entity.source_path,
+                        errorMessage = entity.error_message
                     )
                 }
             }
@@ -52,7 +53,8 @@ class DownloadRepositoryImpl(
             status = item.status.name,
             downloaded_time = item.downloadedTime?.toString(),
             destination_path = item.destinationPath,
-            source_path = item.sourcePath
+            source_path = item.sourcePath,
+            error_message = item.errorMessage
         )
     }
 

@@ -134,7 +134,11 @@ fun UploadItemRow(
                     Text(
                         text = item.formatStatus(),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = if (item.status == UploadStatus.Error) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.outline
+                        }
                     )
                 }
 

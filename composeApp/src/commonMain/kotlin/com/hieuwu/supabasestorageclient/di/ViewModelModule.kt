@@ -71,8 +71,7 @@ val viewModelModule = module {
         DownloadsViewModel(
             observeDownloadsUseCase = get(),
             cancelDownloadUseCase = get(),
-            deleteDownloadUseCase = get(),
-            fileWriter = get()
+            deleteDownloadUseCase = get()
         )
     }
     viewModel {

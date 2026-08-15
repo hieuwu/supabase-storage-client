@@ -31,7 +31,8 @@ class UploadRepositoryImpl(
                         status = UploadStatus.valueOf(entity.status),
                         uploadedTime = entity.uploaded_time?.let { Instant.parse(it) },
                         from = entity.from_path,
-                        to = entity.to_path ?: ""
+                        to = entity.to_path ?: "",
+                        errorMessage = entity.error_message
                     )
                 }
             }
@@ -49,7 +50,8 @@ class UploadRepositoryImpl(
             status = item.status.name,
             uploaded_time = item.uploadedTime?.toString(),
             from_path = item.from,
-            to_path = item.to
+            to_path = item.to,
+            error_message = item.errorMessage
         )
     }
 
