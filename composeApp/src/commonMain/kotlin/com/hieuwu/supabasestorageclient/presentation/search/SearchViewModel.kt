@@ -70,9 +70,9 @@ class SearchViewModel(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            try {
-                if (bucketId == null) {
-                    getBucketsUseCase().onSuccess { buckets ->
+            if (bucketId == null) {
+                getBucketsUseCase().fold(
+                    onSuccess = { buckets ->
                         val filtered = buckets.filter { it.name.contains(query, ignoreCase = true) }
                         _uiState.update {
                             it.copy(
@@ -82,33 +82,39 @@ class SearchViewModel(
                                 searchType = SearchType.BUCKET
                             )
                         }
-                    }.onFailure { e ->
-                        _uiState.update { it.copy(isLoading = false, error = e.message) }
+                    },
+                    onFailure = { error ->
+                        logger.e(error) { "Failed to search buckets for '$query'" }
+                        _uiState.update { it.copy(isLoading = false, error = error.message) }
                     }
-                } else {
-                    val params = GetBucketContentsUseCase.Params(bucketId = bucketId, path = "")
-                    val items = getBucketContentsUseCase(params).getOrNull() ?: emptyList()
-                    val filtered = items.filter { it.name.contains(query, ignoreCase = true) }
-                        .map { SearchResult(it, bucketId) }
-                    _uiState.update {
-                        it.copy(
-                            storageItems = filtered,
-                            buckets = emptyList(),
-                            isLoading = false,
-                            searchType = SearchType.FILE
-                        )
+                )
+            } else {
+                val params = GetBucketContentsUseCase.Params(bucketId = bucketId, path = "")
+                getBucketContentsUseCase(params).fold(
+                    onSuccess = { items ->
+                        val filtered = items.filter { it.name.contains(query, ignoreCase = true) }
+                            .map { SearchResult(it, bucketId) }
+                        _uiState.update {
+                            it.copy(
+                                storageItems = filtered,
+                                buckets = emptyList(),
+                                isLoading = false,
+                                searchType = SearchType.FILE
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        logger.e(error) { "Failed to search $bucketId for '$query'" }
+                        _uiState.update { it.copy(isLoading = false, error = error.message) }
                     }
-                }
-            } catch (e: Exception) {
-                logger.e(e) { "Error performing search" }
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                )
             }
         }
     }
 
     fun toggleStar(bucket: Bucket) {
         viewModelScope.launch {
-            toggleStarUseCase(
+            val result = toggleStarUseCase(
                 StarredItem(
                     id = bucket.id,
                     fileName = bucket.name,
@@ -120,13 +126,17 @@ class SearchViewModel(
                 ),
                 isStarred = bucket.isStarred
             )
+            result.onFailure { error ->
+                logger.e(error) { "Failed to toggle star for bucket ${bucket.id}" }
+                _uiState.update { it.copy(error = error.message) }
+            }
         }
     }
 
     fun toggleStar(item: StorageItem, bucketId: String) {
         viewModelScope.launch {
             val itemId = "${bucketId}:${item.name}"
-            toggleStarUseCase(
+            val result = toggleStarUseCase(
                 StarredItem(
                     id = itemId,
                     fileName = item.name,
@@ -138,6 +148,10 @@ class SearchViewModel(
                 ),
                 item.isStarred
             )
+            result.onFailure { error ->
+                logger.e(error) { "Failed to toggle star for $itemId" }
+                _uiState.update { it.copy(error = error.message) }
+            }
         }
     }
 

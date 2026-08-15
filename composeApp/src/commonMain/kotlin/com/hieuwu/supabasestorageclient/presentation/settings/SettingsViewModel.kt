@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.*
 import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -12,7 +13,8 @@ class SettingsViewModel(
     private val getUserSettingsUseCase: GetUserSettingsUseCase,
     private val updateUserSettingsUseCase: UpdateUserSettingsUseCase,
     private val observeProStatusUseCase: ObserveProStatusUseCase,
-    private val restorePurchasesUseCase: RestorePurchasesUseCase
+    private val restorePurchasesUseCase: RestorePurchasesUseCase,
+    private val logger: Logger
 ) : ViewModel() {
 
     private val _manualState = MutableStateFlow(ManualSettingsState())
@@ -62,7 +64,10 @@ class SettingsViewModel(
     private fun update(block: (UserSettings) -> UserSettings) {
         val currentState = uiState.value as? SettingsUiState.Content ?: return
         viewModelScope.launch {
-            updateUserSettingsUseCase(block(currentState.settings))
+            updateUserSettingsUseCase(block(currentState.settings)).onFailure { error ->
+                logger.e(error) { "Failed to save settings" }
+                _manualState.update { it.copy(error = "Could not save the setting") }
+            }
         }
     }
 
