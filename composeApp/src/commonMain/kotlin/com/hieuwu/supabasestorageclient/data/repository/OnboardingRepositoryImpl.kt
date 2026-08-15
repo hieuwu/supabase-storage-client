@@ -20,10 +20,15 @@ class OnboardingRepositoryImpl(
     }
     
     override fun isOnboardingCompleted(): Boolean {
-        return settings.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+        // A read failure must not block app start - showing onboarding again is the safe fallback.
+        return runCatching { settings.getBoolean(KEY_ONBOARDING_COMPLETED, false) }
+            .getOrElse { error ->
+                logger.e(error) { "Failed to read onboarding state, treating it as not completed" }
+                false
+            }
     }
-    
-    override fun markOnboardingCompleted() {
-        settings[KEY_ONBOARDING_COMPLETED] = true
-    }
+
+    override fun markOnboardingCompleted(): Result<Unit> =
+        runCatching { settings[KEY_ONBOARDING_COMPLETED] = true }
+            .onFailure { error -> logger.e(error) { "Failed to persist onboarding completion" } }
 }
