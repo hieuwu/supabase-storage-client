@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.usecase.IsOnboardingCompletedUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.MarkOnboardingCompletedUseCase
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +16,8 @@ import kotlinx.coroutines.launch
  */
 class OnboardingViewModel(
     private val isOnboardingCompletedUseCase: IsOnboardingCompletedUseCase,
-    private val markOnboardingCompletedUseCase: MarkOnboardingCompletedUseCase
+    private val markOnboardingCompletedUseCase: MarkOnboardingCompletedUseCase,
+    private val logger: Logger
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -42,7 +44,11 @@ class OnboardingViewModel(
     
     fun completeOnboarding() {
         viewModelScope.launch {
-            markOnboardingCompletedUseCase()
+            // Move on either way - blocking the user on a failed flag write would trap them on
+            // the onboarding screen; they would just see it again next launch.
+            markOnboardingCompletedUseCase().onFailure { error ->
+                logger.e(error) { "Failed to persist onboarding completion" }
+            }
             _isCompleted.value = true
         }
     }
