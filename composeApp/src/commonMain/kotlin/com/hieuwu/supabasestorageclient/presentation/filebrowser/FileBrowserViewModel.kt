@@ -19,6 +19,7 @@ import com.hieuwu.supabasestorageclient.domain.usecase.UpdateUserSettingsUseCase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
+import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.platform.ClipboardManager
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.datetime.Clock
@@ -85,6 +86,21 @@ class FileBrowserViewModel(
         contextSelectionManager.setContext(bucketId, path ?: "")
     }
 
+    /** Reads the settings once; returns null (after logging) when they cannot be read. */
+    private suspend fun currentSettings(): UserSettings? =
+        runCatching { getUserSettingsUseCase().firstOrNull() }
+            .onFailure { error -> logger.e(error) { "Failed to read user settings" } }
+            .getOrNull()
+
+    /**
+     * Remembering the directory is a convenience - failing to store it must not stop the download
+     * the user just asked for.
+     */
+    private suspend fun rememberDownloadDirectory(settings: UserSettings, directory: String) {
+        updateUserSettingsUseCase(settings.copy(sessionDownloadDirectory = directory))
+            .onFailure { error -> logger.w(error) { "Failed to remember download directory" } }
+    }
+
     fun refreshContents() {
         viewModelScope.launch {
             refreshBucketContentsUseCase(bucketId)
@@ -109,6 +125,7 @@ class FileBrowserViewModel(
                     refreshTrigger.emit(Unit)
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
             )
@@ -126,6 +143,7 @@ class FileBrowserViewModel(
                     refreshTrigger.emit(Unit)
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
             )
@@ -142,6 +160,7 @@ class FileBrowserViewModel(
                     refreshTrigger.emit(Unit)
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
             )
@@ -153,11 +172,9 @@ class FileBrowserViewModel(
             val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
             val params = GetPublicUrlUseCase.Params(bucketId = bucketId, path = fullPath)
             getPublicUrlUseCase(params).fold(
-                onSuccess = { url ->
-                    clipboardManager.copyText(url)
-                    _manualState.update { it.copy(successMessage = "URL copied to clipboard") }
-                },
+                onSuccess = { url -> copyToClipboard(url, "URL copied to clipboard") },
                 onFailure = { error ->
+                    logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
             )
@@ -166,8 +183,17 @@ class FileBrowserViewModel(
 
     fun copyPath(name: String) {
         val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
-        clipboardManager.copyText(fullPath)
-        _manualState.update { it.copy(successMessage = "Path copied to clipboard") }
+        copyToClipboard(fullPath, "Path copied to clipboard")
+    }
+
+    private fun copyToClipboard(text: String, successMessage: String) {
+        runCatching { clipboardManager.copyText(text) }.fold(
+            onSuccess = { _manualState.update { it.copy(successMessage = successMessage) } },
+            onFailure = { error ->
+                logger.e(error) { "Failed to copy to the clipboard" }
+                _manualState.update { it.copy(error = "Could not copy to the clipboard") }
+            }
+        )
     }
 
     fun downloadItem(name: String) {
@@ -176,7 +202,7 @@ class FileBrowserViewModel(
         val item = currentState.items.find { it.name == name } ?: return
 
         viewModelScope.launch {
-            val settings = getUserSettingsUseCase().firstOrNull() ?: return@launch
+            val settings = currentSettings() ?: return@launch
             val fullPath = item.getFullPath(path)
 
             when (settings.askDownloadPathConfig) {
@@ -213,11 +239,11 @@ class FileBrowserViewModel(
         val manual = _manualState.value
         val item = manual.itemToDownload ?: return
         viewModelScope.launch {
-            val settings = getUserSettingsUseCase().firstOrNull() ?: return@launch
+            val settings = currentSettings() ?: return@launch
             val fullPath = item.getFullPath(path)
             
             if (settings.defaultDownloadDirectory != null) {
-                updateUserSettingsUseCase(settings.copy(sessionDownloadDirectory = settings.defaultDownloadDirectory))
+                rememberDownloadDirectory(settings, settings.defaultDownloadDirectory)
                 downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, settings.defaultDownloadDirectory)
                 _manualState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
             } else {
@@ -238,10 +264,10 @@ class FileBrowserViewModel(
         viewModelScope.launch {
             val manual = _manualState.value
             val item = manual.itemToDownload ?: return@launch
-            val settings = getUserSettingsUseCase().firstOrNull() ?: return@launch
+            val settings = currentSettings() ?: return@launch
             val fullPath = item.getFullPath(path)
             
-            updateUserSettingsUseCase(settings.copy(sessionDownloadDirectory = pickedPath))
+            rememberDownloadDirectory(settings, pickedPath)
             downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, pickedPath)
             _manualState.update { it.copy(successMessage = "Download started", isPickingDirectory = false, itemToDownload = null) }
         }
@@ -297,6 +323,7 @@ class FileBrowserViewModel(
                     _manualState.update { it.copy(successMessage = message) }
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
             )

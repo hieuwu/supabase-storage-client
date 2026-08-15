@@ -210,7 +210,10 @@ fun BucketScreen(
                                 label = "ViewModeTransition"
                             ) { targetViewMode ->
                                 if (targetViewMode == ViewMode.LIST) {
-                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(bottom = 88.dp)
+                                    ) {
                                         items(state.items) { item ->
                                             StorageItemRow(
                                                 item = item,
@@ -239,7 +242,12 @@ fun BucketScreen(
                                     LazyVerticalGrid(
                                         columns = GridCells.Adaptive(120.dp),
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(16.dp),
+                                        contentPadding = PaddingValues(
+                                            start = 16.dp,
+                                            end = 16.dp,
+                                            top = 16.dp,
+                                            bottom = 88.dp
+                                        ),
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
