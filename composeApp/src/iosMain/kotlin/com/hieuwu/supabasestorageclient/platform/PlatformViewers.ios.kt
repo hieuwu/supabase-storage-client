@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.interop.UIKitView
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.AVFoundation.*
@@ -28,9 +29,14 @@ import platform.UIKit.UIImageView
 import platform.UIKit.UIViewContentMode
 import kotlinx.cinterop.*
 
+private val viewerLogger = Logger.withTag("PlatformViewers")
+
 @Composable
 actual fun VideoPlayer(url: String) {
-    val nsUrl = NSURL.URLWithString(url) ?: return
+    val nsUrl = NSURL.URLWithString(url) ?: run {
+        viewerLogger.e { "Cannot play video - malformed url: $url" }
+        return
+    }
     val player = AVPlayer.playerWithURL(nsUrl)
     
     UIKitView(
@@ -59,7 +65,12 @@ actual fun GifViewer(url: String) {
     var animatedImage by remember(url) { mutableStateOf<UIImage?>(null) }
 
     LaunchedEffect(url) {
-        animatedImage = withContext(Dispatchers.Default) { decodeAnimatedImage(url) }
+        animatedImage = withContext(Dispatchers.Default) {
+            runCatching { decodeAnimatedImage(url) }.getOrElse { error ->
+                viewerLogger.e(error) { "Failed to decode animated image at $url" }
+                null
+            }
+        }
     }
 
     val image = animatedImage
@@ -87,11 +98,24 @@ actual fun GifViewer(url: String) {
 private const val DEFAULT_FRAME_DELAY = 0.1
 
 private fun decodeAnimatedImage(url: String): UIImage? {
-    val nsUrl = NSURL.URLWithString(url) ?: return null
-    val data = NSData.dataWithContentsOfURL(nsUrl) ?: return null
-    val cfData: CFDataRef = CFBridgingRetain(data)?.reinterpret() ?: return null
+    val nsUrl = NSURL.URLWithString(url) ?: run {
+        viewerLogger.e { "Cannot decode image - malformed url: $url" }
+        return null
+    }
+    // A synchronous network read that fails just returns nil rather than reporting why.
+    val data = NSData.dataWithContentsOfURL(nsUrl) ?: run {
+        viewerLogger.e { "Could not read image data from $url" }
+        return null
+    }
+    val cfData: CFDataRef = CFBridgingRetain(data)?.reinterpret() ?: run {
+        viewerLogger.e { "Could not bridge image data for $url" }
+        return null
+    }
     try {
-        val source = CGImageSourceCreateWithData(cfData, null) ?: return null
+        val source = CGImageSourceCreateWithData(cfData, null) ?: run {
+            viewerLogger.e { "Image data from $url is not a decodable image" }
+            return null
+        }
         try {
             val frameCount = CGImageSourceGetCount(source).toInt()
             if (frameCount <= 1) return UIImage.imageWithData(data)
@@ -105,7 +129,11 @@ private fun decodeAnimatedImage(url: String): UIImage? {
                 duration += frameDelayAt(source, index)
             }
             // animatedImageWithImages spreads `duration` evenly, so per-frame delays only shape the total.
-            return if (frames.isEmpty()) null else UIImage.animatedImageWithImages(frames, duration)
+            if (frames.isEmpty()) {
+                viewerLogger.e { "No frames could be decoded from $url" }
+                return null
+            }
+            return UIImage.animatedImageWithImages(frames, duration)
         } finally {
             CFRelease(source)
         }
@@ -128,12 +156,19 @@ private fun frameDelayAt(source: CGImageSourceRef, index: Int): Double {
 
 @Composable
 actual fun PdfViewer(url: String) {
-    val nsUrl = NSURL.URLWithString(url) ?: return
+    val nsUrl = NSURL.URLWithString(url) ?: run {
+        viewerLogger.e { "Cannot open PDF - malformed url: $url" }
+        return
+    }
     
     UIKitView(
         factory = {
             val pdfView = PDFView()
-            val document = PDFDocument(uRL = nsUrl)
+            // PDFDocument returns an empty document rather than throwing on an unreadable file.
+            val document = runCatching { PDFDocument(uRL = nsUrl) }.getOrElse { error ->
+                viewerLogger.e(error) { "Failed to open PDF at $url" }
+                null
+            }
             pdfView.setDocument(document)
             pdfView.setAutoScales(true)
             pdfView
