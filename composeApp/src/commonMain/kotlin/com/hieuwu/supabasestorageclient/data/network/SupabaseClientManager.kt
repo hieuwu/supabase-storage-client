@@ -15,9 +15,15 @@ class SupabaseClientManager {
     private val _client = MutableStateFlow<SupabaseClient?>(null)
     val client: StateFlow<SupabaseClient?> = _client.asStateFlow()
 
+    /**
+     * Throws when the url or key is unusable so the caller can report it - callers wrap this in
+     * `runCatching` rather than getting a half-configured client.
+     */
     fun createClient(credential: Credential): SupabaseClient {
-        val sanitizedUrl = credential.url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-        val sanitizedKey = credential.key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
+        val sanitizedUrl = credential.url.trim().split(Regex("\\s+")).firstOrNull().orEmpty()
+        val sanitizedKey = credential.key.trim().split(Regex("\\s+")).firstOrNull().orEmpty()
+        require(sanitizedUrl.isNotEmpty()) { "Supabase URL is empty for credential '${credential.name}'" }
+        require(sanitizedKey.isNotEmpty()) { "Supabase key is empty for credential '${credential.name}'" }
         return createSupabaseClient(
             supabaseUrl = sanitizedUrl,
             supabaseKey = sanitizedKey
