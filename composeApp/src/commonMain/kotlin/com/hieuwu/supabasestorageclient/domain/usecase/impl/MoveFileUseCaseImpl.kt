@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.MoveFileUseCase
 class MoveFileUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : MoveFileUseCase {
-    override suspend fun invoke(params: MoveFileUseCase.Params): Result<Unit> = runCatching {
+    override suspend fun invoke(params: MoveFileUseCase.Params): Result<Unit> =
         storageRepository.moveFile(params.bucketId, params.fromPath, params.toPath)
-    }
 }

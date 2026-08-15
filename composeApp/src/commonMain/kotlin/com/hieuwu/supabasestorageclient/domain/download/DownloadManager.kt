@@ -14,11 +14,12 @@ import com.hieuwu.supabasestorageclient.domain.repository.StorageRepository
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,14 +55,25 @@ class DownloadManager(
     init {
         scope.launch {
             dbWriteChannel.consumeEach { task ->
-                downloadRepository.insertDownloadItem(task.credentialId, task.item)
+                // A single failed write must not kill the consumer - it would silently stop
+                // persisting every later progress update.
+                runCatching { downloadRepository.insertDownloadItem(task.credentialId, task.item) }
+                    .onFailure { error ->
+                        logger.e(error) { "Failed to persist download ${task.item.id}" }
+                    }
             }
         }
         scope.launch {
             credentialRepository.lastUsedId.collectLatest { lastUsedId ->
                 if (lastUsedId != null) {
-                    downloadRepository.getDownloadItems(lastUsedId).collect { items ->
-                        _downloads.value = items
+                    runCatching {
+                        downloadRepository.getDownloadItems(lastUsedId).collect { items ->
+                            _downloads.value = items
+                        }
+                    }.onFailure { error ->
+                        // Stop here if the collector itself was cancelled - there is nothing to report.
+                        currentCoroutineContext().ensureActive()
+                        logger.e(error) { "Failed to observe downloads for $lastUsedId" }
                     }
                 } else {
                     _downloads.value = emptyList()
@@ -70,139 +82,81 @@ class DownloadManager(
         }
     }
 
+    /** Downloads into a file the user already picked. */
     fun download(bucketId: String, path: String, fileName: String, platformFile: PlatformFile) {
-        val lastUsedId = credentialRepository.getLastUsedId() ?: return
-        val id = "$bucketId:$path"
-        // Don't start duplicate active downloads
-        if (_downloads.value.any { it.id == id && it.status == DownloadStatus.Downloading }) return
-
-        val item = DownloadItem(
-            id = id,
-            fileName = fileName,
-            bucketId = bucketId,
-            path = path,
-            from = "$bucketId/$path",
-            totalSize = 0,
-            destinationPath = platformFile.path ?: "Unknown path",
-            sourcePath = path.substringBeforeLast("/", "")
-        )
-
-        updateAndPersistItem(lastUsedId, item)
-
-        val job = scope.launch {
-            try {
-                buffersMutex.withLock {
-                    byteBuffers[id] = mutableListOf()
-                }
-
-                storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
-                    when (status) {
-                        is StorageDownloadStatus.Progress -> {
-                            val currentItem = _downloads.value.find { it.id == id }
-                            currentItem?.copy(
-                                downloadedSize = status.totalBytesReceived,
-                                totalSize = status.contentLength,
-                                status = DownloadStatus.Downloading
-                            )?.let { updateAndPersistItem(lastUsedId, it) }
-                        }
-                        is StorageDownloadStatus.ByteData -> {
-                            buffersMutex.withLock {
-                                byteBuffers[id]?.add(status.data)
-                            }
-                            // Update downloadedSize based on accumulated data
-                            val currentSize = buffersMutex.withLock {
-                                byteBuffers[id]?.sumOf { chunk -> chunk.size.toLong() } ?: 0L
-                            }
-                            val currentItem = _downloads.value.find { it.id == id }
-                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(lastUsedId, it) }
-                        }
-                        StorageDownloadStatus.Success -> {
-                        }
-                    }
-                }
-
-                // Download flow completed normally - write the file
-                val buffers = buffersMutex.withLock {
-                    byteBuffers.remove(id) ?: mutableListOf()
-                }
-                
-                val allBytes = concatenate(buffers)
-                // A write failure must fail the download - it used to be swallowed and the item
-                // was still marked as Completed even though nothing landed on disk.
-                platformFile.write(allBytes)
-
-                val currentItem = _downloads.value.find { it.id == id }
-                currentItem?.copy(
-                    status = DownloadStatus.Completed,
-                    downloadedTime = Clock.System.now(),
-                    downloadedSize = allBytes.size.toLong(),
-                    errorMessage = null
-                )?.let { updateAndPersistItem(lastUsedId, it) }
-            } catch (e: CancellationException) {
-                // pause()/cancel() clear the buffer for us - suspending here would only fail again
-                throw e
-            } catch (e: Exception) {
-                buffersMutex.withLock {
-                    byteBuffers.remove(id)
-                }
-                failDownload(lastUsedId, id, bucketId, path, e)
-            }
-        }
-        downloadJobs[id] = job
+        startDownload(bucketId, path, fileName, platformFile, platformFile.path)
     }
 
+    /** Downloads into [fileName] inside a directory the user already picked. */
     fun downloadToDirectoryPath(bucketId: String, path: String, fileName: String, destinationDirectory: String) {
-        val lastUsedId = credentialRepository.getLastUsedId() ?: return
         // The picked directory is not always a file system path - on Android it is a Storage
-        // Access Framework uri - so let FileKit resolve the child file instead of concatenating.
-        val destinationFile = PlatformFile(PlatformFile(destinationDirectory), fileName)
-        val destinationPath = destinationFile.path
+        // Access Framework uri, and resolving the child then queries the ContentResolver, which
+        // throws once the granted permission is revoked or the folder is gone. That happens before
+        // any DownloadItem exists, so there is nothing to attach the error to but the log.
+        val destinationFile = runCatching { PlatformFile(PlatformFile(destinationDirectory), fileName) }
+            .getOrElse { error ->
+                logger.e(error) { "Cannot resolve download destination '$destinationDirectory/$fileName'" }
+                return
+            }
+        startDownload(bucketId, path, fileName, destinationFile, destinationFile.path)
+    }
+
+    private fun startDownload(
+        bucketId: String,
+        path: String,
+        fileName: String,
+        destinationFile: PlatformFile,
+        destinationPath: String
+    ) {
+        val lastUsedId = credentialRepository.getLastUsedId() ?: return
         val id = "$bucketId:$path"
         // Don't start duplicate active downloads
         if (_downloads.value.any { it.id == id && it.status == DownloadStatus.Downloading }) return
 
-        val item = DownloadItem(
-            id = id,
-            fileName = fileName,
-            bucketId = bucketId,
-            path = path,
-            from = "$bucketId/$path",
-            totalSize = 0,
-            destinationPath = destinationPath,
-            sourcePath = path.substringBeforeLast("/", "")
+        updateAndPersistItem(
+            lastUsedId,
+            DownloadItem(
+                id = id,
+                fileName = fileName,
+                bucketId = bucketId,
+                path = path,
+                from = "$bucketId/$path",
+                totalSize = 0,
+                destinationPath = destinationPath,
+                sourcePath = path.substringBeforeLast("/", "")
+            )
         )
 
-        updateAndPersistItem(lastUsedId, item)
-
         val job = scope.launch {
-            try {
+            runCatching {
                 buffersMutex.withLock {
                     byteBuffers[id] = mutableListOf()
                 }
 
                 storageRepository.downloadFileAsFlow(bucketId, path).collect { status ->
                     when (status) {
+                        // Progress carries the content length, which is the only place the total
+                        // size comes from; the running byte count comes from ByteData below.
                         is StorageDownloadStatus.Progress -> {
-                            val currentItem = _downloads.value.find { it.id == id }
-                            currentItem?.copy(
-                                downloadedSize = status.totalBytesReceived,
-                                totalSize = status.contentLength,
-                                status = DownloadStatus.Downloading
-                            )?.let { updateAndPersistItem(lastUsedId, it) }
+                            _downloads.value.find { it.id == id }
+                                ?.copy(totalSize = status.contentLength)
+                                ?.let { updateAndPersistItem(lastUsedId, it) }
                         }
+
                         is StorageDownloadStatus.ByteData -> {
-                            buffersMutex.withLock {
-                                byteBuffers[id]?.add(status.data)
-                            }
-                            // Update downloadedSize based on accumulated data
                             val currentSize = buffersMutex.withLock {
-                                byteBuffers[id]?.sumOf { chunk -> chunk.size.toLong() } ?: 0L
+                                val buffer = byteBuffers[id] ?: return@withLock 0L
+                                buffer.add(status.data)
+                                buffer.sumOf { chunk -> chunk.size.toLong() }
                             }
-                            val currentItem = _downloads.value.find { it.id == id }
-                            currentItem?.copy(downloadedSize = currentSize)?.let { updateAndPersistItem(lastUsedId, it) }
+                            _downloads.value.find { it.id == id }
+                                ?.copy(downloadedSize = currentSize)
+                                ?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-                        StorageDownloadStatus.Success -> {
-                        }
+
+                        // Only marks the end of the stream - the file is written once collect
+                        // returns, so there is nothing to do here.
+                        StorageDownloadStatus.Success -> Unit
                     }
                 }
 
@@ -210,27 +164,25 @@ class DownloadManager(
                 val buffers = buffersMutex.withLock {
                     byteBuffers.remove(id) ?: mutableListOf()
                 }
-                
+
                 val allBytes = concatenate(buffers)
                 // A write failure must fail the download - it used to be swallowed and the item
                 // was still marked as Completed even though nothing landed on disk.
                 destinationFile.write(allBytes)
 
-                val currentItem = _downloads.value.find { it.id == id }
-                currentItem?.copy(
+                _downloads.value.find { it.id == id }?.copy(
                     status = DownloadStatus.Completed,
                     downloadedTime = Clock.System.now(),
                     downloadedSize = allBytes.size.toLong(),
                     errorMessage = null
                 )?.let { updateAndPersistItem(lastUsedId, it) }
-            } catch (e: CancellationException) {
+            }.onFailure { error ->
                 // pause()/cancel() clear the buffer for us - suspending here would only fail again
-                throw e
-            } catch (e: Exception) {
+                currentCoroutineContext().ensureActive()
                 buffersMutex.withLock {
                     byteBuffers.remove(id)
                 }
-                failDownload(lastUsedId, id, bucketId, path, e)
+                failDownload(lastUsedId, id, bucketId, path, error)
             }
         }
         downloadJobs[id] = job
@@ -286,12 +238,13 @@ class DownloadManager(
         currentItem?.copy(status = DownloadStatus.Paused)?.let { updateAndPersistItem(lastUsedId, it) }
     }
 
+    /**
+     * Not implemented: only the destination *path* is stored, not the `PlatformFile` handle, so a
+     * paused download cannot be restarted without the user picking the destination again. Left as
+     * a no-op that says so, rather than silently doing nothing - there are currently no callers.
+     */
     fun resume(id: String) {
-        val item = _downloads.value.find { it.id == id } ?: return
-        // Cannot resume easily with PlatformFile if we didn't save the reference,
-        // For now, this might fail or need a fallback since we only have string destinationPath.
-        // We might need to ask the user to pick again or use the old logic if destinationPath is valid.
-        // We'll leave it as is for now but note that true 'resume' with a new picked file needs UI interaction.
+        logger.w { "Resume is not supported yet - download $id stays paused" }
     }
 
     fun cancel(id: String) {
@@ -302,7 +255,8 @@ class DownloadManager(
             }
             val lastUsedId = credentialRepository.getLastUsedId()
             if (lastUsedId != null) {
-                downloadRepository.deleteDownloadItem(lastUsedId, id)
+                runCatching { downloadRepository.deleteDownloadItem(lastUsedId, id) }
+                    .onFailure { error -> logger.e(error) { "Failed to delete download $id" } }
             }
         }
         _downloads.update { it.filter { item -> item.id != id } }

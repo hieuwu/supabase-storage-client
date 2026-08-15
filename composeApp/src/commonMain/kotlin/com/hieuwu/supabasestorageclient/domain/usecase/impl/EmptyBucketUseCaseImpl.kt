@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.EmptyBucketUseCase
 class EmptyBucketUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : EmptyBucketUseCase {
-    override suspend fun invoke(bucketId: String): Result<Unit> = runCatching {
+    override suspend fun invoke(bucketId: String): Result<Unit> =
         storageRepository.emptyBucket(bucketId)
-    }
 }

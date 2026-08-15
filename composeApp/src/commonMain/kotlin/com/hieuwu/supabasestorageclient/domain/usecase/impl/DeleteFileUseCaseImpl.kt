@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.DeleteFileUseCase
 class DeleteFileUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : DeleteFileUseCase {
-    override suspend fun invoke(params: DeleteFileUseCase.Params): Result<Unit> = runCatching {
+    override suspend fun invoke(params: DeleteFileUseCase.Params): Result<Unit> =
         storageRepository.deleteFile(params.bucketId, params.path)
-    }
 }

@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.MarkOnboardingCompletedUs
 class MarkOnboardingCompletedUseCaseImpl(
     private val onboardingRepository: OnboardingRepository
 ) : MarkOnboardingCompletedUseCase {
-    override suspend fun invoke() {
+    override suspend fun invoke(): Result<Unit> =
         onboardingRepository.markOnboardingCompleted()
-    }
 }

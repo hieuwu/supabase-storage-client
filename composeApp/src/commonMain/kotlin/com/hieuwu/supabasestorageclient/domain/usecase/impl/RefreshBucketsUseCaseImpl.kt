@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
 class RefreshBucketsUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : RefreshBucketsUseCase {
-    override suspend fun invoke(): Result<Unit> = runCatching {
+    override suspend fun invoke(): Result<Unit> =
         storageRepository.clearBucketsCache()
-    }
 }
