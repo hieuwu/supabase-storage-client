@@ -69,6 +69,7 @@ class CredentialsViewModel(
     }
 
     fun selectCredential(credential: Credential) {
+        throw Exception("Test crashlytics")
         viewModelScope.launch {
             logger.d { "Selecting credential: ${credential.name} (${credential.id})" }
             _uiState.update { it.copy(isSettingUp = true, error = null) }

@@ -5,6 +5,7 @@ import ComposeApp
 @main
 struct iOSApp: App {
     init() {
+        CrashReportingKt.doInitCrashReporting()
         InitKoinKt.doInitKoin(appDeclaration: { _ in })
     }
 

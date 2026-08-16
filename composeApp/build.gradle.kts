@@ -1,4 +1,5 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec
+import io.github.frankois944.spmForKmp.swiftPackageConfig
 import java.util.Properties
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -13,6 +14,9 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.buildkonfig)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.crashlytics)
+    alias(libs.plugins.spmForKmp)
 }
 
 kotlin {
@@ -32,6 +36,27 @@ kotlin {
             linkerOpts("-lsqlite3")
         }
 
+        // Firebase for iOS via Swift Package Manager (spmForKmp).
+        // Produces a cinterop named `firebaseKmp` -> `import firebaseKmp.FIRCrashlytics` in iosMain.
+        iosTarget.swiftPackageConfig("firebaseKmp") {
+            minIos = "15.0"
+            // The KMP framework is static, so the Xcode app target has to link Firebase itself.
+            // This emits composeApp/exportedFirebaseKmp, a local Swift package added to iosApp.xcodeproj.
+            exportedPackageSettings {
+                isStatic = true
+                includeProduct = listOf("FirebaseCore", "FirebaseCrashlytics")
+            }
+            dependency {
+                remotePackageVersion(
+                    url = uri("https://github.com/firebase/firebase-ios-sdk.git"),
+                    packageName = "firebase-ios-sdk",
+                    version = libs.versions.firebaseIosSdk.get(),
+                    products = {
+                        add("FirebaseCore", "FirebaseCrashlytics", exportToKotlin = true)
+                    },
+                )
+            }
+        }
     }
 
 
@@ -59,6 +84,11 @@ kotlin {
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.coil.gif)
 
+            // Firebase Crashlytics
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.crashlytics)
+            // Analytics is optional, but Crashlytics uses it for real-time crash reporting.
+            implementation(libs.firebase.analytics)
         }
         commonMain.dependencies {
             implementation(libs.kotlinx.datetime) // or latest version
@@ -136,8 +166,8 @@ android {
         applicationId = "com.hieuwu.supabasestorageclient"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 11
-        versionName = "1.2.0"
+        versionCode = 12
+        versionName = "1.2.1"
     }
     packaging {
         resources {

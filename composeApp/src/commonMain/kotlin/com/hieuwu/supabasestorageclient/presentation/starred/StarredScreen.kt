@@ -67,6 +67,7 @@ fun StarredScreen(
             targetState = uiState,
             modifier = Modifier.padding(padding).fillMaxSize(),
             transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            contentKey = { it::class },
             label = "StarredStateTransition"
         ) { state ->
             when (state) {
