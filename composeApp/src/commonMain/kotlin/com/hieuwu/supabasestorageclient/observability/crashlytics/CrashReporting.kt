@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.observability
+package com.hieuwu.supabasestorageclient.observability.crashlytics
 
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.platformLogWriter

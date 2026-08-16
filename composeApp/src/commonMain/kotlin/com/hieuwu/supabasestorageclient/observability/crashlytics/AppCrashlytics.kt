@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.observability
+package com.hieuwu.supabasestorageclient.observability.crashlytics
 
 /**
  * Multiplatform facade over Firebase Crashlytics.

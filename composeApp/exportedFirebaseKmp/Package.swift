@@ -18,7 +18,7 @@ let package = Package(
         .target(
             name: "exportedFirebaseKmp",
             dependencies: [
-                .product(name: "FirebaseCore", package: "firebase-ios-sdk"),.product(name: "FirebaseCrashlytics", package: "firebase-ios-sdk")
+                .product(name: "FirebaseCore", package: "firebase-ios-sdk"),.product(name: "FirebaseCrashlytics", package: "firebase-ios-sdk"),.product(name: "FirebaseAnalytics", package: "firebase-ios-sdk")
             ],
             path: "Sources"
             

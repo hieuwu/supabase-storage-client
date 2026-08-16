@@ -3,6 +3,13 @@ package com.hieuwu.supabasestorageclient.domain.download
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.error.StorageOperation
 import com.hieuwu.supabasestorageclient.domain.error.storageErrorMessage
+import com.hieuwu.supabasestorageclient.domain.error.storageErrorReason
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.DownloadDestinationModes
+import com.hieuwu.supabasestorageclient.observability.analytics.logDownloadCancelled
+import com.hieuwu.supabasestorageclient.observability.analytics.logDownloadFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logDownloadStarted
+import com.hieuwu.supabasestorageclient.observability.analytics.logDownloadSucceeded
 import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.model.DownloadStatus
 import com.hieuwu.supabasestorageclient.domain.model.StorageDownloadStatus
@@ -83,12 +90,24 @@ class DownloadManager(
     }
 
     /** Downloads into a file the user already picked. */
-    fun download(bucketId: String, path: String, fileName: String, platformFile: PlatformFile) {
-        startDownload(bucketId, path, fileName, platformFile, platformFile.path)
+    fun download(
+        bucketId: String,
+        path: String,
+        fileName: String,
+        platformFile: PlatformFile,
+        destinationMode: String = DownloadDestinationModes.PICKED_FILE,
+    ) {
+        startDownload(bucketId, path, fileName, platformFile, platformFile.path, destinationMode)
     }
 
     /** Downloads into [fileName] inside a directory the user already picked. */
-    fun downloadToDirectoryPath(bucketId: String, path: String, fileName: String, destinationDirectory: String) {
+    fun downloadToDirectoryPath(
+        bucketId: String,
+        path: String,
+        fileName: String,
+        destinationDirectory: String,
+        destinationMode: String = DownloadDestinationModes.PICKED_FOLDER,
+    ) {
         // The picked directory is not always a file system path - on Android it is a Storage
         // Access Framework uri, and resolving the child then queries the ContentResolver, which
         // throws once the granted permission is revoked or the folder is gone. That happens before
@@ -98,7 +117,7 @@ class DownloadManager(
                 logger.e(error) { "Cannot resolve download destination '$destinationDirectory/$fileName'" }
                 return
             }
-        startDownload(bucketId, path, fileName, destinationFile, destinationFile.path)
+        startDownload(bucketId, path, fileName, destinationFile, destinationFile.path, destinationMode)
     }
 
     private fun startDownload(
@@ -106,7 +125,8 @@ class DownloadManager(
         path: String,
         fileName: String,
         destinationFile: PlatformFile,
-        destinationPath: String
+        destinationPath: String,
+        destinationMode: String
     ) {
         val lastUsedId = credentialRepository.getLastUsedId() ?: return
         val id = "$bucketId:$path"
@@ -126,6 +146,9 @@ class DownloadManager(
                 sourcePath = path.substringBeforeLast("/", "")
             )
         )
+
+        AppAnalytics.logDownloadStarted(fileName, destinationMode)
+        val startedAt = Clock.System.now()
 
         val job = scope.launch {
             runCatching {
@@ -176,12 +199,20 @@ class DownloadManager(
                     downloadedSize = allBytes.size.toLong(),
                     errorMessage = null
                 )?.let { updateAndPersistItem(lastUsedId, it) }
+
+                AppAnalytics.logDownloadSucceeded(
+                    fileName = fileName,
+                    sizeBytes = allBytes.size.toLong(),
+                    durationMs = Clock.System.now().toEpochMilliseconds() -
+                        startedAt.toEpochMilliseconds(),
+                )
             }.onFailure { error ->
                 // pause()/cancel() clear the buffer for us - suspending here would only fail again
                 currentCoroutineContext().ensureActive()
                 buffersMutex.withLock {
                     byteBuffers.remove(id)
                 }
+                AppAnalytics.logDownloadFailed(fileName, storageErrorReason(error))
                 failDownload(lastUsedId, id, bucketId, path, error)
             }
         }
@@ -248,6 +279,10 @@ class DownloadManager(
     }
 
     fun cancel(id: String) {
+        // deleteDownload() routes here too - only an in-flight transfer counts as a cancellation.
+        if (_downloads.value.any { it.id == id && it.status == DownloadStatus.Downloading }) {
+            AppAnalytics.logDownloadCancelled()
+        }
         downloadJobs[id]?.cancel()
         scope.launch {
             buffersMutex.withLock {

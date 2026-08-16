@@ -20,6 +20,18 @@ import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.AppTheme
 import com.hieuwu.supabasestorageclient.domain.repository.PurchaseRepository
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSources
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.logPaywallDismissed
+import com.hieuwu.supabasestorageclient.observability.analytics.logPaywallShown
+import com.hieuwu.supabasestorageclient.observability.analytics.logPurchaseCancelled
+import com.hieuwu.supabasestorageclient.observability.analytics.logPurchaseCompleted
+import com.hieuwu.supabasestorageclient.observability.analytics.logPurchaseFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logPurchaseStarted
+import com.hieuwu.supabasestorageclient.observability.analytics.logRestoreCompleted
+import com.hieuwu.supabasestorageclient.observability.analytics.logRestoreFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logRestoreStarted
+import com.hieuwu.supabasestorageclient.observability.analytics.purchaseErrorReason
 import com.hieuwu.supabasestorageclient.presentation.navigation.NavGraph
 import com.hieuwu.supabasestorageclient.presentation.navigation.Screen
 import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingViewModel
@@ -65,11 +77,13 @@ fun App() {
                                 logger.d { "RevenueCat: fetched offering ${response.data.identifier}" }
                                 currentOffering = response.data
                                 showGlobalPaywall = true
+                                AppAnalytics.logPaywallShown(hasOffering = true)
                             }
                             is ApiResponse.Error -> {
                                 // Still show the paywall - it renders a retry state without an offering.
                                 logger.e(response.exception) { "RevenueCat: failed to fetch offering" }
                                 showGlobalPaywall = true
+                                AppAnalytics.logPaywallShown(hasOffering = false)
                             }
                             is ApiResponse.Loading -> {
                                 logger.d { "RevenueCat: fetching offering..." }
@@ -124,11 +138,16 @@ fun App() {
             if (showGlobalPaywall) {
                 PaywallScreen(
                     offering = currentOffering,
-                    onDismiss = { showGlobalPaywall = false },
+                    onDismiss = {
+                        AppAnalytics.logPaywallDismissed()
+                        showGlobalPaywall = false
+                    },
                     onPurchaseStarted = {
+                        AppAnalytics.logPurchaseStarted()
                         scope.launch { snackbarHostState.showSnackbar("Starting purchase...") }
                     },
                     onPurchaseCompleted = { customerInfo ->
+                        AppAnalytics.logPurchaseCompleted()
                         purchaseRepository.updatePurchaseStatus(customerInfo)
                         scope.launch {
                             snackbarHostState.showSnackbar("Purchase successful!")
@@ -137,22 +156,29 @@ fun App() {
                     },
                     onPurchaseError = { error ->
                         logger.e { "Purchase failed: ${error.message}" }
+                        AppAnalytics.logPurchaseFailed(purchaseErrorReason(error.message))
                         scope.launch {
                             snackbarHostState.showSnackbar("Purchase failed: ${error.message}")
                         }
                     },
                     onPurchaseCancelled = {
+                        AppAnalytics.logPurchaseCancelled()
                         scope.launch {
                             snackbarHostState.showSnackbar("Purchase cancelled")
                         }
                     },
                     onRestoreStarted = {
+                        AppAnalytics.logRestoreStarted(AnalyticsSources.PAYWALL)
                         scope.launch {
                             snackbarHostState.showSnackbar("Restoring purchases...")
                         }
                     },
                     onRestoreCompleted = { customerInfo ->
                         purchaseRepository.updatePurchaseStatus(customerInfo)
+                        AppAnalytics.logRestoreCompleted(
+                            source = AnalyticsSources.PAYWALL,
+                            isPro = customerInfo.activeSubscriptions.isNotEmpty(),
+                        )
                         scope.launch {
                             snackbarHostState.showSnackbar("Restore successful!")
                         }
@@ -160,6 +186,10 @@ fun App() {
                     },
                     onRestoreError = { error ->
                         logger.e { "Restore failed: ${error.message}" }
+                        AppAnalytics.logRestoreFailed(
+                            source = AnalyticsSources.PAYWALL,
+                            reason = purchaseErrorReason(error.message),
+                        )
                         scope.launch {
                             snackbarHostState.showSnackbar("Restore failed: ${error.message}")
                         }

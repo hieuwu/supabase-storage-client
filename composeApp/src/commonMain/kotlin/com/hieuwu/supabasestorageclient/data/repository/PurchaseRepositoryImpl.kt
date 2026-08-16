@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsUserProperties
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
 import com.revenuecat.purchases.kmp.ktx.awaitRestore
 
 class PurchaseRepositoryImpl(
@@ -60,7 +62,7 @@ class PurchaseRepositoryImpl(
             onSuccess = { customerInfo -> updateProStatus(customerInfo) },
             onFailure = { error ->
                 logger.e(error) { "Error checking entitlements: ${error.message}" }
-                _isPro.value = false
+                setProStatus(false)
             }
         )
     }
@@ -73,7 +75,13 @@ class PurchaseRepositoryImpl(
         val activeSubscription = customerInfo.activeSubscriptions.isNotEmpty()
         logger.d { "Updating pro status: ($activeSubscription)" }
 
-        _isPro.value = activeSubscription
+        setProStatus(activeSubscription)
+    }
+
+    /** The one place pro status changes, so the analytics dimension is published from here. */
+    private fun setProStatus(isPro: Boolean) {
+        _isPro.value = isPro
+        AppAnalytics.setUserProperty(AnalyticsUserProperties.IS_PRO, isPro.toString())
     }
 
     override fun fetchOffering(): Flow<ApiResponse<Offering>> = flow {

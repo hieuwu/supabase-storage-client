@@ -11,6 +11,9 @@ import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.data.dto.CredentialDto
 import com.hieuwu.supabasestorageclient.data.dto.toDomain
 import com.hieuwu.supabasestorageclient.data.dto.toDto
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsUserProperties
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.countBucketOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -46,6 +49,19 @@ class CredentialRepositoryImpl(
                 logger.e(error) { "Error reading last used credential id from settings" }
                 null
             }
+        publishConnectionCount()
+    }
+
+    /**
+     * The `connection_count` analytics dimension follows the list itself, so it is published from
+     * the two places the list can change - the initial load and [persist] - rather than by a
+     * separate collector somewhere else.
+     */
+    private fun publishConnectionCount() {
+        AppAnalytics.setUserProperty(
+            AnalyticsUserProperties.CONNECTION_COUNT,
+            countBucketOf(_credentials.value.size),
+        )
     }
 
     override fun getCredentials(): Flow<List<Credential>> {
@@ -79,11 +95,13 @@ class CredentialRepositoryImpl(
         description: String
     ): Result<Unit> {
         _credentials.value = next
+        publishConnectionCount()
         return runCatching {
             settings[KEY_CREDENTIALS] = Json.encodeToString(next.map { it.toDto() })
         }.onFailure { error ->
             logger.e(error) { "Failed to $description, reverting in-memory credentials" }
             _credentials.value = previous
+            publishConnectionCount()
         }
     }
 

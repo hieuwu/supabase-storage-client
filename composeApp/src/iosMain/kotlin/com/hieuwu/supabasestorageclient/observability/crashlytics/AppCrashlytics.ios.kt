@@ -1,4 +1,4 @@
-package com.hieuwu.supabasestorageclient.observability
+package com.hieuwu.supabasestorageclient.observability.crashlytics
 
 import kotlin.experimental.ExperimentalNativeApi
 import kotlinx.cinterop.ExperimentalForeignApi

@@ -44,7 +44,7 @@ kotlin {
             // This emits composeApp/exportedFirebaseKmp, a local Swift package added to iosApp.xcodeproj.
             exportedPackageSettings {
                 isStatic = true
-                includeProduct = listOf("FirebaseCore", "FirebaseCrashlytics")
+                includeProduct = listOf("FirebaseCore", "FirebaseCrashlytics", "FirebaseAnalytics")
             }
             dependency {
                 remotePackageVersion(
@@ -52,7 +52,12 @@ kotlin {
                     packageName = "firebase-ios-sdk",
                     version = libs.versions.firebaseIosSdk.get(),
                     products = {
-                        add("FirebaseCore", "FirebaseCrashlytics", exportToKotlin = true)
+                        add(
+                            "FirebaseCore",
+                            "FirebaseCrashlytics",
+                            "FirebaseAnalytics",
+                            exportToKotlin = true,
+                        )
                     },
                 )
             }
@@ -84,10 +89,9 @@ kotlin {
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.coil.gif)
 
-            // Firebase Crashlytics
+            // Firebase Crashlytics + Analytics
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.crashlytics)
-            // Analytics is optional, but Crashlytics uses it for real-time crash reporting.
             implementation(libs.firebase.analytics)
         }
         commonMain.dependencies {

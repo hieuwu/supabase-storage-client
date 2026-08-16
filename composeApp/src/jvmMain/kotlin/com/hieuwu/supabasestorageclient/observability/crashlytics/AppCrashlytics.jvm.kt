@@ -1,9 +1,9 @@
-package com.hieuwu.supabasestorageclient.observability
+package com.hieuwu.supabasestorageclient.observability.crashlytics
 
 import co.touchlab.kermit.Logger
 
 /**
- * Web has no Firebase Crashlytics SDK; calls are mirrored into Kermit so shared code keeps
+ * Desktop has no Firebase Crashlytics SDK; calls are mirrored into Kermit so shared code keeps
  * working without platform checks.
  */
 actual object AppCrashlytics {

@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.about
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -15,6 +17,7 @@ import androidx.compose.ui.unit.dp
 fun AboutScreen(
     onBack: () -> Unit
 ) {
+    TrackScreenView(AnalyticsScreens.ABOUT)
     Scaffold(
         topBar = {
             TopAppBar(

@@ -5,6 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
 import com.hieuwu.supabasestorageclient.domain.usecase.*
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSources
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionActivated
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionActivationFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionAddFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionAddOpened
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionAdded
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionRemoved
+import com.hieuwu.supabasestorageclient.observability.analytics.logPaywallTriggered
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -69,15 +78,22 @@ class CredentialsViewModel(
     }
 
     fun selectCredential(credential: Credential) {
-        throw Exception("Test crashlytics")
         viewModelScope.launch {
             logger.d { "Selecting credential: ${credential.name} (${credential.id})" }
             _uiState.update { it.copy(isSettingUp = true, error = null) }
+            // Activation is "a connection was verified", not "a connection was saved" - this screen
+            // is where a first-run user finds out whether their key actually works.
+            val isFirstActivation = _uiState.value.lastUsedId == null
             switchCredentialUseCase(credential).fold(
                 onSuccess = {
+                    AppAnalytics.logConnectionActivated(
+                        connectionCount = _uiState.value.credentials.size,
+                        isFirst = isFirstActivation,
+                    )
                     _uiState.update { it.copy(lastUsedId = credential.id, isSettingUp = false) }
                 },
                 onFailure = { error ->
+                    AppAnalytics.logConnectionActivationFailed(error)
                     logger.e(error) { "Credential selection failed for ${credential.id}" }
                     val errorMessage = error.message ?: error.toString()
                     _uiState.update {
@@ -93,12 +109,17 @@ class CredentialsViewModel(
             val isPro = _uiState.value.isPro
             val currentCount = _uiState.value.credentials.size
             if (!isPro && currentCount >= 2) {
+                AppAnalytics.logPaywallTriggered(AnalyticsSources.CONNECTION_LIMIT)
                 triggerPaywallUseCase()
                 return@launch
             }
             addCredentialUseCase(name, url, key).fold(
-                onSuccess = { hideAddSheet() },
+                onSuccess = {
+                    AppAnalytics.logConnectionAdded(connectionCount = currentCount + 1)
+                    hideAddSheet()
+                },
                 onFailure = { error ->
+                    AppAnalytics.logConnectionAddFailed(error)
                     logger.e(error) { "Failed to add credential '$name'" }
                     _uiState.update { it.copy(error = "Failed to add credential: ${error.message}") }
                 }
@@ -109,8 +130,10 @@ class CredentialsViewModel(
     fun onAddClick() {
         val uiState = _uiState.value
         if (uiState.isPro || uiState.credentials.size < 2) {
+            AppAnalytics.logConnectionAddOpened(AnalyticsSources.CREDENTIALS)
             _uiState.update { it.copy(showAddSheet = true) }
         } else {
+            AppAnalytics.logPaywallTriggered(AnalyticsSources.CONNECTION_LIMIT)
             triggerPaywallUseCase()
         }
     }
@@ -154,7 +177,12 @@ class CredentialsViewModel(
     fun deleteCredential(id: String) {
         viewModelScope.launch {
             deleteCredentialUseCase(id).fold(
-                onSuccess = { hideDeleteDialog() },
+                onSuccess = {
+                    AppAnalytics.logConnectionRemoved(
+                        connectionCount = (_uiState.value.credentials.size - 1).coerceAtLeast(0),
+                    )
+                    hideDeleteDialog()
+                },
                 onFailure = { error ->
                     logger.e(error) { "Failed to delete credential $id" }
                     _uiState.update { it.copy(error = "Failed to delete credential: ${error.message}") }

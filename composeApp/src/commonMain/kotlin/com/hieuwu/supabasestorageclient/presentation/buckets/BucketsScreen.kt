@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.buckets
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -84,6 +86,7 @@ fun BucketsScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: BucketsViewModel = koinViewModel()
 ) {
+    TrackScreenView(AnalyticsScreens.BUCKETS)
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
