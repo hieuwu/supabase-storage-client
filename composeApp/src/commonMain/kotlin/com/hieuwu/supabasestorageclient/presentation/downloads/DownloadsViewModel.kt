@@ -8,7 +8,6 @@ import com.hieuwu.supabasestorageclient.domain.model.DownloadItem
 import com.hieuwu.supabasestorageclient.domain.usecase.CancelDownloadUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.DeleteDownloadUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.ObserveDownloadsUseCase
-import com.hieuwu.supabasestorageclient.platform.FileWriter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -16,8 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 class DownloadsViewModel(
     private val observeDownloadsUseCase: ObserveDownloadsUseCase,
     private val cancelDownloadUseCase: CancelDownloadUseCase,
-    private val deleteDownloadUseCase: DeleteDownloadUseCase,
-    private val fileWriter: FileWriter
+    private val deleteDownloadUseCase: DeleteDownloadUseCase
 ) : ViewModel() {
 
     val downloads: StateFlow<List<DownloadItem>> = observeDownloadsUseCase()

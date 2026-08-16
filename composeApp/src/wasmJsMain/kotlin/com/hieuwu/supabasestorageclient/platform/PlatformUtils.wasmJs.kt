@@ -7,15 +7,6 @@ import org.w3c.files.get
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class WasmFileWriter : FileWriter {
-    override fun writeToFile(path: String, data: ByteArray) {
-        // TODO: Implement browser file download
-    }
-    override fun exists(path: String): Boolean = false
-}
-
-actual fun getFileWriter(): FileWriter = WasmFileWriter()
-
 class WasmDirectoryPicker : DirectoryPicker {
     override suspend fun pickDirectory(): String? = "downloads"
 }

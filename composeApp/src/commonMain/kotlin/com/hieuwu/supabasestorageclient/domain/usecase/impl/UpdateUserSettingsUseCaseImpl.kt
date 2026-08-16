@@ -7,7 +7,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.UpdateUserSettingsUseCase
 class UpdateUserSettingsUseCaseImpl(
     private val settingsRepository: SettingsRepository
 ) : UpdateUserSettingsUseCase {
-    override suspend fun invoke(settings: UserSettings) {
+    override suspend fun invoke(settings: UserSettings): Result<Unit> =
         settingsRepository.updateSettings(settings)
-    }
 }

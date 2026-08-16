@@ -7,7 +7,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetFileMetadataUseCase
 class GetFileMetadataUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : GetFileMetadataUseCase {
-    override suspend fun invoke(params: GetFileMetadataUseCase.Params): Result<StorageItem> = runCatching {
+    override suspend fun invoke(params: GetFileMetadataUseCase.Params): Result<StorageItem> =
         storageRepository.getFileMetadata(params.bucketId, params.path)
-    }
 }

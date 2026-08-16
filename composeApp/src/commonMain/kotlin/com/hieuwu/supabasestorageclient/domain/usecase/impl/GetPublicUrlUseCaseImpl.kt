@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetPublicUrlUseCase
 class GetPublicUrlUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : GetPublicUrlUseCase {
-    override suspend fun invoke(params: GetPublicUrlUseCase.Params): Result<String> = runCatching {
+    override suspend fun invoke(params: GetPublicUrlUseCase.Params): Result<String> =
         storageRepository.getPublicUrl(params.bucketId, params.path)
-    }
 }

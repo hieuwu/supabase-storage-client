@@ -3,6 +3,7 @@ package com.hieuwu.supabasestorageclient.presentation.fileview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
+import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.platform.ClipboardManager
 import co.touchlab.kermit.Logger
@@ -57,6 +58,21 @@ class FileViewViewModel(
         loadData()
     }
 
+    /** Reads the settings once; returns null (after logging) when they cannot be read. */
+    private suspend fun currentSettings(): UserSettings? =
+        runCatching { getUserSettingsUseCase().first() }
+            .onFailure { error -> logger.e(error) { "Failed to read user settings" } }
+            .getOrNull()
+
+    /**
+     * Remembering the directory is a convenience - failing to store it must not stop the download
+     * the user just asked for.
+     */
+    private suspend fun rememberDownloadDirectory(settings: UserSettings, directory: String) {
+        updateUserSettingsUseCase(settings.copy(sessionDownloadDirectory = directory))
+            .onFailure { error -> logger.w(error) { "Failed to remember download directory" } }
+    }
+
     private fun loadData() {
         viewModelScope.launch {
             _manualState.update { it.copy(isLoading = true) }
@@ -90,7 +106,7 @@ class FileViewViewModel(
         val currentState = uiState.value as? FileViewUiState.Content ?: return
         val item = currentState.metadata ?: return
         viewModelScope.launch {
-            val settings = getUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
 
             when (settings.askDownloadPathConfig) {
@@ -125,11 +141,11 @@ class FileViewViewModel(
 
     fun onSelectDefaultPath() {
         viewModelScope.launch {
-            val settings = getUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
-            
+
             if (settings.defaultDownloadDirectory != null) {
-                updateUserSettingsUseCase(settings.copy(sessionDownloadDirectory = settings.defaultDownloadDirectory))
+                rememberDownloadDirectory(settings, settings.defaultDownloadDirectory)
                 downloadFileUseCase.downloadToPath(bucketId, fullPath, fileName, settings.defaultDownloadDirectory)
                 _manualState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
             } else {
@@ -148,10 +164,10 @@ class FileViewViewModel(
 
     fun onDirectoryPicked(pickedPath: String) {
         viewModelScope.launch {
-            val settings = getUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             val fullPath = if (path.isNullOrEmpty()) fileName else "$path/$fileName"
-            
-            updateUserSettingsUseCase(settings.copy(sessionDownloadDirectory = pickedPath))
+
+            rememberDownloadDirectory(settings, pickedPath)
             downloadFileUseCase.downloadToPath(bucketId, fullPath, fileName, pickedPath)
             _manualState.update { it.copy(successMessage = "Download started", isPickingDirectory = false, itemToDownload = null) }
         }
@@ -204,10 +220,16 @@ class FileViewViewModel(
     }
 
     fun copyUrl() {
-        _manualState.value.publicUrl?.let { url ->
-            clipboardManager.copyText(url)
-            _manualState.update { it.copy(successMessage = "URL copied to clipboard") }
-        }
+        val url = _manualState.value.publicUrl ?: return
+        runCatching { clipboardManager.copyText(url) }.fold(
+            onSuccess = {
+                _manualState.update { it.copy(successMessage = "URL copied to clipboard") }
+            },
+            onFailure = { error ->
+                logger.e(error) { "Failed to copy the public url to the clipboard" }
+                _manualState.update { it.copy(error = "Could not copy the URL") }
+            }
+        )
     }
 
     fun clearMessages() {

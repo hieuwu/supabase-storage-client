@@ -6,8 +6,10 @@ import com.hieuwu.supabasestorageclient.database.AppDatabase
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.repository.CredentialRepository
 import com.hieuwu.supabasestorageclient.domain.repository.StarredRepository
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -15,7 +17,8 @@ import kotlinx.datetime.Instant
 
 class StarredRepositoryImpl(
     private val appDatabase: AppDatabase,
-    private val credentialRepository: CredentialRepository
+    private val credentialRepository: CredentialRepository,
+    private val logger: Logger
 ) : StarredRepository {
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -40,6 +43,11 @@ class StarredRepositoryImpl(
                         )
                     }
                 }
+        }.catch { error ->
+            // This flow feeds combine() in several ViewModels - a DB failure must not tear the
+            // whole UI state down.
+            logger.e(error) { "Failed to read starred items" }
+            emit(emptyList())
         }
     }
 

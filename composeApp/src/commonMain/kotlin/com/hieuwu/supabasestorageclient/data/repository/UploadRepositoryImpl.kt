@@ -6,13 +6,16 @@ import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.core.parseInstantOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.Instant
 
 class UploadRepositoryImpl(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val logger: Logger
 ) : UploadRepository {
 
     override fun getUploadItems(credentialId: String): Flow<List<UploadItem>> {
@@ -20,6 +23,8 @@ class UploadRepositoryImpl(
             .asFlow()
             .mapToList(Dispatchers.Default)
             .map { entities ->
+                // Status and timestamp are stored as free-form strings; a row written by an older
+                // version must not take down the collector, so each field degrades on its own.
                 entities.map { entity ->
                     UploadItem(
                         id = entity.id,
@@ -28,12 +33,21 @@ class UploadRepositoryImpl(
                         path = entity.path,
                         totalSize = entity.total_size,
                         uploadedSize = entity.uploaded_size,
-                        status = UploadStatus.valueOf(entity.status),
-                        uploadedTime = entity.uploaded_time?.let { Instant.parse(it) },
+                        status = runCatching { UploadStatus.valueOf(entity.status) }
+                            .getOrElse { error ->
+                                logger.w(error) { "Unknown upload status '${entity.status}' for ${entity.id}" }
+                                UploadStatus.Error
+                            },
+                        uploadedTime = parseInstantOrNull(entity.uploaded_time, "upload ${entity.id}"),
                         from = entity.from_path,
-                        to = entity.to_path ?: ""
+                        to = entity.to_path ?: "",
+                        errorMessage = entity.error_message
                     )
                 }
+            }
+            .catch { error ->
+                logger.e(error) { "Failed to read upload items for $credentialId" }
+                emit(emptyList())
             }
     }
 
@@ -49,7 +63,8 @@ class UploadRepositoryImpl(
             status = item.status.name,
             uploaded_time = item.uploadedTime?.toString(),
             from_path = item.from,
-            to_path = item.to
+            to_path = item.to,
+            error_message = item.errorMessage
         )
     }
 

@@ -32,6 +32,10 @@ class CredentialsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             observeCredentialsUseCase()
+                .catch { error ->
+                    logger.e(error) { "Failed to observe credentials" }
+                    _uiState.update { it.copy(isLoading = false, error = "Failed to load credentials: ${error.message}") }
+                }
                 .collect { credentials ->
                     val lastUsedId = getLastUsedCredentialIdUseCase()
                     _uiState.update {
@@ -45,9 +49,11 @@ class CredentialsViewModel(
         }
 
         viewModelScope.launch {
-            observeProStatusUseCase().collect { isPro ->
-                _uiState.update { it.copy(isPro = isPro) }
-            }
+            observeProStatusUseCase()
+                .catch { error -> logger.e(error) { "Failed to observe pro status" } }
+                .collect { isPro ->
+                    _uiState.update { it.copy(isPro = isPro) }
+                }
         }
     }
 
@@ -66,33 +72,36 @@ class CredentialsViewModel(
         viewModelScope.launch {
             logger.d { "Selecting credential: ${credential.name} (${credential.id})" }
             _uiState.update { it.copy(isSettingUp = true, error = null) }
-            try {
-                switchCredentialUseCase(credential)
-                _uiState.update { it.copy(lastUsedId = credential.id) }
-            } catch (e: Exception) {
-                logger.e(e) { "Credential selection failed" }
-                val errorMessage = e.message ?: e.toString()
-                _uiState.update { it.copy(error = "Verification failed: $errorMessage") }
-            } finally {
-                _uiState.update { it.copy(isSettingUp = false) }
-            }
+            switchCredentialUseCase(credential).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(lastUsedId = credential.id, isSettingUp = false) }
+                },
+                onFailure = { error ->
+                    logger.e(error) { "Credential selection failed for ${credential.id}" }
+                    val errorMessage = error.message ?: error.toString()
+                    _uiState.update {
+                        it.copy(error = "Verification failed: $errorMessage", isSettingUp = false)
+                    }
+                }
+            )
         }
     }
 
     fun addCredential(name: String, url: String, key: String) {
         viewModelScope.launch {
-            try {
-                val isPro = _uiState.value.isPro
-                val currentCount = _uiState.value.credentials.size
-                if (!isPro && currentCount >= 2) {
-                    triggerPaywallUseCase()
-                    return@launch
-                }
-                addCredentialUseCase(name, url, key)
-                hideAddSheet()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to add credential: ${e.message}") }
+            val isPro = _uiState.value.isPro
+            val currentCount = _uiState.value.credentials.size
+            if (!isPro && currentCount >= 2) {
+                triggerPaywallUseCase()
+                return@launch
             }
+            addCredentialUseCase(name, url, key).fold(
+                onSuccess = { hideAddSheet() },
+                onFailure = { error ->
+                    logger.e(error) { "Failed to add credential '$name'" }
+                    _uiState.update { it.copy(error = "Failed to add credential: ${error.message}") }
+                }
+            )
         }
     }
 
@@ -111,12 +120,13 @@ class CredentialsViewModel(
 
     fun updateCredential(id: String, name: String, url: String, key: String) {
         viewModelScope.launch {
-            try {
-                updateCredentialUseCase(id, name, url, key)
-                hideEditSheet()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to update credential: ${e.message}") }
-            }
+            updateCredentialUseCase(id, name, url, key).fold(
+                onSuccess = { hideEditSheet() },
+                onFailure = { error ->
+                    logger.e(error) { "Failed to update credential $id" }
+                    _uiState.update { it.copy(error = "Failed to update credential: ${error.message}") }
+                }
+            )
         }
     }
 
@@ -142,12 +152,13 @@ class CredentialsViewModel(
 
     fun deleteCredential(id: String) {
         viewModelScope.launch {
-            try {
-                deleteCredentialUseCase(id)
-                hideDeleteDialog()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to delete credential: ${e.message}") }
-            }
+            deleteCredentialUseCase(id).fold(
+                onSuccess = { hideDeleteDialog() },
+                onFailure = { error ->
+                    logger.e(error) { "Failed to delete credential $id" }
+                    _uiState.update { it.copy(error = "Failed to delete credential: ${error.message}") }
+                }
+            )
         }
     }
 }

@@ -1,5 +1,8 @@
 package com.hieuwu.supabasestorageclient.domain.upload
 
+import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.domain.error.StorageOperation
+import com.hieuwu.supabasestorageclient.domain.error.storageErrorMessage
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.domain.model.StorageUploadStatus
@@ -11,6 +14,8 @@ import com.hieuwu.supabasestorageclient.domain.repository.UploadRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +30,8 @@ class UploadManager(
     private val uploadRepository: UploadRepository,
     private val credentialRepository: CredentialRepository,
     private val purchaseRepository: PurchaseRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val logger: Logger
 ) {
     private val _uploads = MutableStateFlow<List<UploadItem>>(emptyList())
     val uploads: StateFlow<List<UploadItem>> = _uploads.asStateFlow()
@@ -37,8 +43,14 @@ class UploadManager(
         scope.launch {
             credentialRepository.lastUsedId.collectLatest { lastUsedId ->
                 if (lastUsedId != null) {
-                    uploadRepository.getUploadItems(lastUsedId).collect { items ->
-                        _uploads.value = items
+                    runCatching {
+                        uploadRepository.getUploadItems(lastUsedId).collect { items ->
+                            _uploads.value = items
+                        }
+                    }.onFailure { error ->
+                        // Stop here if the collector itself was cancelled - there is nothing to report.
+                        currentCoroutineContext().ensureActive()
+                        logger.e(error) { "Failed to observe uploads for $lastUsedId" }
                     }
                 } else {
                     _uploads.value = emptyList()
@@ -59,14 +71,14 @@ class UploadManager(
             path = path,
             totalSize = data.size.toLong(),
             from = fileName,
-            to = "$bucketId/$path"
+            to = "$bucketId/$path",
+            errorMessage = null
         )
 
         updateAndPersistItem(lastUsedId, item)
 
         val job = scope.launch {
-            try {
-
+            runCatching {
                 storageRepository.uploadFileAsFlow(bucketId, path, data).collect { status ->
                     when (status) {
                         is StorageUploadStatus.Progress -> {
@@ -85,8 +97,6 @@ class UploadManager(
                                 uploadedSize = currentItem.totalSize
                             )?.let { updateAndPersistItem(lastUsedId, it) }
                         }
-
-                        else -> {}
                     }
                 }
 
@@ -98,10 +108,16 @@ class UploadManager(
                         uploadedSize = currentItemAfter.totalSize
                     ).let { updateAndPersistItem(lastUsedId, it) }
                 }
-
-            } catch (e: Exception) {
+            }.onFailure { error ->
+                // cancel() cancels this job - a cancelled upload is not a failed upload.
+                currentCoroutineContext().ensureActive()
+                val message = storageErrorMessage(error, StorageOperation.Upload)
+                logger.e(error) { "Upload failed for $bucketId/$path: $message" }
                 val currentItem = _uploads.value.find { it.id == id }
-                currentItem?.copy(status = UploadStatus.Error)?.let { updateAndPersistItem(lastUsedId, it) }
+                currentItem?.copy(
+                    status = UploadStatus.Error,
+                    errorMessage = message
+                )?.let { updateAndPersistItem(lastUsedId, it) }
             }
         }
         uploadJobs[id] = job
@@ -117,7 +133,9 @@ class UploadManager(
             }
         }
         scope.launch {
-            uploadRepository.insertUploadItem(credentialId, item)
+            // The in-memory list is already up to date; a failed write only costs persistence.
+            runCatching { uploadRepository.insertUploadItem(credentialId, item) }
+                .onFailure { error -> logger.e(error) { "Failed to persist upload ${item.id}" } }
         }
     }
 
@@ -126,7 +144,8 @@ class UploadManager(
         scope.launch {
             val lastUsedId = credentialRepository.getLastUsedId()
             if (lastUsedId != null) {
-                uploadRepository.deleteUploadItem(lastUsedId, id)
+                runCatching { uploadRepository.deleteUploadItem(lastUsedId, id) }
+                    .onFailure { error -> logger.e(error) { "Failed to delete upload $id" } }
             }
         }
         _uploads.update { it.filter { item -> item.id != id } }

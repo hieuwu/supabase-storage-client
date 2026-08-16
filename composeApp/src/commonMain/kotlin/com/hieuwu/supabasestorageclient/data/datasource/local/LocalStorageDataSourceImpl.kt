@@ -1,10 +1,10 @@
 package com.hieuwu.supabasestorageclient.data.datasource.local
 
+import com.hieuwu.supabasestorageclient.core.parseInstantOrNull
 import com.hieuwu.supabasestorageclient.data.datasource.LocalStorageDataSource
 import com.hieuwu.supabasestorageclient.database.AppDatabase
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.StorageItem
-import kotlinx.datetime.Instant
 
 class LocalStorageDataSourceImpl(
     private val database: AppDatabase
@@ -54,13 +54,15 @@ class LocalStorageDataSourceImpl(
             dbQueries.getStorageItemsForBucketPath(credentialId, bucketId, "$path/%").executeAsList()
         }
 
+        // Timestamps come back as strings written by a possibly older app version, so a malformed
+        // value drops to null instead of failing the whole cache read.
         return cached.map { item ->
             StorageItem(
                 name = item.name,
                 id = item.id,
-                updatedAt = item.updated_at?.let { Instant.parse(it) },
-                createdAt = item.created_at?.let { Instant.parse(it) },
-                lastAccessedAt = item.last_accessed_at?.let { Instant.parse(it) },
+                updatedAt = parseInstantOrNull(item.updated_at, "cached ${item.name}.updatedAt"),
+                createdAt = parseInstantOrNull(item.created_at, "cached ${item.name}.createdAt"),
+                lastAccessedAt = parseInstantOrNull(item.last_accessed_at, "cached ${item.name}.lastAccessedAt"),
                 metadata = emptyMap(),
                 isFolder = item.is_folder != 0L,
                 size = item.size

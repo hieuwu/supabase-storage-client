@@ -6,7 +6,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.ClearCacheUseCase
 class ClearCacheUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : ClearCacheUseCase {
-    override suspend fun invoke(params: ClearCacheUseCase.Params): Result<Unit> = runCatching {
+    override suspend fun invoke(params: ClearCacheUseCase.Params): Result<Unit> =
         storageRepository.clearCache(params.credentialId)
-    }
 }

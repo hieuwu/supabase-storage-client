@@ -4,6 +4,9 @@ object FileUtils {
     fun isImage(extension: String): Boolean =
         extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
 
+    fun isGif(extension: String): Boolean =
+        extension == "gif"
+
     fun isVideo(extension: String): Boolean =
         extension in listOf("mp4", "mov", "avi", "mkv", "webm")
 

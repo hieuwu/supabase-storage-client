@@ -7,7 +7,6 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetBucketContentsUseCase
 class GetBucketContentsUseCaseImpl(
     private val storageRepository: StorageRepository
 ) : GetBucketContentsUseCase {
-    override suspend fun invoke(params: GetBucketContentsUseCase.Params): Result<List<StorageItem>> = runCatching {
+    override suspend fun invoke(params: GetBucketContentsUseCase.Params): Result<List<StorageItem>> =
         storageRepository.getBucketContents(params.bucketId, params.path)
-    }
 }

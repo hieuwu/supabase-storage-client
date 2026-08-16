@@ -1,5 +1,6 @@
 package com.hieuwu.supabasestorageclient.data.datasource.remote
 
+import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.core.toKxInstant
 import com.hieuwu.supabasestorageclient.data.datasource.RemoteStorageDataSource
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
@@ -22,11 +23,15 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 class RemoteStorageDataSourceImpl(
-    private val supabaseClientManager: SupabaseClientManager
+    private val supabaseClientManager: SupabaseClientManager,
+    private val logger: Logger
 ) : RemoteStorageDataSource {
 
     private suspend fun client() =
-        supabaseClientManager.client.first() ?: throw IllegalStateException("Supabase client not initialized")
+        supabaseClientManager.client.first() ?: run {
+            logger.e { "Supabase client is not initialized - no credential has been selected" }
+            throw IllegalStateException("Supabase client not initialized")
+        }
 
     override suspend fun getBuckets(): List<Bucket> {
         return client().storage.listBuckets().map { bucket ->
@@ -89,15 +94,16 @@ class RemoteStorageDataSourceImpl(
 
     override suspend fun moveFile(bucketId: String, fromPath: String, toPath: String) {
         val storage = client().storage.from(bucketId)
-        try {
-            storage.move(fromPath, toPath)
-        } catch (e: Exception) {
-            val items = storage.list(fromPath)
-            if (items.isNotEmpty()) {
-                moveFolderRecursive(bucketId, fromPath, toPath)
-            } else {
-                throw e
+        val isFolder = runCatching { storage.list(fromPath).isNotEmpty() }
+            .getOrElse { error ->
+                logger.w(error) { "Could not list $bucketId/$fromPath, moving it as a single file" }
+                false
             }
+        if (isFolder) {
+            logger.d { "Moving folder $bucketId/$fromPath to $toPath entry by entry" }
+            moveFolderRecursive(bucketId, fromPath, toPath)
+        } else {
+            storage.move(fromPath, toPath)
         }
     }
 

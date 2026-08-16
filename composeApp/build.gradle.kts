@@ -18,7 +18,7 @@ plugins {
 kotlin {
     androidTarget {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
     }
 
@@ -57,6 +57,7 @@ kotlin {
             implementation(libs.ktor.client.android)   // or latest stable 3.x version
             implementation(libs.sqldelight.android)
             implementation(libs.androidx.core.splashscreen)
+            implementation(libs.coil.gif)
 
         }
         commonMain.dependencies {
@@ -135,8 +136,8 @@ android {
         applicationId = "com.hieuwu.supabasestorageclient"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 9
-        versionName = "1.0"
+        versionCode = 12
+        versionName = "1.2.1"
     }
     packaging {
         resources {
@@ -155,8 +156,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 

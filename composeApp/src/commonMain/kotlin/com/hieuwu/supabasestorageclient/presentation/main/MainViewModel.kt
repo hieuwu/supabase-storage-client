@@ -2,6 +2,7 @@ package com.hieuwu.supabasestorageclient.presentation.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.SizeUnit
 import com.hieuwu.supabasestorageclient.domain.context.ContextSelectionManager
 import com.hieuwu.supabasestorageclient.domain.model.Credential
@@ -10,6 +11,7 @@ import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import com.hieuwu.supabasestorageclient.domain.RefreshManager
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
+import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.flow.*
@@ -30,7 +32,8 @@ class MainViewModel(
     private val deleteCredentialUseCase: DeleteCredentialUseCase,
     private val updateUserSettingsUseCase: UpdateUserSettingsUseCase,
     private val triggerPaywallUseCase: TriggerPaywallUseCase,
-    private val refreshManager: RefreshManager
+    private val refreshManager: RefreshManager,
+    private val logger: Logger
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -46,30 +49,42 @@ class MainViewModel(
         observeData()
     }
 
+    /** Reads the settings once; returns null (after logging) when they cannot be read. */
+    private suspend fun currentSettings(): UserSettings? =
+        runCatching { observeUserSettingsUseCase().first() }
+            .onFailure { error -> logger.e(error) { "Failed to read user settings" } }
+            .getOrNull()
+
     private fun observeData() {
         viewModelScope.launch {
-            observeCredentialsUseCase().collect { credentials ->
-                val lastUsedId = getLastUsedCredentialIdUseCase()
-                _uiState.update { it.copy(credentials = credentials, lastUsedId = lastUsedId) }
-            }
-        }
-
-        viewModelScope.launch {
-            observeUserSettingsUseCase().collect { settings ->
-                _uiState.update { state ->
-                    state.copy(
-                        viewMode = settings.viewMode,
-                        newBucketFileSizeLimit = if (state.newBucketFileSizeLimit.isEmpty()) settings.fileSizeLimit.toString() else state.newBucketFileSizeLimit,
-                        newBucketFileSizeUnit = if (state.isNewBucketSizeLimitEnabled) settings.fileSizeUnit else state.newBucketFileSizeUnit
-                    )
+            observeCredentialsUseCase()
+                .catch { error -> logger.e(error) { "Failed to observe credentials" } }
+                .collect { credentials ->
+                    val lastUsedId = getLastUsedCredentialIdUseCase()
+                    _uiState.update { it.copy(credentials = credentials, lastUsedId = lastUsedId) }
                 }
-            }
         }
 
         viewModelScope.launch {
-            observeProStatusUseCase().collect { isPro ->
-                _uiState.update { it.copy(isPremium = isPro) }
-            }
+            observeUserSettingsUseCase()
+                .catch { error -> logger.e(error) { "Failed to observe user settings" } }
+                .collect { settings ->
+                    _uiState.update { state ->
+                        state.copy(
+                            viewMode = settings.viewMode,
+                            newBucketFileSizeLimit = if (state.newBucketFileSizeLimit.isEmpty()) settings.fileSizeLimit.toString() else state.newBucketFileSizeLimit,
+                            newBucketFileSizeUnit = if (state.isNewBucketSizeLimitEnabled) settings.fileSizeUnit else state.newBucketFileSizeUnit
+                        )
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            observeProStatusUseCase()
+                .catch { error -> logger.e(error) { "Failed to observe pro status" } }
+                .collect { isPro ->
+                    _uiState.update { it.copy(isPremium = isPro) }
+                }
         }
     }
 
@@ -87,7 +102,7 @@ class MainViewModel(
 
     fun onCreateBucketClick() {
         viewModelScope.launch {
-            val settings = observeUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             _uiState.update {
                 it.copy(
                     isCreateBucketDialogVisible = true,
@@ -129,7 +144,7 @@ class MainViewModel(
 
     fun onDismissCreateBucketDialog() {
         viewModelScope.launch {
-            val settings = observeUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             _uiState.update {
                 it.copy(
                     isCreateBucketDialogVisible = false,
@@ -154,7 +169,7 @@ class MainViewModel(
 
     fun onNewBucketSizeLimitToggle(enabled: Boolean) {
         viewModelScope.launch {
-            val settings = observeUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             _uiState.update {
                 it.copy(
                     isNewBucketSizeLimitEnabled = enabled,
@@ -195,7 +210,7 @@ class MainViewModel(
                 )
                 updateBucketUseCase(params).fold(
                     onSuccess = {
-                        val settings = observeUserSettingsUseCase().first()
+                        val settings = currentSettings()
                         _uiState.update {
                             it.copy(
                                 isCreateBucketDialogVisible = false,
@@ -203,14 +218,15 @@ class MainViewModel(
                                 newBucketId = "",
                                 isNewBucketPublic = true,
                                 isNewBucketSizeLimitEnabled = false,
-                                newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
-                                newBucketFileSizeUnit = settings.fileSizeUnit,
+                                newBucketFileSizeLimit = settings?.fileSizeLimit?.toString() ?: it.newBucketFileSizeLimit,
+                                newBucketFileSizeUnit = settings?.fileSizeUnit ?: it.newBucketFileSizeUnit,
                                 successMessage = "Bucket updated"
                             )
                         }
                         refreshManager.triggerRefreshBuckets()
                     },
                     onFailure = { error ->
+                        logger.e(error) { "Failed to update bucket $id" }
                         _uiState.update {
                             it.copy(
                                 isCreateBucketDialogVisible = false,
@@ -229,21 +245,22 @@ class MainViewModel(
                 )
                 createBucketUseCase(params).fold(
                     onSuccess = {
-                        val settings = observeUserSettingsUseCase().first()
+                        val settings = currentSettings()
                         _uiState.update {
                             it.copy(
                                 isCreateBucketDialogVisible = false,
                                 newBucketId = "",
                                 isNewBucketPublic = true,
                                 isNewBucketSizeLimitEnabled = false,
-                                newBucketFileSizeLimit = settings.fileSizeLimit.toString(),
-                                newBucketFileSizeUnit = settings.fileSizeUnit,
+                                newBucketFileSizeLimit = settings?.fileSizeLimit?.toString() ?: it.newBucketFileSizeLimit,
+                                newBucketFileSizeUnit = settings?.fileSizeUnit ?: it.newBucketFileSizeUnit,
                                 successMessage = "Bucket created"
                             )
                         }
                         refreshManager.triggerRefreshBuckets()
                     },
                     onFailure = { error ->
+                        logger.e(error) { "Failed to create bucket $id" }
                         _uiState.update {
                             it.copy(
                                 isCreateBucketDialogVisible = false,
@@ -280,6 +297,7 @@ class MainViewModel(
                     }
                 },
                 onFailure = { error ->
+                    logger.e(error) { "Failed to create folder $fullPath in ${context.bucketId}" }
                     _uiState.update {
                         it.copy(
                             isNewFolderDialogVisible = false,
@@ -300,8 +318,18 @@ class MainViewModel(
                 return@launch
             }
 
-            val fileName = platformFile.name
-            val data = platformFile.readBytes()
+            // Reading the picked file can fail on its own (revoked permission, file deleted
+            // between picking and reading), before any UploadItem exists to attach an error to.
+            val fileName = runCatching { platformFile.name }.getOrElse { error ->
+                logger.e(error) { "Failed to read name of the picked file" }
+                _uiState.update { it.copy(error = "Could not read the selected file") }
+                return@launch
+            }
+            val data = runCatching { platformFile.readBytes() }.getOrElse { error ->
+                logger.e(error) { "Failed to read contents of $fileName" }
+                _uiState.update { it.copy(error = "Could not read \"$fileName\": ${error.message}") }
+                return@launch
+            }
             val fullPath = if (context.path.isEmpty()) fileName else "${context.path}/$fileName"
 
             val params = UploadFileUseCase.Params(
@@ -357,29 +385,35 @@ class MainViewModel(
             )
         }
         viewModelScope.launch {
-            try {
-                switchCredentialUseCase(credential)
-                _navigateToBuckets.emit(Unit)
-                _uiState.update {
-                    it.copy(
-                        lastUsedId = credential.id,
-                        isSettingUpCredential = false
-                    )
+            switchCredentialUseCase(credential).fold(
+                onSuccess = {
+                    _navigateToBuckets.emit(Unit)
+                    _uiState.update {
+                        it.copy(
+                            lastUsedId = credential.id,
+                            isSettingUpCredential = false
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    logger.e(error) { "Failed to switch to credential ${credential.id}" }
+                    _uiState.update {
+                        it.copy(
+                            error = "Switch failed: ${error.message}",
+                            isSettingUpCredential = false
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        error = "Switch failed: ${e.message}",
-                        isSettingUpCredential = false
-                    )
-                }
-            }
+            )
         }
     }
 
     fun onRemoveCredential(id: String) {
         viewModelScope.launch {
-            deleteCredentialUseCase(id)
+            deleteCredentialUseCase(id).onFailure { error ->
+                logger.e(error) { "Failed to remove credential $id" }
+                _uiState.update { it.copy(error = "Failed to remove credential: ${error.message}") }
+            }
             // If current was removed, the UseCase or Manager should handle clearing technically,
             // but for UI we might need to react if not already doing so via credentials stream.
         }
@@ -387,10 +421,13 @@ class MainViewModel(
 
     fun toggleViewMode() {
         viewModelScope.launch {
-            val settings = observeUserSettingsUseCase().first()
+            val settings = currentSettings() ?: return@launch
             val newViewMode =
                 if (settings.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
-            updateUserSettingsUseCase(settings.copy(viewMode = newViewMode))
+            updateUserSettingsUseCase(settings.copy(viewMode = newViewMode)).onFailure { error ->
+                logger.e(error) { "Failed to save view mode $newViewMode" }
+                _uiState.update { it.copy(error = "Could not save the view mode") }
+            }
         }
     }
 

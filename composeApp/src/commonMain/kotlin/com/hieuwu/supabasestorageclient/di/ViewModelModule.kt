@@ -16,7 +16,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val viewModelModule = module {
-    viewModel { OnboardingViewModel(get(), get()) }
+    viewModel { OnboardingViewModel(get(), get(), get()) }
     viewModel { 
         CredentialsViewModel(
             observeCredentialsUseCase = get(),
@@ -71,8 +71,7 @@ val viewModelModule = module {
         DownloadsViewModel(
             observeDownloadsUseCase = get(),
             cancelDownloadUseCase = get(),
-            deleteDownloadUseCase = get(),
-            fileWriter = get()
+            deleteDownloadUseCase = get()
         )
     }
     viewModel {
@@ -92,6 +91,7 @@ val viewModelModule = module {
             observeProStatusUseCase = get(),
             restorePurchasesUseCase = get(),
             refreshManager = get(),
+            logger = get(),
         )
     }
     viewModelOf(::SettingsViewModel)

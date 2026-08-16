@@ -13,5 +13,5 @@ interface OnboardingRepository {
     /**
      * Mark onboarding as completed
      */
-    fun markOnboardingCompleted()
+    fun markOnboardingCompleted(): Result<Unit>
 }

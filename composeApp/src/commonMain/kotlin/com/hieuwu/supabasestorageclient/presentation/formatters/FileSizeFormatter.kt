@@ -11,7 +11,7 @@ fun DownloadItem.formatStatus(): String = when (status) {
     DownloadStatus.Downloading -> "Downloading..."
     DownloadStatus.Paused -> "Paused"
     DownloadStatus.Completed -> "Completed"
-    DownloadStatus.Error -> "Error"
+    DownloadStatus.Error -> errorMessage ?: "Error"
     DownloadStatus.Cancelled -> "Cancelled"
 }
 
@@ -35,7 +35,7 @@ fun UploadItem.formatStatus(): String = when (status) {
             )
         }" else ""
     }"
-    UploadStatus.Error -> "Error"
+    UploadStatus.Error -> errorMessage ?: "Error"
     UploadStatus.Cancelled -> "Cancelled"
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import com.hieuwu.supabasestorageclient.data.network.SupabaseClientManager
 import com.hieuwu.supabasestorageclient.domain.model.AppTheme
@@ -27,6 +28,7 @@ import com.hieuwu.supabasestorageclient.presentation.settings.SettingsViewModel
 import com.hieuwu.supabasestorageclient.presentation.settings.SettingsUiState
 import com.hieuwu.supabasestorageclient.presentation.theme.SupaBucktTheme
 import com.revenuecat.purchases.kmp.models.Offering
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -45,31 +47,36 @@ fun App() {
         val supabaseClient by supabaseClientManager.client.collectAsStateWithLifecycle()
 
         val purchaseRepository: PurchaseRepository = koinInject()
+        val logger: Logger = koinInject()
         var showGlobalPaywall by remember { mutableStateOf(false) }
         var currentOffering by remember { mutableStateOf<Offering?>(null) }
         val snackbarHostState = remember { SnackbarHostState() }
         val scope = rememberCoroutineScope()
 
         LaunchedEffect(Unit) {
-            purchaseRepository.initialize()
-            purchaseRepository.showPaywallEvent.collect {
-                purchaseRepository.fetchOffering().collect { response ->
-                    when (response) {
-                        is ApiResponse.Success -> {
-                            println("RevenueCat: Successfully fetched offering: ${response.data.identifier}")
-                            currentOffering = response.data
-                            showGlobalPaywall = true
-                        }
-                        is ApiResponse.Error -> {
-                            println("RevenueCat: Failed to fetch offering: ${response.exception?.message}")
-                            showGlobalPaywall = true
-                        }
-                        is ApiResponse.Loading -> {
-                            println("RevenueCat: Fetching offering...")
+            runCatching { purchaseRepository.initialize() }
+                .onFailure { error -> logger.e(error) { "RevenueCat: initialization failed" } }
+            purchaseRepository.showPaywallEvent
+                .catch { error -> logger.e(error) { "RevenueCat: paywall event stream failed" } }
+                .collect {
+                    purchaseRepository.fetchOffering().collect { response ->
+                        when (response) {
+                            is ApiResponse.Success -> {
+                                logger.d { "RevenueCat: fetched offering ${response.data.identifier}" }
+                                currentOffering = response.data
+                                showGlobalPaywall = true
+                            }
+                            is ApiResponse.Error -> {
+                                // Still show the paywall - it renders a retry state without an offering.
+                                logger.e(response.exception) { "RevenueCat: failed to fetch offering" }
+                                showGlobalPaywall = true
+                            }
+                            is ApiResponse.Loading -> {
+                                logger.d { "RevenueCat: fetching offering..." }
+                            }
                         }
                     }
                 }
-            }
         }
 
         val navController = rememberNavController()
@@ -108,7 +115,8 @@ fun App() {
                     onboardingViewModel.completeOnboarding()
                 },
                 onLogout = {
-                    supabaseClientManager.clearClient()
+                    runCatching { supabaseClientManager.clearClient() }
+                        .onFailure { error -> logger.e(error) { "Failed to clear the Supabase client" } }
                 }
             )
 
@@ -128,6 +136,7 @@ fun App() {
                         showGlobalPaywall = false
                     },
                     onPurchaseError = { error ->
+                        logger.e { "Purchase failed: ${error.message}" }
                         scope.launch {
                             snackbarHostState.showSnackbar("Purchase failed: ${error.message}")
                         }
@@ -150,6 +159,7 @@ fun App() {
                         showGlobalPaywall = false
                     },
                     onRestoreError = { error ->
+                        logger.e { "Restore failed: ${error.message}" }
                         scope.launch {
                             snackbarHostState.showSnackbar("Restore failed: ${error.message}")
                         }

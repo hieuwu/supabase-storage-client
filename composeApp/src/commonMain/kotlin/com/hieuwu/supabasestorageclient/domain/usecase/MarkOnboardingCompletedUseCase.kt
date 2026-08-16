@@ -1,5 +1,5 @@
 package com.hieuwu.supabasestorageclient.domain.usecase
 
 interface MarkOnboardingCompletedUseCase {
-    suspend operator fun invoke()
+    suspend operator fun invoke(): Result<Unit>
 }

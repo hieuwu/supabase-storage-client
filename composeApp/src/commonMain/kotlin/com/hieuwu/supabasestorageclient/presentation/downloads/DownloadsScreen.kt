@@ -207,9 +207,14 @@ fun DownloadItemRow(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = item.formatStatus() ,
+                            text = item.formatStatus(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
+                            color = if (item.status == DownloadStatus.Error) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                         if (item.status == DownloadStatus.Completed && item.downloadedTime != null) {
                             Text(

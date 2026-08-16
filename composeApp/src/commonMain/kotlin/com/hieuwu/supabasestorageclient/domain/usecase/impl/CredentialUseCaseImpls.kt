@@ -23,7 +23,7 @@ class GetLastUsedCredentialIdUseCaseImpl(
 class SetLastUsedCredentialIdUseCaseImpl(
     private val repository: CredentialRepository
 ) : SetLastUsedCredentialIdUseCase {
-    override fun invoke(id: String) = repository.setLastUsedId(id)
+    override fun invoke(id: String) { repository.setLastUsedId(id) }
 }
 
 class AddCredentialUseCaseImpl(
@@ -31,39 +31,34 @@ class AddCredentialUseCaseImpl(
     private val purchaseRepository: PurchaseRepository
 ) : AddCredentialUseCase {
     @OptIn(ExperimentalUuidApi::class)
-    override suspend fun invoke(name: String, url: String, key: String) {
-        val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-        val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
+    override suspend fun invoke(name: String, url: String, key: String): Result<Unit> {
         val newCredential = Credential(
             id = Uuid.random().toString(),
             name = name.trim(),
-            url = sanitizedUrl,
-            key = sanitizedKey
+            url = url.trim().split(Regex("\\s+")).firstOrNull().orEmpty(),
+            key = key.trim().split(Regex("\\s+")).firstOrNull().orEmpty()
         )
-        credentialRepository.saveCredential(newCredential)
+        return credentialRepository.saveCredential(newCredential)
     }
 }
 
 class UpdateCredentialUseCaseImpl(
     private val credentialRepository: CredentialRepository
 ) : UpdateCredentialUseCase {
-    override suspend fun invoke(id: String, name: String, url: String, key: String) {
-        val sanitizedUrl = url.trim().split(Regex("\\s+")).firstOrNull() ?: ""
-        val sanitizedKey = key.trim().split(Regex("\\s+")).firstOrNull() ?: ""
+    override suspend fun invoke(id: String, name: String, url: String, key: String): Result<Unit> {
         val updatedCredential = Credential(
             id = id,
             name = name.trim(),
-            url = sanitizedUrl,
-            key = sanitizedKey
+            url = url.trim().split(Regex("\\s+")).firstOrNull().orEmpty(),
+            key = key.trim().split(Regex("\\s+")).firstOrNull().orEmpty()
         )
-        credentialRepository.saveCredential(updatedCredential)
+        return credentialRepository.saveCredential(updatedCredential)
     }
 }
 
 class DeleteCredentialUseCaseImpl(
     private val credentialRepository: CredentialRepository
 ) : DeleteCredentialUseCase {
-    override suspend fun invoke(id: String) {
+    override suspend fun invoke(id: String): Result<Unit> =
         credentialRepository.removeCredential(id)
-    }
 }

@@ -9,15 +9,15 @@ import com.hieuwu.supabasestorageclient.domain.repository.*
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single<RemoteStorageDataSource> { RemoteStorageDataSourceImpl(get()) }
+    single<RemoteStorageDataSource> { RemoteStorageDataSourceImpl(get(), get()) }
     single<LocalStorageDataSource> { LocalStorageDataSourceImpl(get()) }
 
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<CredentialRepository> { CredentialRepositoryImpl(get(), get()) }
     single<PurchaseRepository> { PurchaseRepositoryImpl(get()) }
     single<StorageRepository> { StorageRepositoryImpl(get(), get(), get(), get()) }
-    single<SettingsRepository> { SettingsRepositoryImpl(get()) }
-    single<DownloadRepository> { DownloadRepositoryImpl(get()) }
-    single<StarredRepository> { StarredRepositoryImpl(get(), get()) }
-    single<UploadRepository> { UploadRepositoryImpl(get()) }
+    single<SettingsRepository> { SettingsRepositoryImpl(get(), get()) }
+    single<DownloadRepository> { DownloadRepositoryImpl(get(), get()) }
+    single<StarredRepository> { StarredRepositoryImpl(get(), get(), get()) }
+    single<UploadRepository> { UploadRepositoryImpl(get(), get()) }
 }

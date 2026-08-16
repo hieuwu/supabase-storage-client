@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.hieuwu.supabasestorageclient.core.FileUtils
 import com.hieuwu.supabasestorageclient.core.formatDate
 import com.hieuwu.supabasestorageclient.core.formatSize
+import com.hieuwu.supabasestorageclient.platform.GifViewer
 import com.hieuwu.supabasestorageclient.platform.PdfViewer
 import com.hieuwu.supabasestorageclient.platform.VideoPlayer
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
@@ -200,6 +201,10 @@ fun FileViewerContent(
 ) {
     val extension = fileName.substringAfterLast(".", "").lowercase()
     when {
+        FileUtils.isGif(extension) -> {
+            GifViewer(url = url)
+        }
+
         FileUtils.isImage(extension) -> {
             ImageViewer(url = url)
         }

@@ -16,13 +16,13 @@ interface SetLastUsedCredentialIdUseCase {
 }
 
 interface AddCredentialUseCase {
-    suspend operator fun invoke(name: String, url: String, key: String)
+    suspend operator fun invoke(name: String, url: String, key: String): Result<Unit>
 }
 
 interface UpdateCredentialUseCase {
-    suspend operator fun invoke(id: String, name: String, url: String, key: String)
+    suspend operator fun invoke(id: String, name: String, url: String, key: String): Result<Unit>
 }
 
 interface DeleteCredentialUseCase {
-    suspend operator fun invoke(id: String)
+    suspend operator fun invoke(id: String): Result<Unit>
 }

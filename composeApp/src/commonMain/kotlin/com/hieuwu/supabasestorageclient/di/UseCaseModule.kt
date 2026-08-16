@@ -42,7 +42,7 @@ val useCaseModule = module {
     factory { UpdateCredentialUseCaseImpl(get()) } bind UpdateCredentialUseCase::class
     factory { DeleteCredentialUseCaseImpl(get()) } bind DeleteCredentialUseCase::class
     factory { TriggerPaywallUseCaseImpl(get()) } bind TriggerPaywallUseCase::class
-    factory { SwitchCredentialUseCaseImpl(get(), get(), get()) } bind SwitchCredentialUseCase::class
+    factory { SwitchCredentialUseCaseImpl(get(), get(), get(), get()) } bind SwitchCredentialUseCase::class
     factory { ObserveDownloadsUseCaseImpl(get()) } bind ObserveDownloadsUseCase::class
     factory { CancelDownloadUseCaseImpl(get()) } bind CancelDownloadUseCase::class
     factory { DeleteDownloadUseCaseImpl(get()) } bind DeleteDownloadUseCase::class

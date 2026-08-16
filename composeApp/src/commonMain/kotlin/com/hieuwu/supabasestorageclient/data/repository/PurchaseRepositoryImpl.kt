@@ -52,15 +52,17 @@ class PurchaseRepositoryImpl(
     }
 
     override suspend fun checkEntitlements() {
-        try {
+        runCatching {
             logger.d { "Start configure purchases" }
             Purchases.configure(PurchasesConfiguration(BuildKonfig.REVENUECAT_API_KEY))
-            val customerInfo = Purchases.sharedInstance.awaitCustomerInfo()
-            updateProStatus(customerInfo)
-        } catch (e: Exception) {
-            logger.e(e) { "Error checking entitlements: ${e.message}" }
-            _isPro.value = false
-        }
+            Purchases.sharedInstance.awaitCustomerInfo()
+        }.fold(
+            onSuccess = { customerInfo -> updateProStatus(customerInfo) },
+            onFailure = { error ->
+                logger.e(error) { "Error checking entitlements: ${error.message}" }
+                _isPro.value = false
+            }
+        )
     }
 
     override fun updatePurchaseStatus(customerInfo: com.revenuecat.purchases.kmp.models.CustomerInfo) {
@@ -76,32 +78,22 @@ class PurchaseRepositoryImpl(
 
     override fun fetchOffering(): Flow<ApiResponse<Offering>> = flow {
         emit(ApiResponse.Loading)
-        try {
-            val offerings = Purchases.sharedInstance.awaitOfferings()
-            val currentOffering = offerings.current
-            if (currentOffering != null) {
-                emit(ApiResponse.Success(currentOffering))
-            } else {
-                logger.e { "No current offering found" }
-                emit(ApiResponse.Error(Exception("No current offering found")))
+        val response = runCatching {
+            Purchases.sharedInstance.awaitOfferings().current
+                ?: throw IllegalStateException("No current offering found")
+        }.onFailure { error ->
+            when (error) {
+                is PurchasesException -> logger.e(error) { "RevenueCat error: ${error.message}" }
+                else -> logger.e(error) { "Error fetching offering: ${error.message}" }
             }
-        } catch (e: PurchasesException) {
-            logger.e(e) { "RevenueCat error: ${e.message}" }
-            emit(ApiResponse.Error(e))
-        } catch (e: Exception) {
-            logger.e(e) { "General error fetching offering: ${e.message}" }
-            emit(ApiResponse.Error(e))
         }
+        emit(ApiResponse.from(response))
     }
 
     override suspend fun restorePurchases(): ApiResponse<com.revenuecat.purchases.kmp.models.CustomerInfo> {
-        return try {
-            val customerInfo = Purchases.sharedInstance.awaitRestore()
-            updateProStatus(customerInfo)
-            ApiResponse.Success(customerInfo)
-        } catch (e: Exception) {
-            logger.e(e) { "Error restoring purchases: ${e.message}" }
-            ApiResponse.Error(e)
-        }
+        val result = runCatching { Purchases.sharedInstance.awaitRestore() }
+            .onSuccess { customerInfo -> updateProStatus(customerInfo) }
+            .onFailure { error -> logger.e(error) { "Error restoring purchases: ${error.message}" } }
+        return ApiResponse.from(result)
     }
 }
