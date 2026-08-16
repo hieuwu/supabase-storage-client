@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.buckets
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -84,6 +86,7 @@ fun BucketsScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: BucketsViewModel = koinViewModel()
 ) {
+    TrackScreenView(AnalyticsScreens.BUCKETS)
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -109,6 +112,7 @@ fun BucketsScreen(
             targetState = uiState,
             modifier = Modifier.padding(padding).fillMaxSize(),
             transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            contentKey = { it::class },
             label = "BucketsStateTransition"
         ) { state ->
             when (state) {
@@ -150,7 +154,7 @@ fun BucketsScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         contentPadding = PaddingValues(bottom = 88.dp)
                                     ) {
-                                        items(state.buckets) { bucket ->
+                                        items(state.buckets, key = { it.id }) { bucket ->
                                             BucketListItem(
                                                 bucket = bucket,
                                                 sharedTransitionScope = sharedTransitionScope,
@@ -177,7 +181,7 @@ fun BucketsScreen(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        items(state.buckets) { bucket ->
+                                        items(state.buckets, key = { it.id }) { bucket ->
                                             BucketGridItem(
                                                 bucket = bucket,
                                                 sharedTransitionScope = sharedTransitionScope,

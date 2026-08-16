@@ -22,6 +22,10 @@ import com.hieuwu.supabasestorageclient.presentation.onboarding.OnboardingScreen
 import com.hieuwu.supabasestorageclient.presentation.search.SearchScreen
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.ItemTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.SearchScopes
+import com.hieuwu.supabasestorageclient.observability.analytics.logSearchResultOpened
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -91,13 +95,18 @@ fun NavGraph(
                 SearchScreen(
                     bucketId = bucketId,
                     onBack = { navController.popBackStack() },
+                    // Opening a result is the only proof the search was useful; logging it here
+                    // keeps every result type in one place.
                     onNavigateToBucket = { bId ->
+                        AppAnalytics.logSearchResultOpened(SearchScopes.BUCKETS, ItemTypes.BUCKET)
                         navController.navigate(Screen.Bucket.createRoute(bId))
                     },
                     onNavigateToFolder = { bId, path ->
+                        AppAnalytics.logSearchResultOpened(SearchScopes.FILES, ItemTypes.FOLDER)
                         navController.navigate(Screen.Bucket.createRoute(bId, path))
                     },
                     onNavigateToFile = { bId, fileName, path ->
+                        AppAnalytics.logSearchResultOpened(SearchScopes.FILES, ItemTypes.FILE)
                         navController.navigate(Screen.FileView.createRoute(bId, fileName, path))
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,

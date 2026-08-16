@@ -20,6 +20,17 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSurfaces
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.DownloadDestinationModes
+import com.hieuwu.supabasestorageclient.observability.analytics.ItemTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.LinkTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.StorageActions
+import com.hieuwu.supabasestorageclient.observability.analytics.logContentRefreshed
+import com.hieuwu.supabasestorageclient.observability.analytics.logFileLinkCopied
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemStarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemUnstarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logStorageAction
 import com.hieuwu.supabasestorageclient.platform.ClipboardManager
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.datetime.Clock
@@ -103,6 +114,7 @@ class FileBrowserViewModel(
 
     fun refreshContents() {
         viewModelScope.launch {
+            AppAnalytics.logContentRefreshed(AnalyticsSurfaces.BUCKET_CONTENTS)
             refreshBucketContentsUseCase(bucketId)
                 .onSuccess {
                     refreshTrigger.emit(Unit)
@@ -121,10 +133,12 @@ class FileBrowserViewModel(
             val params = MoveFileUseCase.Params(bucketId = bucketId, fromPath = oldFullPath, toPath = newFullPath)
             moveFileUseCase(params).fold(
                 onSuccess = {
+                    AppAnalytics.logStorageAction(StorageActions.RENAME_FILE)
                     _manualState.update { it.copy(successMessage = "Renamed successfully") }
                     refreshTrigger.emit(Unit)
                 },
                 onFailure = { error ->
+                    AppAnalytics.logStorageAction(StorageActions.RENAME_FILE, error)
                     logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
@@ -139,10 +153,12 @@ class FileBrowserViewModel(
             val params = MoveFileUseCase.Params(bucketId = bucketId, fromPath = oldFullPath, toPath = newFullPath)
             moveFileUseCase(params).fold(
                 onSuccess = {
+                    AppAnalytics.logStorageAction(StorageActions.MOVE_FILE)
                     _manualState.update { it.copy(successMessage = "Moved successfully") }
                     refreshTrigger.emit(Unit)
                 },
                 onFailure = { error ->
+                    AppAnalytics.logStorageAction(StorageActions.MOVE_FILE, error)
                     logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
@@ -156,10 +172,12 @@ class FileBrowserViewModel(
             val params = DeleteFileUseCase.Params(bucketId = bucketId, path = fullPath)
             deleteFileUseCase(params).fold(
                 onSuccess = {
+                    AppAnalytics.logStorageAction(StorageActions.DELETE_FILE)
                     _manualState.update { it.copy(successMessage = "Deleted successfully") }
                     refreshTrigger.emit(Unit)
                 },
                 onFailure = { error ->
+                    AppAnalytics.logStorageAction(StorageActions.DELETE_FILE, error)
                     logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
                 }
@@ -172,7 +190,10 @@ class FileBrowserViewModel(
             val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
             val params = GetPublicUrlUseCase.Params(bucketId = bucketId, path = fullPath)
             getPublicUrlUseCase(params).fold(
-                onSuccess = { url -> copyToClipboard(url, "URL copied to clipboard") },
+                onSuccess = { url ->
+                    AppAnalytics.logFileLinkCopied(LinkTypes.PUBLIC_URL, AnalyticsSurfaces.BUCKET_CONTENTS)
+                    copyToClipboard(url, "URL copied to clipboard")
+                },
                 onFailure = { error ->
                     logger.e(error) { "Operation failed in bucket $bucketId" }
                     _manualState.update { it.copy(error = error.message) }
@@ -183,6 +204,7 @@ class FileBrowserViewModel(
 
     fun copyPath(name: String) {
         val fullPath = if (path.isNullOrEmpty()) name else "$path/$name"
+        AppAnalytics.logFileLinkCopied(LinkTypes.PATH, AnalyticsSurfaces.BUCKET_CONTENTS)
         copyToClipboard(fullPath, "Path copied to clipboard")
     }
 
@@ -208,7 +230,10 @@ class FileBrowserViewModel(
             when (settings.askDownloadPathConfig) {
                 AskDownloadPathConfig.NEVER_ASK -> {
                     if (settings.defaultDownloadDirectory != null) {
-                        downloadManager.downloadToDirectoryPath(bucketId, fullPath, name, settings.defaultDownloadDirectory)
+                        downloadManager.downloadToDirectoryPath(
+                            bucketId, fullPath, name, settings.defaultDownloadDirectory,
+                            DownloadDestinationModes.DEFAULT_FOLDER,
+                        )
                         _manualState.update { it.copy(successMessage = "Download started") }
                     } else {
                         _manualState.update { it.copy(itemToDownload = item, isSavingFile = true) }
@@ -216,7 +241,10 @@ class FileBrowserViewModel(
                 }
                 AskDownloadPathConfig.ONCE_WHEN_APP_OPEN -> {
                     if (settings.sessionDownloadDirectory != null) {
-                        downloadManager.downloadToDirectoryPath(bucketId, fullPath, name, settings.sessionDownloadDirectory)
+                        downloadManager.downloadToDirectoryPath(
+                            bucketId, fullPath, name, settings.sessionDownloadDirectory,
+                            DownloadDestinationModes.SESSION_FOLDER,
+                        )
                         _manualState.update { it.copy(successMessage = "Download started") }
                     } else {
                         _manualState.update { it.copy(
@@ -244,7 +272,10 @@ class FileBrowserViewModel(
             
             if (settings.defaultDownloadDirectory != null) {
                 rememberDownloadDirectory(settings, settings.defaultDownloadDirectory)
-                downloadManager.downloadToDirectoryPath(bucketId, fullPath, item.name, settings.defaultDownloadDirectory)
+                downloadManager.downloadToDirectoryPath(
+                    bucketId, fullPath, item.name, settings.defaultDownloadDirectory,
+                    DownloadDestinationModes.DEFAULT_FOLDER,
+                )
                 _manualState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
             } else {
                 _manualState.update { it.copy(showDownloadPathOptionDialog = false, isPickingDirectory = true) }
@@ -319,6 +350,12 @@ class FileBrowserViewModel(
             
             toggleStarUseCase(starredItem, item.isStarred).fold(
                 onSuccess = {
+                    val itemType = if (item.isFolder) ItemTypes.FOLDER else ItemTypes.FILE
+                    if (item.isStarred) {
+                        AppAnalytics.logItemUnstarred(itemType, AnalyticsSurfaces.BUCKET_CONTENTS)
+                    } else {
+                        AppAnalytics.logItemStarred(itemType, AnalyticsSurfaces.BUCKET_CONTENTS)
+                    }
                     val message = if (item.isStarred) "Unstarred successfully" else "Starred successfully"
                     _manualState.update { it.copy(successMessage = message) }
                 },
