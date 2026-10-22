@@ -7,11 +7,23 @@ import io.github.vinceglb.filekit.PlatformFile
 class DownloadFileUseCaseImpl(
     private val downloadManager: DownloadManager
 ) : DownloadFileUseCase {
-    override suspend fun downloadToPath(bucketId: String, path: String, fileName: String, directoryPath: String) {
-        downloadManager.downloadToDirectoryPath(bucketId, path, fileName, directoryPath)
+    override suspend fun downloadToPath(
+        bucketId: String,
+        path: String,
+        fileName: String,
+        directoryPath: String,
+        destinationMode: String,
+    ) {
+        downloadManager.downloadToDirectoryPath(bucketId, path, fileName, directoryPath, destinationMode)
     }
 
-    override suspend fun download(bucketId: String, path: String, fileName: String, platformFile: PlatformFile) {
-        downloadManager.download(bucketId, path, fileName, platformFile)
+    override suspend fun download(
+        bucketId: String,
+        path: String,
+        fileName: String,
+        platformFile: PlatformFile,
+        destinationMode: String,
+    ) {
+        downloadManager.download(bucketId, path, fileName, platformFile, destinationMode)
     }
 }

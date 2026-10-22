@@ -12,6 +12,21 @@ import com.hieuwu.supabasestorageclient.data.network.ApiResponse
 import com.hieuwu.supabasestorageclient.domain.RefreshManager
 import com.hieuwu.supabasestorageclient.domain.model.Bucket
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSources
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.SettingKeys
+import com.hieuwu.supabasestorageclient.observability.analytics.StorageActions
+import com.hieuwu.supabasestorageclient.observability.analytics.logBucketCreated
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionActivated
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionActivationFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logConnectionRemoved
+import com.hieuwu.supabasestorageclient.observability.analytics.logPaywallTriggered
+import com.hieuwu.supabasestorageclient.observability.analytics.logRestoreCompleted
+import com.hieuwu.supabasestorageclient.observability.analytics.logRestoreFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logRestoreStarted
+import com.hieuwu.supabasestorageclient.observability.analytics.logSettingChanged
+import com.hieuwu.supabasestorageclient.observability.analytics.logStorageAction
+import com.hieuwu.supabasestorageclient.observability.analytics.purchaseErrorReason
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.flow.*
@@ -210,6 +225,7 @@ class MainViewModel(
                 )
                 updateBucketUseCase(params).fold(
                     onSuccess = {
+                        AppAnalytics.logStorageAction(StorageActions.UPDATE_BUCKET)
                         val settings = currentSettings()
                         _uiState.update {
                             it.copy(
@@ -226,6 +242,7 @@ class MainViewModel(
                         refreshManager.triggerRefreshBuckets()
                     },
                     onFailure = { error ->
+                        AppAnalytics.logStorageAction(StorageActions.UPDATE_BUCKET, error)
                         logger.e(error) { "Failed to update bucket $id" }
                         _uiState.update {
                             it.copy(
@@ -245,6 +262,10 @@ class MainViewModel(
                 )
                 createBucketUseCase(params).fold(
                     onSuccess = {
+                        AppAnalytics.logBucketCreated(
+                            isPublic = isPublic,
+                            hasSizeLimit = isSizeLimitEnabled,
+                        )
                         val settings = currentSettings()
                         _uiState.update {
                             it.copy(
@@ -260,6 +281,11 @@ class MainViewModel(
                         refreshManager.triggerRefreshBuckets()
                     },
                     onFailure = { error ->
+                        AppAnalytics.logBucketCreated(
+                            isPublic = isPublic,
+                            hasSizeLimit = isSizeLimitEnabled,
+                            error = error,
+                        )
                         logger.e(error) { "Failed to create bucket $id" }
                         _uiState.update {
                             it.copy(
@@ -288,6 +314,7 @@ class MainViewModel(
             val params = CreateFolderUseCase.Params(bucketId = context.bucketId, path = fullPath)
             createFolderUseCase(params).fold(
                 onSuccess = {
+                    AppAnalytics.logStorageAction(StorageActions.CREATE_FOLDER)
                     _uiState.update {
                         it.copy(
                             isNewFolderDialogVisible = false,
@@ -297,6 +324,7 @@ class MainViewModel(
                     }
                 },
                 onFailure = { error ->
+                    AppAnalytics.logStorageAction(StorageActions.CREATE_FOLDER, error)
                     logger.e(error) { "Failed to create folder $fullPath in ${context.bucketId}" }
                     _uiState.update {
                         it.copy(
@@ -387,6 +415,10 @@ class MainViewModel(
         viewModelScope.launch {
             switchCredentialUseCase(credential).fold(
                 onSuccess = {
+                    AppAnalytics.logConnectionActivated(
+                        connectionCount = _uiState.value.credentials.size,
+                        isFirst = false,
+                    )
                     _navigateToBuckets.emit(Unit)
                     _uiState.update {
                         it.copy(
@@ -396,6 +428,7 @@ class MainViewModel(
                     }
                 },
                 onFailure = { error ->
+                    AppAnalytics.logConnectionActivationFailed(error)
                     logger.e(error) { "Failed to switch to credential ${credential.id}" }
                     _uiState.update {
                         it.copy(
@@ -410,10 +443,17 @@ class MainViewModel(
 
     fun onRemoveCredential(id: String) {
         viewModelScope.launch {
-            deleteCredentialUseCase(id).onFailure { error ->
-                logger.e(error) { "Failed to remove credential $id" }
-                _uiState.update { it.copy(error = "Failed to remove credential: ${error.message}") }
-            }
+            deleteCredentialUseCase(id).fold(
+                onSuccess = {
+                    AppAnalytics.logConnectionRemoved(
+                        connectionCount = (_uiState.value.credentials.size - 1).coerceAtLeast(0),
+                    )
+                },
+                onFailure = { error ->
+                    logger.e(error) { "Failed to remove credential $id" }
+                    _uiState.update { it.copy(error = "Failed to remove credential: ${error.message}") }
+                }
+            )
             // If current was removed, the UseCase or Manager should handle clearing technically,
             // but for UI we might need to react if not already doing so via credentials stream.
         }
@@ -424,28 +464,45 @@ class MainViewModel(
             val settings = currentSettings() ?: return@launch
             val newViewMode =
                 if (settings.viewMode == ViewMode.LIST) ViewMode.GRID else ViewMode.LIST
-            updateUserSettingsUseCase(settings.copy(viewMode = newViewMode)).onFailure { error ->
-                logger.e(error) { "Failed to save view mode $newViewMode" }
-                _uiState.update { it.copy(error = "Could not save the view mode") }
-            }
+            updateUserSettingsUseCase(settings.copy(viewMode = newViewMode)).fold(
+                onSuccess = {
+                    AppAnalytics.logSettingChanged(SettingKeys.VIEW_MODE, newViewMode.name.lowercase())
+                },
+                onFailure = { error ->
+                    logger.e(error) { "Failed to save view mode $newViewMode" }
+                    _uiState.update { it.copy(error = "Could not save the view mode") }
+                }
+            )
         }
     }
 
     fun onUpgradeClick() {
+        AppAnalytics.logPaywallTriggered(AnalyticsSources.UPGRADE_BUTTON)
         triggerPaywallUseCase()
     }
 
     fun onRestoreClick() {
         _uiState.update { it.copy(isRestoring = true) }
+        AppAnalytics.logRestoreStarted(AnalyticsSources.MAIN)
         viewModelScope.launch {
             val result = restorePurchasesUseCase()
             _uiState.update { it.copy(isRestoring = false) }
             when (result) {
                 is ApiResponse.Success -> {
+                    // The repository refreshes pro status before returning, so this reads the
+                    // outcome of the restore, not the state from before it.
+                    AppAnalytics.logRestoreCompleted(
+                        source = AnalyticsSources.MAIN,
+                        isPro = observeProStatusUseCase().first(),
+                    )
                     _uiState.update { it.copy(successMessage = "Restored successfully!") }
                 }
 
                 is ApiResponse.Error -> {
+                    AppAnalytics.logRestoreFailed(
+                        source = AnalyticsSources.MAIN,
+                        reason = purchaseErrorReason(result.exception.message),
+                    )
                     _uiState.update { it.copy(error = "Restore failed: ${result.exception.message}") }
                 }
 

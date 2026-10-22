@@ -3,6 +3,12 @@ package com.hieuwu.supabasestorageclient.domain.upload
 import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.error.StorageOperation
 import com.hieuwu.supabasestorageclient.domain.error.storageErrorMessage
+import com.hieuwu.supabasestorageclient.domain.error.storageErrorReason
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.logUploadCancelled
+import com.hieuwu.supabasestorageclient.observability.analytics.logUploadFailed
+import com.hieuwu.supabasestorageclient.observability.analytics.logUploadStarted
+import com.hieuwu.supabasestorageclient.observability.analytics.logUploadSucceeded
 import com.hieuwu.supabasestorageclient.domain.model.UploadItem
 import com.hieuwu.supabasestorageclient.domain.model.UploadStatus
 import com.hieuwu.supabasestorageclient.domain.model.StorageUploadStatus
@@ -77,6 +83,10 @@ class UploadManager(
 
         updateAndPersistItem(lastUsedId, item)
 
+        val sizeBytes = data.size.toLong()
+        AppAnalytics.logUploadStarted(fileName, sizeBytes)
+        val startedAt = Clock.System.now()
+
         val job = scope.launch {
             runCatching {
                 storageRepository.uploadFileAsFlow(bucketId, path, data).collect { status ->
@@ -108,10 +118,18 @@ class UploadManager(
                         uploadedSize = currentItemAfter.totalSize
                     ).let { updateAndPersistItem(lastUsedId, it) }
                 }
+
+                AppAnalytics.logUploadSucceeded(
+                    fileName = fileName,
+                    sizeBytes = sizeBytes,
+                    durationMs = Clock.System.now().toEpochMilliseconds() -
+                        startedAt.toEpochMilliseconds(),
+                )
             }.onFailure { error ->
                 // cancel() cancels this job - a cancelled upload is not a failed upload.
                 currentCoroutineContext().ensureActive()
                 val message = storageErrorMessage(error, StorageOperation.Upload)
+                AppAnalytics.logUploadFailed(fileName, sizeBytes, storageErrorReason(error))
                 logger.e(error) { "Upload failed for $bucketId/$path: $message" }
                 val currentItem = _uploads.value.find { it.id == id }
                 currentItem?.copy(
@@ -140,6 +158,9 @@ class UploadManager(
     }
 
     fun cancel(id: String) {
+        if (_uploads.value.any { it.id == id && it.status == UploadStatus.Uploading }) {
+            AppAnalytics.logUploadCancelled()
+        }
         uploadJobs[id]?.cancel()
         scope.launch {
             val lastUsedId = credentialRepository.getLastUsedId()

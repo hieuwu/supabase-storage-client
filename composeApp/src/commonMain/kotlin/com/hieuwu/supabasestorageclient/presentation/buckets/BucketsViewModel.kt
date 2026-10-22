@@ -12,6 +12,14 @@ import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.usecase.RefreshBucketsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.*
 import com.hieuwu.supabasestorageclient.domain.RefreshManager
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSurfaces
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.ItemTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.StorageActions
+import com.hieuwu.supabasestorageclient.observability.analytics.logContentRefreshed
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemStarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemUnstarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logStorageAction
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -76,6 +84,7 @@ class BucketsViewModel(
     fun refreshBuckets() {
         viewModelScope.launch {
             _manualState.update { it.copy(error = null) }
+            AppAnalytics.logContentRefreshed(AnalyticsSurfaces.BUCKETS)
             refreshBucketsUseCase()
                 .onSuccess {
                     refreshTrigger.emit(Unit)
@@ -101,6 +110,7 @@ class BucketsViewModel(
             _manualState.update { it.copy(showEmptyConfirmation = false) }
             emptyBucketUseCase(bucketId)
                 .onSuccess {
+                    AppAnalytics.logStorageAction(StorageActions.EMPTY_BUCKET)
                     _manualState.update {
                         it.copy(
                             successMessage = "Bucket emptied successfully",
@@ -110,6 +120,7 @@ class BucketsViewModel(
                     refreshTrigger.emit(Unit)
                 }
                 .onFailure { error ->
+                    AppAnalytics.logStorageAction(StorageActions.EMPTY_BUCKET, error)
                     logger.e(error) { "Failed to empty bucket $bucketId" }
                     _manualState.update {
                         it.copy(
@@ -127,6 +138,7 @@ class BucketsViewModel(
             _manualState.update { it.copy(showDeleteConfirmation = false) }
             deleteBucketUseCase(bucketId)
                 .onSuccess {
+                    AppAnalytics.logStorageAction(StorageActions.DELETE_BUCKET)
                     _manualState.update {
                         it.copy(
                             successMessage = "Bucket deleted successfully",
@@ -136,6 +148,7 @@ class BucketsViewModel(
                     refreshTrigger.emit(Unit)
                 }
                 .onFailure { error ->
+                    AppAnalytics.logStorageAction(StorageActions.DELETE_BUCKET, error)
                     logger.e(error) { "Failed to delete bucket $bucketId" }
                     _manualState.update {
                         it.copy(
@@ -174,6 +187,11 @@ class BucketsViewModel(
             )
             toggleStarUseCase(starredItem, bucket.isStarred).fold(
                 onSuccess = {
+                    if (bucket.isStarred) {
+                        AppAnalytics.logItemUnstarred(ItemTypes.BUCKET, AnalyticsSurfaces.BUCKETS)
+                    } else {
+                        AppAnalytics.logItemStarred(ItemTypes.BUCKET, AnalyticsSurfaces.BUCKETS)
+                    }
                     val message = if (bucket.isStarred) "Unstarred successfully" else "Starred successfully"
                     _manualState.update { it.copy(successMessage = message) }
                 },

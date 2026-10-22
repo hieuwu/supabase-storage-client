@@ -6,6 +6,8 @@ import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.domain.model.ViewMode
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 import com.hieuwu.supabasestorageclient.domain.repository.SettingsRepository
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsUserProperties
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
 import co.touchlab.kermit.Logger
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
@@ -45,7 +47,29 @@ class SettingsRepositoryImpl(
 
     private val _settingsFlow = MutableStateFlow(readSettings())
 
+    // Declared after _settingsFlow so it runs once the stored settings have been read.
+    init {
+        publishSettingsProfile(_settingsFlow.value)
+    }
+
     override fun getSettings(): Flow<UserSettings> = _settingsFlow.asStateFlow()
+
+    /**
+     * Publishes the settings that analytics slices by. Called from the two places the settings can
+     * change - the initial read and a successful [updateSettings] - so no separate collector has to
+     * watch this flow just to keep the dimensions current.
+     */
+    private fun publishSettingsProfile(userSettings: UserSettings) {
+        AppAnalytics.setUserProperty(AnalyticsUserProperties.THEME, userSettings.theme.name.lowercase())
+        AppAnalytics.setUserProperty(
+            AnalyticsUserProperties.VIEW_MODE,
+            userSettings.viewMode.name.lowercase(),
+        )
+        AppAnalytics.setUserProperty(
+            AnalyticsUserProperties.DOWNLOAD_PATH_MODE,
+            userSettings.askDownloadPathConfig.name.lowercase(),
+        )
+    }
 
     /**
      * The emitted flow value is only updated once the write actually landed, so the UI never shows
@@ -67,6 +91,7 @@ class SettingsRepositoryImpl(
             } ?: settings.remove(KEY_SESSION_DOWNLOAD_DIRECTORY)
         }.onSuccess {
             _settingsFlow.value = userSettings
+            publishSettingsProfile(userSettings)
         }.onFailure { error ->
             logger.e(error) { "Failed to persist user settings" }
         }

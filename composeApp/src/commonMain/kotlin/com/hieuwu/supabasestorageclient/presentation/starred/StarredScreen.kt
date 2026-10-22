@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.starred
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,6 +44,7 @@ fun StarredScreen(
     viewModel: StarredViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
+    TrackScreenView(AnalyticsScreens.STARRED)
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -67,6 +70,7 @@ fun StarredScreen(
             targetState = uiState,
             modifier = Modifier.padding(padding).fillMaxSize(),
             transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            contentKey = { it::class },
             label = "StarredStateTransition"
         ) { state ->
             when (state) {

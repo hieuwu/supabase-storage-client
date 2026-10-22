@@ -5,6 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.model.AskDownloadPathConfig
 import com.hieuwu.supabasestorageclient.domain.model.UserSettings
 import com.hieuwu.supabasestorageclient.domain.usecase.*
+import com.hieuwu.supabasestorageclient.core.FileUtils
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSurfaces
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.DownloadDestinationModes
+import com.hieuwu.supabasestorageclient.observability.analytics.LinkTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.PreviewTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.StorageActions
+import com.hieuwu.supabasestorageclient.observability.analytics.logFileLinkCopied
+import com.hieuwu.supabasestorageclient.observability.analytics.logFilePreviewOpened
+import com.hieuwu.supabasestorageclient.observability.analytics.logStorageAction
 import com.hieuwu.supabasestorageclient.platform.ClipboardManager
 import co.touchlab.kermit.Logger
 import io.github.vinceglb.filekit.PlatformFile
@@ -56,6 +66,19 @@ class FileViewViewModel(
 
     init {
         loadData()
+        // Which viewers are worth maintaining, and how often people land on a type we cannot render.
+        AppAnalytics.logFilePreviewOpened(fileName, previewTypeOf(fileName))
+    }
+
+    private fun previewTypeOf(name: String): String {
+        val extension = name.substringAfterLast('.', "").lowercase()
+        return when {
+            FileUtils.isGif(extension) -> PreviewTypes.GIF
+            FileUtils.isImage(extension) -> PreviewTypes.IMAGE
+            FileUtils.isVideo(extension) -> PreviewTypes.VIDEO
+            FileUtils.isPdf(extension) -> PreviewTypes.PDF
+            else -> PreviewTypes.UNSUPPORTED
+        }
     }
 
     /** Reads the settings once; returns null (after logging) when they cannot be read. */
@@ -112,7 +135,10 @@ class FileViewViewModel(
             when (settings.askDownloadPathConfig) {
                 AskDownloadPathConfig.NEVER_ASK -> {
                     if (settings.defaultDownloadDirectory != null) {
-                        downloadFileUseCase.downloadToPath(bucketId, fullPath, fileName, settings.defaultDownloadDirectory)
+                        downloadFileUseCase.downloadToPath(
+                            bucketId, fullPath, fileName, settings.defaultDownloadDirectory,
+                            DownloadDestinationModes.DEFAULT_FOLDER,
+                        )
                         _manualState.update { it.copy(successMessage = "Download started") }
                     } else {
                         _manualState.update { it.copy(itemToDownload = item, isSavingFile = true) }
@@ -120,7 +146,10 @@ class FileViewViewModel(
                 }
                 AskDownloadPathConfig.ONCE_WHEN_APP_OPEN -> {
                     if (settings.sessionDownloadDirectory != null) {
-                        downloadFileUseCase.downloadToPath(bucketId, fullPath, fileName, settings.sessionDownloadDirectory)
+                        downloadFileUseCase.downloadToPath(
+                            bucketId, fullPath, fileName, settings.sessionDownloadDirectory,
+                            DownloadDestinationModes.SESSION_FOLDER,
+                        )
                         _manualState.update { it.copy(successMessage = "Download started") }
                     } else {
                         _manualState.update { it.copy(
@@ -146,7 +175,10 @@ class FileViewViewModel(
 
             if (settings.defaultDownloadDirectory != null) {
                 rememberDownloadDirectory(settings, settings.defaultDownloadDirectory)
-                downloadFileUseCase.downloadToPath(bucketId, fullPath, fileName, settings.defaultDownloadDirectory)
+                downloadFileUseCase.downloadToPath(
+                    bucketId, fullPath, fileName, settings.defaultDownloadDirectory,
+                    DownloadDestinationModes.DEFAULT_FOLDER,
+                )
                 _manualState.update { it.copy(successMessage = "Download started", showDownloadPathOptionDialog = false, itemToDownload = null) }
             } else {
                 _manualState.update { it.copy(showDownloadPathOptionDialog = false, isPickingDirectory = true) }
@@ -205,6 +237,7 @@ class FileViewViewModel(
             val params = DeleteFileUseCase.Params(bucketId = bucketId, path = fullPath)
             deleteFileUseCase(params).fold(
                 onSuccess = {
+                    AppAnalytics.logStorageAction(StorageActions.DELETE_FILE)
                     _manualState.update { it.copy(
                         isDeleted = true,
                         isLoading = false,
@@ -212,6 +245,7 @@ class FileViewViewModel(
                     ) }
                 },
                 onFailure = { error ->
+                    AppAnalytics.logStorageAction(StorageActions.DELETE_FILE, error)
                     logger.e(error) { "Failed to delete file $fullPath" }
                     _manualState.update { it.copy(error = error.message, isLoading = false) }
                 }
@@ -223,6 +257,7 @@ class FileViewViewModel(
         val url = _manualState.value.publicUrl ?: return
         runCatching { clipboardManager.copyText(url) }.fold(
             onSuccess = {
+                AppAnalytics.logFileLinkCopied(LinkTypes.PUBLIC_URL, AnalyticsSurfaces.FILE_VIEW)
                 _manualState.update { it.copy(successMessage = "URL copied to clipboard") }
             },
             onFailure = { error ->

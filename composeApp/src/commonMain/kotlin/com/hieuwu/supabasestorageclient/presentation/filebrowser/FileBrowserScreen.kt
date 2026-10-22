@@ -2,6 +2,8 @@
 
 package com.hieuwu.supabasestorageclient.presentation.filebrowser
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -99,6 +101,7 @@ fun BucketScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: FileBrowserViewModel = koinViewModel(parameters = { parametersOf(bucketId, path) })
 ) {
+    TrackScreenView(AnalyticsScreens.BUCKET_CONTENTS)
     val uiState by viewModel.uiState.collectAsState()
 
     var itemToRename by remember { mutableStateOf<StorageItem?>(null) }
@@ -174,6 +177,7 @@ fun BucketScreen(
             targetState = uiState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
             transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+            contentKey = { it::class },
             label = "BucketStateTransition"
         ) { state ->
             when (state) {
@@ -214,7 +218,7 @@ fun BucketScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         contentPadding = PaddingValues(bottom = 88.dp)
                                     ) {
-                                        items(state.items) { item ->
+                                        items(state.items, key = { it.name }) { item ->
                                             StorageItemRow(
                                                 item = item,
                                                 sharedTransitionScope = sharedTransitionScope,
@@ -251,7 +255,7 @@ fun BucketScreen(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        items(state.items) { item ->
+                                        items(state.items, key = { it.name }) { item ->
                                             StorageItemGrid(
                                                 item = item,
                                                 sharedTransitionScope = sharedTransitionScope,

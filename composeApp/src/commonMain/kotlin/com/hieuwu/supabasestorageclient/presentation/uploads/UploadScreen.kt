@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.uploads
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,6 +37,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun UploadScreen(
     viewModel: UploadViewModel = koinViewModel()
 ) {
+    TrackScreenView(AnalyticsScreens.UPLOADS)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {

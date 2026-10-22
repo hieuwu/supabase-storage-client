@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.paywall
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.runtime.Composable
 import com.revenuecat.purchases.kmp.models.CustomerInfo
 import com.revenuecat.purchases.kmp.models.Offering
@@ -21,6 +23,7 @@ fun PaywallScreen(
     onRestoreCompleted: (CustomerInfo) -> Unit,
     onRestoreError: (PurchasesError) -> Unit,
 ) {
+    TrackScreenView(AnalyticsScreens.PAYWALL)
     val options = PaywallOptions(dismissRequest = onDismiss) {
         this.offering = offering
         this.shouldDisplayDismissButton = true

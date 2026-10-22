@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.hieuwu.supabasestorageclient.domain.usecase.IsOnboardingCompletedUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.MarkOnboardingCompletedUseCase
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.logOnboardingCompleted
+import com.hieuwu.supabasestorageclient.observability.analytics.logOnboardingSlideViewed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,13 +31,20 @@ class OnboardingViewModel(
     
     init {
         checkOnboardingStatus()
+        if (!_isCompleted.value) {
+            AppAnalytics.logOnboardingSlideViewed(_uiState.value.currentPage)
+        }
     }
-    
+
     private fun checkOnboardingStatus() {
         _isCompleted.value = isOnboardingCompletedUseCase()
     }
-    
+
     fun onPageChanged(page: Int) {
+        // Only the arrival matters - a swipe that snaps back reports the page it lands on.
+        if (page != _uiState.value.currentPage) {
+            AppAnalytics.logOnboardingSlideViewed(page)
+        }
         _uiState.update { it.copy(currentPage = page) }
     }
     
@@ -49,6 +59,7 @@ class OnboardingViewModel(
             markOnboardingCompletedUseCase().onFailure { error ->
                 logger.e(error) { "Failed to persist onboarding completion" }
             }
+            AppAnalytics.logOnboardingCompleted()
             _isCompleted.value = true
         }
     }

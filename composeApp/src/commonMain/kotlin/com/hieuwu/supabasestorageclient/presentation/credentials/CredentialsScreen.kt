@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.credentials
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -77,6 +79,7 @@ fun CredentialsScreen(
     viewModel: CredentialsViewModel = koinViewModel(),
     onAddCredentialRequested: () -> Unit = {}
 ) {
+    TrackScreenView(AnalyticsScreens.CREDENTIALS)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(

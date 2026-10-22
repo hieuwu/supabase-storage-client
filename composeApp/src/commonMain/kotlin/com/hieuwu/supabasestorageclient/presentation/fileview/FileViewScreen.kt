@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.fileview
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -34,6 +36,7 @@ fun FileViewScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: FileViewViewModel = koinViewModel(parameters = { parametersOf(bucketId, fileName, path) })
 ) {
+    TrackScreenView(AnalyticsScreens.FILE_VIEW)
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf(false) }
