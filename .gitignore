@@ -18,6 +18,9 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 
+# Symlink to the central agent-skills repo (absolute local path)
+.agent/
+
 # Signed build artifacts — never commit these
 composeApp/release/
 *.aab
@@ -34,3 +37,7 @@ composeApp/release/
 # StoreKit subscription signing keys are pasted into these at test time
 # (see README → In-app purchases). Keep the placeholder value committed.
 
+
+# Firebase — release configs are injected in CI or kept locally
+composeApp/src/release/google-services.json
+iosApp/Firebase/Release/GoogleService-Info.plist

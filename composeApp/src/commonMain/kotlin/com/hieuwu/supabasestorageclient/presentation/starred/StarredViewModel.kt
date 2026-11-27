@@ -7,6 +7,11 @@ import com.hieuwu.supabasestorageclient.domain.usecase.GetUserSettingsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.UnstarItemUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.ClearAllStarredItemsUseCase
 import co.touchlab.kermit.Logger
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSurfaces
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.ItemTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemUnstarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logStarredCleared
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -35,9 +40,17 @@ class StarredViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StarredUiState.Loading)
 
     fun unstarItem(id: String) {
+        val item = (uiState.value as? StarredUiState.Content)?.items?.find { it.id == id }
         viewModelScope.launch {
             unstarItemUseCase(id).fold(
                 onSuccess = {
+                    val itemType = when {
+                        item == null -> ItemTypes.FILE
+                        item.isBucket -> ItemTypes.BUCKET
+                        item.isFolder -> ItemTypes.FOLDER
+                        else -> ItemTypes.FILE
+                    }
+                    AppAnalytics.logItemUnstarred(itemType, AnalyticsSurfaces.STARRED)
                     _manualState.update { it.copy(successMessage = "Unstarred successfully") }
                 },
                 onFailure = { error ->
@@ -53,9 +66,11 @@ class StarredViewModel(
     }
 
     fun confirmClearAll() {
+        val clearedCount = (uiState.value as? StarredUiState.Content)?.items?.size ?: 0
         viewModelScope.launch {
             clearAllStarredItemsUseCase().fold(
                 onSuccess = {
+                    AppAnalytics.logStarredCleared(clearedCount)
                     _manualState.update {
                         it.copy(
                             showClearAllConfirmation = false,

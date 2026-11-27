@@ -10,6 +10,13 @@ import co.touchlab.kermit.Logger
 import com.hieuwu.supabasestorageclient.domain.model.StarredItem
 import com.hieuwu.supabasestorageclient.domain.usecase.GetStarredItemsUseCase
 import com.hieuwu.supabasestorageclient.domain.usecase.ToggleStarUseCase
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsSurfaces
+import com.hieuwu.supabasestorageclient.observability.analytics.AppAnalytics
+import com.hieuwu.supabasestorageclient.observability.analytics.ItemTypes
+import com.hieuwu.supabasestorageclient.observability.analytics.SearchScopes
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemStarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logItemUnstarred
+import com.hieuwu.supabasestorageclient.observability.analytics.logSearchPerformed
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.datetime.Clock
@@ -74,6 +81,8 @@ class SearchViewModel(
                 getBucketsUseCase().fold(
                     onSuccess = { buckets ->
                         val filtered = buckets.filter { it.name.contains(query, ignoreCase = true) }
+                        // The query itself is never sent - only whether it found anything.
+                        AppAnalytics.logSearchPerformed(SearchScopes.BUCKETS, filtered.size)
                         _uiState.update {
                             it.copy(
                                 buckets = filtered,
@@ -94,6 +103,7 @@ class SearchViewModel(
                     onSuccess = { items ->
                         val filtered = items.filter { it.name.contains(query, ignoreCase = true) }
                             .map { SearchResult(it, bucketId) }
+                        AppAnalytics.logSearchPerformed(SearchScopes.FILES, filtered.size)
                         _uiState.update {
                             it.copy(
                                 storageItems = filtered,
@@ -126,6 +136,13 @@ class SearchViewModel(
                 ),
                 isStarred = bucket.isStarred
             )
+            result.onSuccess {
+                if (bucket.isStarred) {
+                    AppAnalytics.logItemUnstarred(ItemTypes.BUCKET, AnalyticsSurfaces.SEARCH)
+                } else {
+                    AppAnalytics.logItemStarred(ItemTypes.BUCKET, AnalyticsSurfaces.SEARCH)
+                }
+            }
             result.onFailure { error ->
                 logger.e(error) { "Failed to toggle star for bucket ${bucket.id}" }
                 _uiState.update { it.copy(error = error.message) }
@@ -148,6 +165,14 @@ class SearchViewModel(
                 ),
                 item.isStarred
             )
+            result.onSuccess {
+                val itemType = if (item.isFolder) ItemTypes.FOLDER else ItemTypes.FILE
+                if (item.isStarred) {
+                    AppAnalytics.logItemUnstarred(itemType, AnalyticsSurfaces.SEARCH)
+                } else {
+                    AppAnalytics.logItemStarred(itemType, AnalyticsSurfaces.SEARCH)
+                }
+            }
             result.onFailure { error ->
                 logger.e(error) { "Failed to toggle star for $itemId" }
                 _uiState.update { it.copy(error = error.message) }

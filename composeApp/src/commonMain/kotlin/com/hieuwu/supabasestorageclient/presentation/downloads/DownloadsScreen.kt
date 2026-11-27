@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.downloads
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +60,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun DownloadsScreen(
     viewModel: DownloadsViewModel = koinViewModel()
 ) {
+    TrackScreenView(AnalyticsScreens.DOWNLOADS)
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val itemToDelete by viewModel.showDeleteConfirmationDialog
     val itemToCancel by viewModel.showCancelConfirmationDialog

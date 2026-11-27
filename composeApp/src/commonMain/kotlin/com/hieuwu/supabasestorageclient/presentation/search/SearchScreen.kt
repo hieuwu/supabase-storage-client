@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.search
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +39,7 @@ fun SearchScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: SearchViewModel = koinViewModel { parametersOf(bucketId) }
 ) {
+    TrackScreenView(AnalyticsScreens.SEARCH)
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 

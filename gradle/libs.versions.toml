@@ -32,6 +32,11 @@ core-splashscreen = "1.2.0"
 revenuecat = "3.2.0"
 buildkonfig = "0.22.0"
 filekit = "0.14.2"
+firebaseBom = "34.17.0"
+firebaseIosSdk = "12.17.0"
+googleServices = "4.5.0"
+crashlyticsPlugin = "3.0.7"
+spmForKmp = "1.9.5"
 
 
 [libraries]
@@ -99,6 +104,11 @@ revenuecat-purchases-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui"
 filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
+# Firebase (Android)
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
@@ -109,4 +119,7 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "crashlyticsPlugin" }
+spmForKmp = { id = "io.github.frankois944.spmForKmp", version.ref = "spmForKmp" }
 

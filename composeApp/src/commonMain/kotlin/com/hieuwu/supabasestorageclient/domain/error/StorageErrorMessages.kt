@@ -6,10 +6,36 @@ enum class StorageOperation(val label: String) {
 }
 
 /**
- * Turns the raw exception from the storage API / file system into a single short message
- * that says why the operation failed.
+ * Why a storage call failed, as a stable low-cardinality token.
+ *
+ * One classification, two consumers: [key] is what analytics reports (raw exception text is
+ * unbounded and often contains an object path), [message] is what the user reads.
  */
-fun storageErrorMessage(error: Throwable, operation: StorageOperation): String {
+enum class StorageErrorReason(val key: String, val message: String) {
+    RlsPolicy("rls_policy", "the bucket's row level security policy blocked it"),
+    InvalidKey("invalid_key", "the API key is invalid or expired"),
+    Unauthorized("unauthorized", "your key is not authorized for this bucket"),
+    Forbidden("forbidden", "access was denied - the bucket is missing a policy for this action"),
+    BucketNotFound("bucket_not_found", "the bucket no longer exists"),
+    NotFound("not_found", "the file was not found on the server"),
+    AlreadyExists("already_exists", "a file with the same name already exists in the bucket"),
+    TooLarge("too_large", "the file is bigger than the bucket's size limit"),
+    MimeTypeRejected("mime_type_rejected", "the file type is not allowed by the bucket"),
+    DestinationMissing(
+        "destination_missing",
+        "the destination folder is not available - pick the download folder again",
+    ),
+    NoWritePermission("no_write_permission", "there is no permission to write to the selected folder"),
+    NoSpace("no_space", "there is not enough free space on the device"),
+    Network("network", "the server could not be reached - check your connection"),
+    Unknown("unknown", "an unexpected error occurred"),
+}
+
+/**
+ * Classifies [error] by matching the flattened cause chain, which is where the storage API and the
+ * platform file system both put the useful part.
+ */
+fun storageErrorReason(error: Throwable): StorageErrorReason {
     val details = buildString {
         var current: Throwable? = error
         var depth = 0
@@ -21,63 +47,65 @@ fun storageErrorMessage(error: Throwable, operation: StorageOperation): String {
         }
     }.lowercase()
 
-    val reason = when {
+    return when {
         details.contains("row-level security") ||
             details.contains("row level security") ||
-            details.contains("new row violates") ->
-            "the bucket's row level security policy blocked it"
+            details.contains("new row violates") -> StorageErrorReason.RlsPolicy
 
         details.contains("jwt") ||
             details.contains("invalid api key") ||
             details.contains("invalid token") ||
-            details.contains("invalid claim") ->
-            "the API key is invalid or expired"
+            details.contains("invalid claim") -> StorageErrorReason.InvalidKey
 
-        details.contains("unauthorized") || details.contains("401") ->
-            "your key is not authorized for this bucket"
+        details.contains("unauthorized") || details.contains("401") -> StorageErrorReason.Unauthorized
 
-        details.contains("403") || details.contains("forbidden") || details.contains("access denied") ->
-            "access was denied - the bucket is missing a policy for this action"
+        details.contains("403") ||
+            details.contains("forbidden") ||
+            details.contains("access denied") -> StorageErrorReason.Forbidden
 
-        details.contains("bucket not found") ->
-            "the bucket no longer exists"
+        details.contains("bucket not found") -> StorageErrorReason.BucketNotFound
 
-        details.contains("not found") || details.contains("404") ->
-            "the file was not found on the server"
+        details.contains("not found") || details.contains("404") -> StorageErrorReason.NotFound
 
-        details.contains("already exists") || details.contains("duplicate") ->
-            "a file with the same name already exists in the bucket"
+        details.contains("already exists") || details.contains("duplicate") -> StorageErrorReason.AlreadyExists
 
         details.contains("413") ||
             details.contains("payload too large") ||
-            details.contains("maximum allowed size") ->
-            "the file is bigger than the bucket's size limit"
+            details.contains("maximum allowed size") -> StorageErrorReason.TooLarge
 
-        details.contains("mime type") ->
-            "the file type is not allowed by the bucket"
+        details.contains("mime type") -> StorageErrorReason.MimeTypeRejected
 
         details.contains("enoent") ||
             details.contains("no such file") ||
-            details.contains("filenotfound") ->
-            "the destination folder is not available - pick the download folder again"
+            details.contains("filenotfound") -> StorageErrorReason.DestinationMissing
 
         details.contains("eacces") ||
             details.contains("securityexception") ||
-            details.contains("permission") ->
-            "there is no permission to write to the selected folder"
+            details.contains("permission") -> StorageErrorReason.NoWritePermission
 
-        details.contains("enospc") || details.contains("no space left") ->
-            "there is not enough free space on the device"
+        details.contains("enospc") || details.contains("no space left") -> StorageErrorReason.NoSpace
 
         details.contains("unknownhost") ||
             details.contains("unresolvedaddress") ||
             details.contains("connect") ||
             details.contains("timeout") ||
-            details.contains("timed out") ->
-            "the server could not be reached - check your connection"
+            details.contains("timed out") -> StorageErrorReason.Network
 
-        else -> error.message ?: "an unexpected error occurred"
+        else -> StorageErrorReason.Unknown
     }
+}
 
-    return "${operation.label} failed because $reason"
+/**
+ * Turns the raw exception from the storage API / file system into a single short message
+ * that says why the operation failed.
+ */
+fun storageErrorMessage(error: Throwable, operation: StorageOperation): String {
+    val reason = storageErrorReason(error)
+    // An unclassified error still carries its own message, which beats a generic sentence.
+    val explanation = if (reason == StorageErrorReason.Unknown) {
+        error.message ?: reason.message
+    } else {
+        reason.message
+    }
+    return "${operation.label} failed because $explanation"
 }

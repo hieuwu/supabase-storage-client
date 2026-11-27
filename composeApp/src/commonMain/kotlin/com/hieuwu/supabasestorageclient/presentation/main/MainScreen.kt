@@ -476,7 +476,7 @@ fun MainScreen(
                             animatedVisibilityScope = this@composable
                         )
                     }
-                    composable(Screen.StarredTab.route) { 
+                    composable(Screen.StarredTab.route) {
                         StarredScreen(
                             onNavigateToBucket = { bucketId ->
                                 navController.navigate(Screen.Bucket.createRoute(bucketId))
@@ -491,9 +491,15 @@ fun MainScreen(
                             animatedVisibilityScope = this@composable
                         ) 
                     }
-                    composable(Screen.DownloadsTab.route) { DownloadsScreen() }
-                    composable(Screen.UploadsTab.route) { UploadScreen() }
-                    composable(Screen.SettingsTab.route) { SettingsScreen() }
+                    composable(Screen.DownloadsTab.route) {
+                        DownloadsScreen()
+                    }
+                    composable(Screen.UploadsTab.route) {
+                        UploadScreen()
+                    }
+                    composable(Screen.SettingsTab.route) {
+                        SettingsScreen()
+                    }
 
                     composable(
                         route = Screen.Bucket.route,

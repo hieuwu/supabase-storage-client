@@ -1,5 +1,7 @@
 package com.hieuwu.supabasestorageclient.presentation.onboarding
 
+import com.hieuwu.supabasestorageclient.observability.analytics.AnalyticsScreens
+import com.hieuwu.supabasestorageclient.observability.analytics.TrackScreenView
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +42,7 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = koinViewModel()
 ) {
+    TrackScreenView(AnalyticsScreens.ONBOARDING)
     val uiState by viewModel.uiState.collectAsState()
     val pagerState = rememberPagerState(pageCount = { uiState.totalPages })
     val scope = rememberCoroutineScope()
